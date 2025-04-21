@@ -92,9 +92,9 @@ class RV32Icore (BinaryFile: String) extends Module {
   // -----------------------------------------
 
   val opcode = instr(6, 0)    // Operation to be perform (add, subtract, load from memory, etc)
-  /*
-   * TODO: Add missing fields from fetched instructions for decoding
-   */
+
+  /* TODO: Add missing fields from fetched instructions for decoding */
+
   val rd = instr(7, 11)       // Destination register
   val funct3 = instr(12, 14)  // Shift right or left
   val rs1 = instr(15, 19)     // Source register 1
@@ -109,9 +109,9 @@ class RV32Icore (BinaryFile: String) extends Module {
   // Functions
 
   val isADD  = (opcode === "b0110011".U && funct3 === "b000".U && funct7 === "b0000000".U)
-  /*
-   * TODO: Add missing R-Type instructions here
-   */
+
+  /* TODO: Add missing R-Type instructions here  */
+
   val isSUB  = (opcode === "b0110011".U && funct3 === "b000".U && funct7 === "b0100000".U)
   // SLL Logical left shift rd = rs1 << (rs2 & 0x1F)
   val isSLL  = (opcode === "b0110011".U && funct3 === "b001".U && funct7 === "b0000000".U)
@@ -128,19 +128,20 @@ class RV32Icore (BinaryFile: String) extends Module {
   val isOR   = (opcode === "b0110011".U && funct3 === "b110".U && funct7 === "b0100000".U)
   val isAND  = (opcode === "b0110011".U && funct3 === "b111".U && funct7 === "b0100000".U)
 
-
-
   val isADDI = (opcode === "b0010011".U && funct3 === "b000".U)
-
 
   // Operands
 
-   /*
-   * TODO: Add operand signals according to specification
-   */
-    val operandA = regFile(rs1)
-    val operandB = regFile(rs2)
+   /* TODO: Add operand signals according to specification */
 
+    val operandA = Wire(UInt(32.W))
+    val operandB = Wire(UInt(32.W))
+
+    operandA := regFile(rs1)
+
+    //For R-type, operandB comes from rs2, for I-Type, it is the immediate
+
+    operandB := Mux(isADDI, immI_sext, regFile(rs2)) //if ADDI true, then immI_sext, otherwise regFile(rs2)
 
   // -----------------------------------------
   // Execute
@@ -152,12 +153,29 @@ class RV32Icore (BinaryFile: String) extends Module {
     aluResult := operandA + operandB 
   }.elsewhen(isADD) {                           
     aluResult := operandA + operandB 
+  }.elsewhen(isSUB) {
+      aluResult := operandA - operandB
+    }.elsewhen(isSLL) {
+    aluResult := operandA << operandB                                 //operandA shifted left by operandB
+  }.elsewhen(isSLT) {
+    aluResult := Mux(operandA.asSInt < operandB.asSInt, 1.U, 0.U)     //if true 1, otherwise 0
+  }.elsewhen(isSLTU) {
+    aluResult := Mux(operandA < operandB, 1.U, 0.U)                   //if true 1, otherwise 0
+  }.elsewhen(isXOR) {
+    aluResult := operandA ^ operandB
+  }.elsewhen(isSRL) {
+    aluResult := operandA >> operandB
+  }.elsewhen(isSRA) {
+    aluResult := Mux(operandA.asSInt > operandB.asSInt, 1.U, 0.U)     //if true 1, otherwise 0
+  }.elsewhen(isOR) {
+    aluResult := operandA | operandB
+  }.elsewhen(isAND) {
+    aluResult := operandA & operandB
+  }.otherwise {
+    aluResult := 0.U            // Default case for unimplemented instructions
   }
-  /*
-   * TODO: Add missing R-Type instructions here. Do not forget to implement a suitable default case for
-   *       fetched instructions that are neither R-Type nor ADDI. 
-   */
-
+  /* TODO: Add missing R-Type instructions here. Do not forget to implement a suitable default case for
+           fetched instructions that are neither R-Type nor ADDI.  */
 
   // -----------------------------------------
   // Memory
@@ -173,9 +191,10 @@ class RV32Icore (BinaryFile: String) extends Module {
   val writeBackData = Wire(UInt(32.W)) 
   writeBackData := aluResult
 
-  /*
-   * TODO: Store "writeBackData" in register "rd" in regFile
-   */
+  /* TODO: Store "writeBackData" in register "rd" in regFile */
+  when (rd =/= 0.U){         //if rd is not x0 (register 0)
+    regFile(rd := writeBackData)
+  }
 
   // Check Result
   /*
@@ -185,7 +204,11 @@ class RV32Icore (BinaryFile: String) extends Module {
 
   // Update PC
   // no jumps or branches, next PC always reads next address from IMEM
-  /*
+
+  PC := PC + 4.U
+
+
+
    * TODO: Increment PC
    */
 

@@ -72,6 +72,7 @@ class RV32Icore (BinaryFile: String) extends Module {
   /*
    * TODO: Implement the program counter as a register, initialize with zero
    */
+  val PC= RegInit(0.U(32W))   //definition of register with init value 0
 
   val regFile = Mem(32, UInt(32.W))
   /*
@@ -89,15 +90,21 @@ class RV32Icore (BinaryFile: String) extends Module {
   // Decode
   // -----------------------------------------
 
-  val opcode = instr(6, 0)
+  val opcode = instr(6, 0)    // operation to be perform (add, subtract, load from memory, etc)
   /*
    * TODO: Add missing fields from fetched instructions for decoding
    */
+  val rd = instr(7, 11)       // destination register
+  val funct3 = instr(12, 14)  //shift right or left
+  val rs1 = instr(15, 19)     // source register 1
+  val rs2 = instr(20, 24)     // source register 2
+  val funct7 = instr(25, 31)  //complement of opcode (help to determine exactly what operation to do)
 
   val isADD  = (opcode === "b0110011".U && funct3 === "b000".U && funct7 === "b0000000".U)
   /*
    * TODO: Add missing R-Type instructions here
    */
+
 
 
   val isADDI = (opcode === "b0010011".U && funct3 === "b000".U)

@@ -72,7 +72,7 @@ class RV32Icore (BinaryFile: String) extends Module {
   /*
    * TODO: Implement the program counter as a register, initialize with zero
    */
-  val PC= RegInit(0.U(32W))          // Definition of register with init value 0
+  val PC= RegInit(0.U(32.W))          // Definition of register with init value 0
 
   val regFile = Mem(32, UInt(32.W))  // Creation of the Block-Register File 32 register with 32 bits each of them
   /*
@@ -95,11 +95,11 @@ class RV32Icore (BinaryFile: String) extends Module {
 
   /* TODO: Add missing fields from fetched instructions for decoding */
 
-  val rd = instr(7, 11)       // Destination register
-  val funct3 = instr(12, 14)  // Shift right or left
-  val rs1 = instr(15, 19)     // Source register 1
-  val rs2 = instr(20, 24)     // Source register 2
-  val funct7 = instr(25, 31)  // Complement of opcode (help to determine exactly what operation to do)
+  val rd = instr(11, 7)       // Destination register
+  val funct3 = instr(14, 12)  // Shift right or left
+  val rs1 = instr(19, 15)     // Source register 1
+  val rs2 = instr(24, 20)     // Source register 2
+  val funct7 = instr(31, 25)  // Complement of opcode (help to determine exactly what operation to do)
 
   // I-type
 
@@ -156,7 +156,7 @@ class RV32Icore (BinaryFile: String) extends Module {
   }.elsewhen(isSUB) {
       aluResult := operandA - operandB
     }.elsewhen(isSLL) {
-    aluResult := operandA << operandB                                 //operandA shifted left by operandB
+    aluResult := operandA << operandB(4, 0)                                 //operandA shifted left by operandB
   }.elsewhen(isSLT) {
     aluResult := Mux(operandA.asSInt < operandB.asSInt, 1.U, 0.U)     //if true 1, otherwise 0
   }.elsewhen(isSLTU) {
@@ -164,9 +164,9 @@ class RV32Icore (BinaryFile: String) extends Module {
   }.elsewhen(isXOR) {
     aluResult := operandA ^ operandB
   }.elsewhen(isSRL) {
-    aluResult := operandA >> operandB
+    aluResult := operandA >> operandB(4, 0)
   }.elsewhen(isSRA) {
-    aluResult := Mux(operandA.asSInt > operandB.asSInt, 1.U, 0.U)     //if true 1, otherwise 0
+    aluResult := (operandA.asSInt() >> operandB(4,0)).asUInt
   }.elsewhen(isOR) {
     aluResult := operandA | operandB
   }.elsewhen(isAND) {
@@ -193,7 +193,7 @@ class RV32Icore (BinaryFile: String) extends Module {
 
   /* TODO: Store "writeBackData" in register "rd" in regFile */
   when (rd =/= 0.U){         //if rd is not x0 (register 0)
-    regFile(rd := writeBackData)
+    regFile(rd) := writeBackData
   }
 
   // Check Result
@@ -209,7 +209,6 @@ class RV32Icore (BinaryFile: String) extends Module {
 
 
 
-   * TODO: Increment PC
-   */
+   // TODO: Increment PC
 
-}
+  }

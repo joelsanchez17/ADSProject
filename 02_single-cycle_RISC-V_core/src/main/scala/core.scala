@@ -62,8 +62,8 @@ class RV32Icore (BinaryFile: String) extends Module {
   // Instruction Memory
   // -----------------------------------------
 
-  val IMem = Mem(4096, UInt(32.W))
-  loadMemoryFromFile(IMem, BinaryFile)
+  val IMem = Mem(4096, UInt(32.W))       // Creation of block-memory of 32 bits which can hold 4062 values
+  loadMemoryFromFile(IMem, BinaryFile)   // Load File in Memory for initiation
 
   // -----------------------------------------
   // CPU Registers
@@ -72,9 +72,9 @@ class RV32Icore (BinaryFile: String) extends Module {
   /*
    * TODO: Implement the program counter as a register, initialize with zero
    */
-  val PC= RegInit(0.U(32W))   //definition of register with init value 0
+  val PC= RegInit(0.U(32W))          // Definition of register with init value 0
 
-  val regFile = Mem(32, UInt(32.W))
+  val regFile = Mem(32, UInt(32.W))  // Creation of the Block-Register File 32 register with 32 bits each of them
   /*
    * TODO: hard-wire register x0 to zero
    */
@@ -83,27 +83,50 @@ class RV32Icore (BinaryFile: String) extends Module {
   // Fetch
   // -----------------------------------------
 
-  val instr  = Wire(UInt(32.W)) 
-  instr := IMem(PC>>2.U)                     
+  val instr  = Wire(UInt(32.W))    // Connection between different part of the circuit IMem > RegFile
+  instr := IMem(PC>>2.U)           // Take the instruction located in PC(entry address) with shift of 2 bits
+                                   // Now instr take the instruction of 32 bits and have to be decode
 
   // -----------------------------------------
   // Decode
   // -----------------------------------------
 
-  val opcode = instr(6, 0)    // operation to be perform (add, subtract, load from memory, etc)
+  val opcode = instr(6, 0)    // Operation to be perform (add, subtract, load from memory, etc)
   /*
    * TODO: Add missing fields from fetched instructions for decoding
    */
-  val rd = instr(7, 11)       // destination register
-  val funct3 = instr(12, 14)  //shift right or left
-  val rs1 = instr(15, 19)     // source register 1
-  val rs2 = instr(20, 24)     // source register 2
-  val funct7 = instr(25, 31)  //complement of opcode (help to determine exactly what operation to do)
+  val rd = instr(7, 11)       // Destination register
+  val funct3 = instr(12, 14)  // Shift right or left
+  val rs1 = instr(15, 19)     // Source register 1
+  val rs2 = instr(20, 24)     // Source register 2
+  val funct7 = instr(25, 31)  // Complement of opcode (help to determine exactly what operation to do)
+
+  // I-type
+
+  val immI = instr(31, 20)
+  val immI_sext = Cat(Fill(20, immI(11)), immI)  // transfor immI (12 bits) into a signal of 32 bits
+
+  // Functions
 
   val isADD  = (opcode === "b0110011".U && funct3 === "b000".U && funct7 === "b0000000".U)
   /*
    * TODO: Add missing R-Type instructions here
    */
+  val isSUB  = (opcode === "b0110011".U && funct3 === "b000".U && funct7 === "b0100000".U)
+  // SLL Logical left shift rd = rs1 << (rs2 & 0x1F)
+  val isSLL  = (opcode === "b0110011".U && funct3 === "b001".U && funct7 === "b0000000".U)
+  // SLT set if less than (signed) rd = (rs1 < rs2)? 1 : 0
+  val isSLT  = (opcode === "b0110011".U && funct3 === "b010".U && funct7 === "b0000000".U)
+  // SLTU set if less than (unsigned) rd = (rs1 < rs2)? 1:0
+  val isSLTU = (opcode === "b0110011".U && funct3 === "b011".U && funct7 === "b0000000".U)
+  // XOR rd = rs1 ^ rs2 (only one set to 1)
+  val isXOR  = (opcode === "b0110011".U && funct3 === "b100".U && funct7 === "b0000000".U)
+  // SRL Logical right shift rd = rs1 >> (rs2 & 0x1F)
+  val isSRL  = (opcode === "b0110011".U && funct3 === "b101".U && funct7 === "b0000000".U)
+  // SRA Arithmetic right shift: preserves sign rd = rs1 >>> (rs & 0x1F)
+  val isSRA  = (opcode === "b0110011".U && funct3 === "b101".U && funct7 === "b0100000".U)
+  val isOR   = (opcode === "b0110011".U && funct3 === "b110".U && funct7 === "b0100000".U)
+  val isAND  = (opcode === "b0110011".U && funct3 === "b111".U && funct7 === "b0100000".U)
 
 
 
@@ -113,8 +136,11 @@ class RV32Icore (BinaryFile: String) extends Module {
   // Operands
 
    /*
-   * TODO: Add operand signals accoring to specification
+   * TODO: Add operand signals according to specification
    */
+    val operandA = regFile(rs1)
+    val operandB = regFile(rs2)
+
 
   // -----------------------------------------
   // Execute

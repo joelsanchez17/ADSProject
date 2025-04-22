@@ -78,6 +78,7 @@ class RV32Icore (BinaryFile: String) extends Module {
   /*
    * TODO: hard-wire register x0 to zero
    */
+  regFile(0) := 0.U
 
   // -----------------------------------------
   // Fetch
@@ -104,7 +105,7 @@ class RV32Icore (BinaryFile: String) extends Module {
   // I-type
 
   val immI = instr(31, 20)
-  val immI_sext = Cat(Fill(20, immI(11)), immI)  // transfor immI (12 bits) into a signal of 32 bits
+  val immI_sext = Cat(Fill(20, immI(11)), immI)  // Ask! transfor immI (12 bits) into a signal of 32 bits
 
   // Functions
 
@@ -147,8 +148,10 @@ class RV32Icore (BinaryFile: String) extends Module {
   // Execute
   // -----------------------------------------
 
-  val aluResult = Wire(UInt(32.W)) 
+  val aluResult = Wire(UInt(32.W))
 
+  /* TODO: Add missing R-Type instructions here. Do not forget to implement a suitable default case for
+           fetched instructions that are neither R-Type nor ADDI.  */
   when(isADDI) { 
     aluResult := operandA + operandB 
   }.elsewhen(isADD) {                           
@@ -156,11 +159,11 @@ class RV32Icore (BinaryFile: String) extends Module {
   }.elsewhen(isSUB) {
       aluResult := operandA - operandB
     }.elsewhen(isSLL) {
-    aluResult := operandA << operandB(4, 0)                                 //operandA shifted left by operandB
+    aluResult := operandA << operandB(4, 0)                          //operandA shifted left by operandB
   }.elsewhen(isSLT) {
-    aluResult := Mux(operandA.asSInt < operandB.asSInt, 1.U, 0.U)     //if true 1, otherwise 0
+    aluResult := Mux(operandA.asSInt < operandB.asSInt, 1.U, 0.U)    //if true 1, otherwise 0
   }.elsewhen(isSLTU) {
-    aluResult := Mux(operandA < operandB, 1.U, 0.U)                   //if true 1, otherwise 0
+    aluResult := Mux(operandA < operandB, 1.U, 0.U)                  //if true 1, otherwise 0
   }.elsewhen(isXOR) {
     aluResult := operandA ^ operandB
   }.elsewhen(isSRL) {
@@ -172,17 +175,14 @@ class RV32Icore (BinaryFile: String) extends Module {
   }.elsewhen(isAND) {
     aluResult := operandA & operandB
   }.otherwise {
-    aluResult := 0.U            // Default case for unimplemented instructions
+    aluResult := 0.U                                                 // Default case for unimplemented instructions
   }
-  /* TODO: Add missing R-Type instructions here. Do not forget to implement a suitable default case for
-           fetched instructions that are neither R-Type nor ADDI.  */
 
   // -----------------------------------------
   // Memory
   // -----------------------------------------
 
   // No memory operations implemented in this basic CPU
-
 
   // -----------------------------------------
   // Write Back 
@@ -205,10 +205,8 @@ class RV32Icore (BinaryFile: String) extends Module {
   // Update PC
   // no jumps or branches, next PC always reads next address from IMEM
 
+  // TODO: Increment PC
+
   PC := PC + 4.U
-
-
-
-   // TODO: Increment PC
 
   }

@@ -70,21 +70,23 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
   // Instruction Memory
   // -----------------------------------------
 
-  /*
-   * TODO: Implement the memory as described above
-   */
+  /** TODO: Implement the memory as described above */
+  val IMem = Mem(4096, UInt(32.W))       // Creation of block-memory of 32 bits which can hold 4062 values
+  loadMemoryFromFile(IMem, BinaryFile)   // Load File in Memory for initiation
+
 
   // -----------------------------------------
   // CPU Registers
   // -----------------------------------------
 
-  /*
-   * TODO: Implement the program counter as a register, initialize with zero
-   */
+  /** TODO: Implement the program counter as a register, initialize with zero */
 
-  /*
-   * TODO: Implement the Register File as described above
-   */
+  val PC= RegInit(0.U(32.W))
+
+  /** TODO: Implement the Register File as described above */
+
+  val RegFile = Mem(32,UInt(32.W))
+  RegFile(0) := 0.U                        //Register x0 is hard-wired to zero
 
   // -----------------------------------------
   // Microarchitectural Registers / Wires
@@ -93,9 +95,17 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
   // if signal is processed in the same cycle --> wire
   // is signal is used in a later cycle       --> register
 
-  /*
-   * TODO: Implement the registers and wires you need in the individual stages of the processor 
-   */
+  /** TODO: Implement the registers and wires you need in the individual stages of the processor  */
+
+  val instReg = Reg(UInt(32.W))       //  IF/ID Fetch to Decode
+
+  val rs1Data = Reg(UInt(32.W))       //  ID/EX Decode to Execute
+  val rs2Data = Reg(UInt(32.W))
+
+  val aluResult = Reg(UInt(32.U))     //  EX/MEM Execute to Memory Access
+
+  val readData = Reg(UInt(32.U))      //  MEM/WB Memory Access to Writeback
+
 
   // IOs need default case
   io.check_res := "h_0000_0000".U
@@ -107,26 +117,29 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
 
   when (stage === fetch)
   {
-
-  /*
-   * TODO: Implement fetch stage
-   */
+  /** TODO: Implement fetch stage */
+    instReg := Imem(PC<<2.U)
 
   } 
     .elsewhen (stage === decode)
   {
-
-  /*
-   * TODO: Implement decode stage
-   */
+    /** TODO: Implement decode stage */
+    val opcode = instr(6, 0)    // Operation to be perform (add, subtract, load from memory, etc)
+    val rd = instr(11, 7)       // Destination register
+    val funct3 = instr(14, 12)  // Shift right or left
+    val rs1 = instr(19, 15)     // Source register 1
+    val rs2 = instr(24, 20)     // Source register 2
+    val funct7 = instr(31, 25)  // Complement of opcode (help to determine exactly what operation to do)
+    // I-type
+    val immI = instr(31, 20)
+    val immI_sext = Cat(Fill(20, immI(11)), immI)  // Ask! transfor immI (12 bits) into a signal of 32 bits
 
   } 
     .elsewhen (stage === execute)
   {
+  /** TODO: Implement execute stage */
 
-  /*
-   * TODO: Implement execute stage
-   */
+
 
   }
     .elsewhen (stage === memory)

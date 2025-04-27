@@ -85,8 +85,8 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
 
   /** TODO: Implement the Register File as described above */
 
-  val RegFile = Mem(32,UInt(32.W))
-  RegFile(0) := 0.U                        //Register x0 is hard-wired to zero
+  val regFile = Mem(32,UInt(32.W))
+  regFile(0) := 0.U                        //Register x0 is hard-wired to zero
 
   // -----------------------------------------
   // Microarchitectural Registers / Wires
@@ -97,14 +97,39 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
 
   /** TODO: Implement the registers and wires you need in the individual stages of the processor  */
 
-  val instReg = Reg(UInt(32.W))       //  IF/ID Fetch to Decode
+  /**  IF/ID Fetch to Decode */
+  val instReg = RegInit(0.U(32.W))
 
-  val rs1Data = Reg(UInt(32.W))       //  ID/EX Decode to Execute
+  /**  ID/EX Decode to Execute */
+  val rdReg = Reg(UInt(5.W))
+  val rs1Reg = Reg(UInt(5.W))
+  val rs2Reg = Reg(UInt(5.W))
+  val funct3Reg = Reg(UInt(3.W))
+  val funct7Reg = Reg(UInt(7.W))
+  val opcodeReg = Reg(UInt(7.W))
+
+  /**  EX/MEM Execute to Memory Access */
+  val rs1Data = Reg(UInt(32.W))
   val rs2Data = Reg(UInt(32.W))
 
-  val aluResult = Reg(UInt(32.U))     //  EX/MEM Execute to Memory Access
+  val operandA = Reg(UInt(32.W))      //defined in order to copy Task 2
+  val operandB = Reg(UInt(32.W))
 
-  val readData = Reg(UInt(32.U))      //  MEM/WB Memory Access to Writeback
+  /**  EX/MEM Memory Access to WriteBack */
+  val aluResult = Reg(UInt(32.W))
+
+  /** Control signals */
+  val isADD  = RegInit(false.B)
+  val isSUB  = RegInit(false.B)
+  val isSLL  = RegInit(false.B)
+  val isSLT  = RegInit(false.B)
+  val isSLTU = RegInit(false.B)
+  val isXOR  = RegInit(false.B)
+  val isSRL  = RegInit(false.B)
+  val isSRA  = RegInit(false.B)
+  val isOR   = RegInit(false.B)
+  val isAND  = RegInit(false.B)
+  val isADDI = RegInit(false.B)
 
 
   // IOs need default case
@@ -118,49 +143,101 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
   when (stage === fetch)
   {
   /** TODO: Implement fetch stage */
-    instReg := Imem(PC<<2.U)
-
+    instReg := IMem(PC >> 2.U)
+    stage:= decode
   } 
     .elsewhen (stage === decode)
   {
     /** TODO: Implement decode stage */
-    val opcode = instr(6, 0)    // Operation to be perform (add, subtract, load from memory, etc)
-    val rd = instr(11, 7)       // Destination register
-    val funct3 = instr(14, 12)  // Shift right or left
-    val rs1 = instr(19, 15)     // Source register 1
-    val rs2 = instr(24, 20)     // Source register 2
-    val funct7 = instr(31, 25)  // Complement of opcode (help to determine exactly what operation to do)
-    // I-type
-    val immI = instr(31, 20)
-    val immI_sext = Cat(Fill(20, immI(11)), immI)  // Ask! transfor immI (12 bits) into a signal of 32 bits
 
+    opcodeReg := instReg(6, 0)
+    rdReg := instReg(11, 7)
+    funct3Reg := instReg(14, 12)
+    rs1Reg := instReg(19, 15)
+    rs2Reg := instReg(24, 20)
+    funct7Reg := instReg(31, 25)
+
+    val immI = instReg(31, 20)
+    val immI_sext = Cat(Fill(20, immI(11)), immI)
+    /** Functions */
+    isADD  := (opcodeReg === "b0110011".U && funct3Reg === "b000".U && funct7Reg === "b0000000".U)
+    isSUB  := (opcodeReg === "b0110011".U && funct3Reg === "b000".U && funct7Reg === "b0100000".U)
+    // SLL Logical left shift rd = rs1 << (rs2 & 0x1F)
+    isSLL  := (opcodeReg === "b0110011".U && funct3Reg === "b001".U && funct7Reg === "b0000000".U)
+    // SLT set if less than (signed) rd = (rs1 < rs2)? 1 : 0
+    isSLT  := (opcodeReg === "b0110011".U && funct3Reg === "b010".U && funct7Reg === "b0000000".U)
+    // SLTU set if less than (unsigned) rd = (rs1 < rs2)? 1:0
+    isSLTU := (opcodeReg === "b0110011".U && funct3Reg === "b011".U && funct7Reg === "b0000000".U)
+    // XOR rd = rs1 ^ rs2 (only one set to 1)
+    isXOR  := (opcodeReg === "b0110011".U && funct3Reg === "b100".U && funct7Reg === "b0000000".U)
+    // SRL Logical right shift rd = rs1 >> (rs2 & 0x1F)
+    isSRL  := (opcodeReg === "b0110011".U && funct3Reg === "b101".U && funct7Reg === "b0000000".U)
+    // SRA Arithmetic right shift: preserves sign rd = rs1 >>> (rs & 0x1F)
+    isSRA  := (opcodeReg === "b0110011".U && funct3Reg === "b101".U && funct7Reg === "b0100000".U)
+    isOR   := (opcodeReg === "b0110011".U && funct3Reg === "b110".U && funct7Reg === "b0100000".U)
+    isAND  := (opcodeReg === "b0110011".U && funct3Reg === "b111".U && funct7Reg === "b0100000".U)
+    isADDI := (opcodeReg === "b0010011".U && funct3Reg === "b000".U)
+
+    rs1Data := regFile(rs1Reg)                                   //go to regFile(address)
+    rs2Data := Mux(isADDI, immI_sext, regFile(rs2Reg))           // if isADDI = true, rs2Data = immI_sext
+
+    operandA := rs1Data
+    operandB := rs2Data
+
+    stage := execute
   } 
     .elsewhen (stage === execute)
   {
   /** TODO: Implement execute stage */
+    when(isADDI) {
+      aluResult := operandA + operandB
+    }.elsewhen(isADD) {
+      aluResult := operandA + operandB
+    }.elsewhen(isSUB) {
+      aluResult := operandA - operandB
+    }.elsewhen(isSLL) {
+      aluResult := operandA << operandB(4, 0)                          //operandA shifted left by operandB
+    }.elsewhen(isSLT) {
+      aluResult := Mux(operandA.asSInt < operandB.asSInt, 1.U, 0.U)    //if true 1, otherwise 0
+    }.elsewhen(isSLTU) {
+      aluResult := Mux(operandA < operandB, 1.U, 0.U)                  //if true 1, otherwise 0
+    }.elsewhen(isXOR) {
+      aluResult := operandA ^ operandB
+    }.elsewhen(isSRL) {
+      aluResult := operandA >> operandB(4, 0)
+    }.elsewhen(isSRA) {
+      aluResult := (operandA.asSInt() >> operandB(4,0)).asUInt
+    }.elsewhen(isOR) {
+      aluResult := operandA | operandB
+    }.elsewhen(isAND) {
+      aluResult := operandA & operandB
+    }.otherwise {
+      aluResult := 0.U                                                 // Default case for unimplemented instructions
+    }
 
-
-
+    stage := memory
   }
     .elsewhen (stage === memory)
   {
+    /** No memory operations implemented in this basic CPU
+     * TODO: There might still something be missing here */
 
-    // No memory operations implemented in this basic CPU
-
-    // TODO: There might still something be missing here
-
+    stage := writeback
   } 
     .elsewhen (stage === writeback)
   {
 
-  /*
-   * TODO: Implement Writeback stag
-   */
+  /** TODO: Implement Writeback stage*/
+    when (rdReg =/= 0.U){         //if rd is not x0 (register 0)
+      regFile(rdReg) := aluResult                      //Ask if we store aluResult in rdReg what happen with ther instr
+    }
 
   /*
    * TODO: Write result to output
    */
-
+    io.check_res := aluResult
+    PC := PC + 4.U
+    stage := fetch
   }
     .otherwise 
   {
@@ -170,6 +247,6 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
      assert(true.B, "Pipeline FSM must never be left")
 
   }
-
 }
+
 

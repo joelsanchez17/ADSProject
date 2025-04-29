@@ -1,3 +1,14 @@
-        /* 
-         * TODO: Insert testcases from assignment 2 and adapt them for the multi-cycle core
-         */
+        /** TODO: Insert testcases from assignment 2 and adapt them for the multi-cycle core*/
+
+addi x1, x0, 5      // x1 = 5
+addi x2, x0, 10     // x2 = 10
+add x3, x1, x2      // x3 = x1 + x2 = 5 + 10 = 15
+SUB x3, x1, x2      // x3 = x1 - x2 = 5 - 10 = -5 (fffffffb)
+XOR x3, x1, x2      // x3 = x1 XOR x2 = 0101 & 1010 = 1111 = 15
+OR x3, x1, x2       // x3 = x1 OR x2  = 0101 OR 1010 = 1111 = 15
+AND x3, x1, x2
+SLT x3, x1, x2
+SLTU x3, x1, x2
+SLL x3, x1, x2
+SRL x3, x1, x2
+SRA x3, x1, x2

@@ -6,3 +6,12 @@
 /* 
  * TODO: Add testcases for all R-type instructions in 'BinaryFile' and check the expected results here
  */
+402081b3  # SUB x3, x1, x2
+0020c1b3  # XOR x3, x1, x2
+0020e1b3  # OR x3, x1, x2
+0020f1b3  # AND x3, x1, x2
+0020a1b3  # SLT x3, x1, x2
+0020b1b3  # SLTU x3, x1, x2
+002091b3  # SLL x3, x1, x2
+0020d1b3  # SRL x3, x1, x2
+4020d1b3  # SRA x3, x1, x2

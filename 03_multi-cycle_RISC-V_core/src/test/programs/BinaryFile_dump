@@ -1,14 +1,24 @@
-        /** TODO: Insert testcases from assignment 2 and adapt them for the multi-cycle core*/
 
-addi x1, x0, 5      // x1 = 5
-addi x2, x0, 10     // x2 = 10
-add x3, x1, x2      // x3 = x1 + x2 = 5 + 10 = 15
-SUB x3, x1, x2      // x3 = x1 - x2 = 5 - 10 = -5 (fffffffb)
-XOR x3, x1, x2      // x3 = x1 XOR x2 = 0101 & 1010 = 1111 = 15
-OR x3, x1, x2       // x3 = x1 OR x2  = 0101 OR 1010 = 1111 = 15
-AND x3, x1, x2
-SLT x3, x1, x2
-SLTU x3, x1, x2
-SLL x3, x1, x2
-SRL x3, x1, x2
-SRA x3, x1, x2
+ HEX                   ASSEMBLER          RESULT
+00500093            addi x1, x0, 5      // x1 = 5
+00a00113            addi x2, x0, 10     // x2 = 10
+002081b3            add x3, x1, x2      // x3 = x1 + x2 = 5 + 10 = 15
+402081b3            SUB x3, x1, x2      // x3 = x1 - x2 = 5 - 10 = -5 (fffffffb)
+0020c1b3            XOR x3, x1, x2      // x3 = x1 XOR x2 = 0101 & 1010 = 1111 = 15
+0020e1b3            OR x3, x1, x2       // x3 = x1 OR x2  = 0101 OR 1010 = 1111 = 15
+0020f1b3            AND x3, x1, x2      // x3 = x1 AND x3 = 0101 AND 1010 = 0000
+0020a1b3            SLT x3, x1, x2      // x3 ( 5 < 10 ) = 1
+0020b1b3            SLTU x3, x1, x2     // x3 = ( 5 < 10 ) = 1 (unsigned)
+002091b3            SLL x3, x1, x2      // x3 = 5120 x1 = 00000000000000000000000000000101 (5)
+0020d1b3            SRL x3, x1, x2      // x3 = 0
+4020d1b3            SRA x3, x1, x2      // x3 = 0
+
+
+
+
+
+
+
+
+
+

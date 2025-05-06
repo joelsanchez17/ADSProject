@@ -72,7 +72,12 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
 
   /** TODO: Implement the memory as described above */
   val IMem = Mem(4096, UInt(32.W))       // Creation of block-memory of 32 bits which can hold 4062 values
-  loadMemoryFromFile(IMem, BinaryFile)   // Load File in Memory for initiation
+ // loadMemoryFromFile(IMem, BinaryFile)   // Load File in Memory for initiation
+
+
+  // Directly write instruction in memory
+  IMem.write(0.U, "h00500093".U)  // addi x1, x0, 5
+
 
 
   // -----------------------------------------
@@ -235,7 +240,7 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
   /*
    * TODO: Write result to output
    */
-    io.check_res := aluResult
+    io.check_res := regFile(rdReg)
     PC := PC + 4.U
     stage := fetch
   }

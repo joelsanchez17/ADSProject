@@ -132,7 +132,7 @@ class regFile extends Module {
   /**  TODO: Initialize the register file as described in the task
           and handle the read and write requests*/
 
-  val regFile = Reg(Vec(32, UInt(32.W)))    //better solution instead of define every single register
+  val regFile = Mem(32, UInt(32.W))     //better solution instead of define every single register
   regFile(0) := 0.U
 
   io.resp.data1 := regFile(io.req.rs1)
@@ -146,8 +146,18 @@ class regFile extends Module {
 
 class IF (BinaryFile: String) extends Module {
   val io = IO(new Bundle {
-    // What inputs and / or outputs does this pipeline stage need?
+    /** What inputs and / or outputs does this pipeline stage need? */
+
+//    Fetch Stage (IF Module):
+//      The IF module represents the instruction fetch stage.
+//    It includes an instruction memory (IMem) of size 4096 words (32-bit each).
+//      Instructions are loaded from a binary file (provided to the testbench as a parameter) during initialization.
+//      The program counter (PC) is used as an address to access the instruction memory, and one instruction is fetched in each cycle.
+
+
+
   })
+
 
   /* 
     TODO: Initialize the IMEM as described in the task 
@@ -158,8 +168,42 @@ class IF (BinaryFile: String) extends Module {
    */
   
 }
+/** class IF(BinaryFile: String) extends Module {
+  val io = IO(new Bundle {
+    val instr_out = Output(UInt(32.W)) // Fetched instruction
+    val pc_out    = Output(UInt(32.W)) // Current PC
+  })
 
+  // -------------------------------------
+  // Program Counter (PC)
+  // -------------------------------------
+  val pc = RegInit(0.U(32.W))
 
+  // -------------------------------------
+  // Instruction Memory (IMEM)
+  // -------------------------------------
+  val imem = Mem(4096, UInt(32.W))
+
+  // Load instructions from binary file
+  loadMemoryFromFile(imem, BinaryFile)
+
+  // -------------------------------------
+  // Fetch instruction from IMEM
+  // -------------------------------------
+  val instr = imem(pc >> 2) // word-aligned access (PC[31:2])
+
+  // -------------------------------------
+  // Outputs
+  // -------------------------------------
+  io.instr_out := instr
+  io.pc_out    := pc
+
+  // -------------------------------------
+  // PC update (no branches, just increment)
+  // -------------------------------------
+  pc := pc + 4.U
+}
+*/
 // -----------------------------------------
 // Decode Stage
 // -----------------------------------------

@@ -97,31 +97,48 @@ import uopc._
 
 class regFileReadReq extends Bundle {
     // what signals does a read request need?
+  val rs1 = UInt(5.W)
+  val rs2 = UInt(5.W)
+
 }
 
 class regFileReadResp extends Bundle {
     // what signals does a read response need?
+  val data1 = UInt(32.W)
+  val data2 = UInt(32.W)
 }
 
 class regFileWriteReq extends Bundle {
     // what signals does a write request need?
+  val rd    = UInt(5.W)
+  val data  = UInt(32.W)
+  val en    = Bool()
+
 }
 
 class regFile extends Module {
   val io = IO(new Bundle {
-    val req  = new regFileReadReq
-    val resp = new regFileReadResp
-    // how many read and write ports do you need to handle all requests
-    // from the ipeline to the register file simultaneously?
+    val req  = Input(new regFileReadReq)
+    val resp = Output(new regFileReadResp)
+
+    /** how many read and write ports do you need to handle all requests
+     from the pipeline to the register file simultaneously? */
+
+    //Missing Bundle
+    val  write = Input(new regFileWriteReq)
+
 })
   
-  /* 
-    TODO: Initialize the register file as described in the task 
-          and handle the read and write requests
-   */
-  
-}
+  /**  TODO: Initialize the register file as described in the task
+          and handle the read and write requests*/
 
+  val regFile = Reg(Vec(32, UInt(32.W)))    //better solution instead of define every single register
+  regFile(0) := 0.U
+
+  io.resp.data1 := regFile(io.req.rs1)
+  io.resp.data2 := regFile(io.req.rs2)
+
+}
 
 // -----------------------------------------
 // Fetch Stage

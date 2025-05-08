@@ -194,13 +194,30 @@ class ID extends Module {
     val data2_out     = Output(UInt(32.W))
     val sign_ext_out  = Output(UInt(32.W))
     val alu_pc        = Output(UInt(32.W))
-
+    val rs1_out       = Output(UInt(5.W))
+    val rs2_out       = Output(UInt(5.W))
+    val rd_out        = Output(UInt(5.W))
   })
 
 /** TODO: Any internal signals needed? */
-    
+//Decoding
+import uopc._
 
+    val opcode = io.inst_in(6, 0)
+    val rd     = io.inst_in(11, 7)
+    val funct3 = io.inst_in(14, 12)
+    val rs1    = io.inst_in(19, 15)
+    val rs2    = io.inst_in(24, 20)
+    val funct7 = io.inst_in(31, 25)
+    val immI   = io.inst_in(31, 20)
 
+//Outputs
+
+    io.rs1_out := rs1
+    io.rs2_out := rs2
+    io.rd_out  := rd
+    io.alu_pc  := io.pc_in + 4.U
+    io.sign_ext_out := Cat(Fill(20, immI(11)), immI)
 /*
     Determine the uop based on the disassembled instruction
 

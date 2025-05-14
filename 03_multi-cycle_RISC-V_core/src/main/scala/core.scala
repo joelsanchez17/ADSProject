@@ -72,12 +72,11 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
 
   /** TODO: Implement the memory as described above */
   val IMem = Mem(4096, UInt(32.W))       // Creation of block-memory of 32 bits which can hold 4062 values
- // loadMemoryFromFile(IMem, BinaryFile)   // Load File in Memory for initiation
+    loadMemoryFromFile(IMem, BinaryFile)   // Load File in Memory for initiation
 
 
   // Directly write instruction in memory
-  IMem.write(0.U, "h00500093".U)  // addi x1, x0, 5
-
+  //IMem.write(0.U, "h00500093".U)  // addi x1, x0, 5
 
 
   // -----------------------------------------
@@ -109,13 +108,9 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
   val rdReg = Reg(UInt(5.W))
   val rs1Reg = Reg(UInt(5.W))
   val rs2Reg = Reg(UInt(5.W))
-  val funct3Reg = Reg(UInt(3.W))
-  val funct7Reg = Reg(UInt(7.W))
-  val opcodeReg = Reg(UInt(7.W))
 
   /**  EX/MEM Execute to Memory Access */
-  val rs1Data = Reg(UInt(32.W))
-  val rs2Data = Reg(UInt(32.W))
+
 
   val operandA = Reg(UInt(32.W))      //defined in order to copy Task 2
   val operandB = Reg(UInt(32.W))
@@ -155,6 +150,13 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
   {
     /** TODO: Implement decode stage */
 
+    val funct3Reg = Wire(UInt(3.W))
+    val funct7Reg = Wire(UInt(7.W))
+    val opcodeReg = Wire(UInt(7.W))
+
+    val immI = Wire(UInt(16.W))
+    val immI_sext = Wire(UInt(32.W))
+
     opcodeReg := instReg(6, 0)
     rdReg := instReg(11, 7)
     funct3Reg := instReg(14, 12)
@@ -162,8 +164,9 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
     rs2Reg := instReg(24, 20)
     funct7Reg := instReg(31, 25)
 
-    val immI = instReg(31, 20)
-    val immI_sext = Cat(Fill(20, immI(11)), immI)
+    immI := instReg(31, 20)
+    immI_sext := Cat(Fill(21, immI(11)), immI)
+
     /** Functions */
     isADD  := (opcodeReg === "b0110011".U && funct3Reg === "b000".U && funct7Reg === "b0000000".U)
     isSUB  := (opcodeReg === "b0110011".U && funct3Reg === "b000".U && funct7Reg === "b0100000".U)
@@ -181,10 +184,34 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
     isSRA  := (opcodeReg === "b0110011".U && funct3Reg === "b101".U && funct7Reg === "b0100000".U)
     isOR   := (opcodeReg === "b0110011".U && funct3Reg === "b110".U && funct7Reg === "b0100000".U)
     isAND  := (opcodeReg === "b0110011".U && funct3Reg === "b111".U && funct7Reg === "b0100000".U)
-    isADDI := (opcodeReg === "b0010011".U && funct3Reg === "b000".U)
+
+
+    val A_test = Wire(Bool())
+    val B_test = Wire(Bool())
+
+    dontTouch(A_test)
+    dontTouch(B_test)
+
+    when (opcodeReg === "b0010011".U) {
+      A_test := true.B
+    } .otherwise {
+      A_test := false.B
+    }
+
+    when (funct3Reg === "b000".U) {
+      B_test := true.B
+    } .otherwise {
+      B_test := false.B
+    }
+
+    isADDI := A_test && B_test
+    val isADDI_wire = A_test && B_test
+
+    val rs1Data = Wire(UInt(32.W))
+    val rs2Data = Wire(UInt(32.W))
 
     rs1Data := regFile(rs1Reg)                                   //go to regFile(address)
-    rs2Data := Mux(isADDI, immI_sext, regFile(rs2Reg))           // if isADDI = true, rs2Data = immI_sext
+    rs2Data := Mux(isADDI_wire, immI_sext, regFile(rs2Reg))           // if isADDI = true, rs2Data = immI_sext
 
     operandA := rs1Data
     operandB := rs2Data
@@ -240,7 +267,7 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
   /*
    * TODO: Write result to output
    */
-    io.check_res := regFile(rdReg)
+    io.check_res := aluResult
     PC := PC + 4.U
     stage := fetch
   }

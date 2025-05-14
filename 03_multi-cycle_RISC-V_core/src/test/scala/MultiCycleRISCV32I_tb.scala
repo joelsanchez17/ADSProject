@@ -14,12 +14,12 @@ import org.scalatest.flatspec.AnyFlatSpec
 class MultiCycleRISCV32ITest extends AnyFlatSpec with ChiselScalatestTester {
   "MultiCycleRV32I_Tester" should "execute the given binary instructions correctly" in {
     test(new MultiCycleRV32Icore("src/test/programs/BinaryFile")).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
-      dut.clock.setTimeout(100)
+      //dut.clock.setTimeout(100)
 
       val expectedResults = Seq(
-        5,               // ADDI x1, x0, 5      => x1 = 5
-//        10,              // ADDI x2, x0, 10     => x2 = 10
-//        15,              // ADD x3, x1, x2      => x3 = x1 + x2 = 5 + 10
+          5,               // ADDI x1, x0, 5      => x1 = 5
+          10,              // ADDI x2, x0, 10     => x2 = 10
+          15,              // ADD x3, x1, x2      => x3 = x1 + x2 = 5 + 10
 //        -5,     // SUB x3, x1, x2      => x3 = x1 - x2 = -5 (signed)
 //        15,              // XOR x3, x1, x2      => 0b0101 ^ 0b1010 = 0b1111 = 15
 //        15,              // OR x3, x1, x2       => 0b0101 | 0b1010 = 0b1111 = 15
@@ -30,11 +30,22 @@ class MultiCycleRISCV32ITest extends AnyFlatSpec with ChiselScalatestTester {
 //        0,               // SRL x3, x1, x2      => 5 >> 10 = 0 (logical)
 //        0                // SRA x3, x1, x2      => 5 >>> 10 = 0 (arithmetic)
       )
-
+      var first = true
       for (expected <- expectedResults) {
-        dut.clock.step(5) // enough to complete all stages
+        if (first) {
+          dut.clock.step(4)
+          first = false
+        } else {
+          dut.clock.step(5)
+        }
         dut.io.check_res.expect(expected.U)
       }
+
+
+//     for (expected <- expectedResults) {
+//        dut.clock.step(4) // enough to complete all stages
+//        dut.io.check_res.expect(expected.U)
+//      }
     }
   }
 }

@@ -109,10 +109,10 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
   val rs1Reg = Reg(UInt(5.W))
   val rs2Reg = Reg(UInt(5.W))
 
+
   /**  EX/MEM Execute to Memory Access */
 
-
-  val operandA = Reg(UInt(32.W))      //defined in order to copy Task 2
+  val operandA = Reg(UInt(32.W))
   val operandB = Reg(UInt(32.W))
 
   /**  EX/MEM Memory Access to WriteBack */
@@ -143,47 +143,68 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
   when (stage === fetch)
   {
   /** TODO: Implement fetch stage */
-    instReg := IMem(PC >> 2.U)
+    val inst = Wire(UInt(32.W))
+    inst := IMem(PC >> 2.U)
+    instReg := inst
+    dontTouch(inst)
     stage:= decode
   } 
     .elsewhen (stage === decode)
   {
-    /** TODO: Implement decode stage */
+    /** TODO: code stage */
 
-    val funct3Reg = Wire(UInt(3.W))
-    val funct7Reg = Wire(UInt(7.W))
-    val opcodeReg = Wire(UInt(7.W))
+    val funct3 = Wire(UInt(3.W))
+    val funct7 = Wire(UInt(7.W))
+    val opcode = Wire(UInt(7.W))
 
     val immI = Wire(UInt(16.W))
     val immI_sext = Wire(UInt(32.W))
 
-    opcodeReg := instReg(6, 0)
-    rdReg := instReg(11, 7)
-    funct3Reg := instReg(14, 12)
-    rs1Reg := instReg(19, 15)
-    rs2Reg := instReg(24, 20)
-    funct7Reg := instReg(31, 25)
+
+//    opcodeReg := instReg(6, 0)
+//    rdReg := instReg(11, 7)
+//    funct3Reg := instReg(14, 12)
+//    rs1Reg := instReg(19, 15)
+//    rs2Reg := instReg(24, 20)
+//    funct7Reg := instReg(31, 25)
+
+    val rd  = Wire(UInt(3.W))
+    val rs1 = Wire(UInt(7.W))
+    val rs2 = Wire(UInt(7.W))
+
+    opcode := instReg(6, 0)
+    rd := instReg(11, 7)
+    funct3 := instReg(14, 12)
+    rs1 := instReg(19, 15)
+    rs2 := instReg(24, 20)
+    funct7 := instReg(31, 25)
+
+    rdReg :=  rd
+    rs1Reg := rs1
+    rs2Reg := rs2
 
     immI := instReg(31, 20)
     immI_sext := Cat(Fill(21, immI(11)), immI)
 
     /** Functions */
-    isADD  := (opcodeReg === "b0110011".U && funct3Reg === "b000".U && funct7Reg === "b0000000".U)
-    isSUB  := (opcodeReg === "b0110011".U && funct3Reg === "b000".U && funct7Reg === "b0100000".U)
-    // SLL Logical left shift rd = rs1 << (rs2 & 0x1F)
-    isSLL  := (opcodeReg === "b0110011".U && funct3Reg === "b001".U && funct7Reg === "b0000000".U)
-    // SLT set if less than (signed) rd = (rs1 < rs2)? 1 : 0
-    isSLT  := (opcodeReg === "b0110011".U && funct3Reg === "b010".U && funct7Reg === "b0000000".U)
-    // SLTU set if less than (unsigned) rd = (rs1 < rs2)? 1:0
-    isSLTU := (opcodeReg === "b0110011".U && funct3Reg === "b011".U && funct7Reg === "b0000000".U)
-    // XOR rd = rs1 ^ rs2 (only one set to 1)
-    isXOR  := (opcodeReg === "b0110011".U && funct3Reg === "b100".U && funct7Reg === "b0000000".U)
-    // SRL Logical right shift rd = rs1 >> (rs2 & 0x1F)
-    isSRL  := (opcodeReg === "b0110011".U && funct3Reg === "b101".U && funct7Reg === "b0000000".U)
-    // SRA Arithmetic right shift: preserves sign rd = rs1 >>> (rs & 0x1F)
-    isSRA  := (opcodeReg === "b0110011".U && funct3Reg === "b101".U && funct7Reg === "b0100000".U)
-    isOR   := (opcodeReg === "b0110011".U && funct3Reg === "b110".U && funct7Reg === "b0100000".U)
-    isAND  := (opcodeReg === "b0110011".U && funct3Reg === "b111".U && funct7Reg === "b0100000".U)
+    val isADD_wire = (opcode === "b0110011".U && funct3 === "b000".U && funct7 === "b0000000".U)
+    isADD := isADD_wire
+
+//    isSUB  := (opcodeReg === "b0110011".U && funct3Reg === "b000".U && funct7Reg === "b0100000".U)
+//    // SLL Logical left shift rd = rs1 << (rs2 & 0x1F)
+//    isSLL  := (opcodeReg === "b0110011".U && funct3Reg === "b001".U && funct7Reg === "b0000000".U)
+//    // SLT set if less than (signed) rd = (rs1 < rs2)? 1 : 0
+//    isSLT  := (opcodeReg === "b0110011".U && funct3Reg === "b010".U && funct7Reg === "b0000000".U)
+//    // SLTU set if less than (unsigned) rd = (rs1 < rs2)? 1:0
+//    isSLTU := (opcodeReg === "b0110011".U && funct3Reg === "b011".U && funct7Reg === "b0000000".U)
+//    // XOR rd = rs1 ^ rs2 (only one set to 1)
+//    isXOR  := (opcodeReg === "b0110011".U && funct3Reg === "b100".U && funct7Reg === "b0000000".U)
+//    // SRL Logical right shift rd = rs1 >> (rs2 & 0x1F)
+//    isSRL  := (opcodeReg === "b0110011".U && funct3Reg === "b101".U && funct7Reg === "b0000000".U)
+//    // SRA Arithmetic right shift: preserves sign rd = rs1 >>> (rs & 0x1F)
+//    isSRA  := (opcodeReg === "b0110011".U && funct3Reg === "b101".U && funct7Reg === "b0100000".U)
+//    isOR   := (opcodeReg === "b0110011".U && funct3Reg === "b110".U && funct7Reg === "b0000000".U)
+//    isAND  := (opcodeReg === "b0110011".U && funct3Reg === "b111".U && funct7Reg === "b0000000".U)
 
 
     val A_test = Wire(Bool())
@@ -192,13 +213,13 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
     dontTouch(A_test)
     dontTouch(B_test)
 
-    when (opcodeReg === "b0010011".U) {
+    when (opcode === "b0010011".U) {
       A_test := true.B
     } .otherwise {
       A_test := false.B
     }
 
-    when (funct3Reg === "b000".U) {
+    when (funct3 === "b000".U) {
       B_test := true.B
     } .otherwise {
       B_test := false.B
@@ -210,39 +231,44 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
     val rs1Data = Wire(UInt(32.W))
     val rs2Data = Wire(UInt(32.W))
 
-    rs1Data := regFile(rs1Reg)                                   //go to regFile(address)
-    rs2Data := Mux(isADDI_wire, immI_sext, regFile(rs2Reg))           // if isADDI = true, rs2Data = immI_sext
+    rs1Data := regFile(rs1)
+    rs2Data := Mux(isADDI_wire, immI_sext, regFile(rs2))
 
-    operandA := rs1Data
+    val operandA_wire = Wire(UInt(32.W))
+    operandA_wire := rs1Data
+
+
+    operandA := operandA_wire
+
+
     operandB := rs2Data
 
     stage := execute
-  } 
+  }
     .elsewhen (stage === execute)
   {
-  /** TODO: Implement execute stage */
     when(isADDI) {
       aluResult := operandA + operandB
     }.elsewhen(isADD) {
       aluResult := operandA + operandB
-    }.elsewhen(isSUB) {
-      aluResult := operandA - operandB
-    }.elsewhen(isSLL) {
-      aluResult := operandA << operandB(4, 0)                          //operandA shifted left by operandB
-    }.elsewhen(isSLT) {
-      aluResult := Mux(operandA.asSInt < operandB.asSInt, 1.U, 0.U)    //if true 1, otherwise 0
-    }.elsewhen(isSLTU) {
-      aluResult := Mux(operandA < operandB, 1.U, 0.U)                  //if true 1, otherwise 0
-    }.elsewhen(isXOR) {
-      aluResult := operandA ^ operandB
-    }.elsewhen(isSRL) {
-      aluResult := operandA >> operandB(4, 0)
-    }.elsewhen(isSRA) {
-      aluResult := (operandA.asSInt() >> operandB(4,0)).asUInt
-    }.elsewhen(isOR) {
-      aluResult := operandA | operandB
-    }.elsewhen(isAND) {
-      aluResult := operandA & operandB
+//    }.elsewhen(isSUB) {
+//      aluResult := operandA - operandB
+//    }.elsewhen(isSLL) {
+//      aluResult := operandA << operandB(4, 0)                          //operandA shifted left by operandB
+//    }.elsewhen(isSLT) {
+//      aluResult := Mux(operandA.asSInt < operandB.asSInt, 1.U, 0.U)    //if true 1, otherwise 0
+//    }.elsewhen(isSLTU) {
+//      aluResult := Mux(operandA < operandB, 1.U, 0.U)                  //if true 1, otherwise 0
+//    }.elsewhen(isXOR) {
+//      aluResult := operandA ^ operandB
+//    }.elsewhen(isSRL) {
+//      aluResult := operandA >> operandB(4, 0)
+//    }.elsewhen(isSRA) {
+//      aluResult := (operandA.asSInt() >> operandB(4,0)).asUInt
+//    }.elsewhen(isOR) {
+//      aluResult := operandA | operandB
+//    }.elsewhen(isAND) {
+//      aluResult := operandA & operandB
     }.otherwise {
       aluResult := 0.U                                                 // Default case for unimplemented instructions
     }
@@ -255,7 +281,7 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
      * TODO: There might still something be missing here */
 
     stage := writeback
-  } 
+  }
     .elsewhen (stage === writeback)
   {
 
@@ -271,7 +297,7 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
     PC := PC + 4.U
     stage := fetch
   }
-    .otherwise 
+    .otherwise
   {
 
      // default case (needed for RTL-generation but should never be reached   

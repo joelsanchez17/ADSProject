@@ -193,10 +193,12 @@ class ID extends Module {
     val data1_out     = Output(UInt(32.W))
     val data2_out     = Output(UInt(32.W))
     val sign_ext_out  = Output(UInt(32.W))
-    val alu_pc        = Output(UInt(32.W))
+    val alu_pc        = Output(UInt(32.W))   //belong here?
     val rs1_out       = Output(UInt(5.W))
     val rs2_out       = Output(UInt(5.W))
     val rd_out        = Output(UInt(5.W))
+    val upo           = Output(uopc())
+
   })
 
 /** TODO: Any internal signals needed? */
@@ -216,33 +218,71 @@ import uopc._
     io.rs1_out := rs1
     io.rs2_out := rs2
     io.rd_out  := rd
-    io.alu_pc  := io.pc_in + 4.U
+    io.alu_pc  := io.pc_in + 4.U   //sure?
     io.sign_ext_out := Cat(Fill(20, immI(11)), immI)
-/*
-    Determine the uop based on the disassembled instruction
 
-    when( condition ){
-      when( next condition ){
-        io.upo := isXYZ
-      }.otherwise{
-        maybe declare a case to catch invalid instructions
-      } 
-    }.elsewhen( different condition ){
-      when( next condition ){
-        io.upo := isXYZ
-      }.otherwise{
-        maybe declare a case to catch invalid instructions
-      } 
+ //Register File
+    val rf = Module(new regFile)
+    rf.io.req.rs1  := rs1
+    rf.io.req.rs2  := rs2
+    rf.io.write.en := 0.U
+
+/** Determine the uop based on the disassembled instruction */
+
+    when(opcode === "b0110011".U){                                          // R-Type instruction
+      when(funct3 === "b000".U && funct7 === "b0000000".U ){
+        io.upo := isADD
+//      }.elsewhere(funct3 === "b000".U && funct7 === "b0100000".U){
+//        io.upo := isSUB
+//      }.elsewhere(funct3Reg === "b001".U && funct7Reg === "b0000000".U){
+//        io.upo := isSLL
+//      }
+    }.elsewhen(opcode === "b0010011".U ){                                    // I-Type Instruction
+      when(funct3 === "b000".U ){
+        io.upo := isADDI
     }.otherwise{
-      maybe declare a case to catch invalid instructions
-    }
-  */
-
+      io.upo := invalid
+     }
+   }
   /* 
    * TODO: Read the operands from teh register file
    */
-  
+
+    io.data1_out := rf.io.resp.data1
+    io.data2_out := rf.io.resp.data2
+    }
 }
+/// Decode logic
+//io.uopc_out := invalid
+//when(opcode === "b0110011".U) { // R-type
+//  when(funct3 === "b000".U && funct7 === "b0000000".U) {
+//    io.uopc_out := isADD
+//  }.elsewhen(funct3 === "b000".U && funct7 === "b0100000".U) {
+//    io.uopc_out := isSUB
+//  }.elsewhen(funct3 === "b100".U) {
+//    io.uopc_out := isXOR
+//  }.elsewhen(funct3 === "b110".U) {
+//    io.uopc_out := isOR
+//  }.elsewhen(funct3 === "b111".U) {
+//    io.uopc_out := isAND
+//  }.elsewhen(funct3 === "b001".U) {
+//    io.uopc_out := isSLL
+//  }.elsewhen(funct3 === "b101".U && funct7 === "b0000000".U) {
+//    io.uopc_out := isSRL
+//  }.elsewhen(funct3 === "b101".U && funct7 === "b0100000".U) {
+//    io.uopc_out := isSRA
+//  }.elsewhen(funct3 === "b010".U) {
+//    io.uopc_out := isSLT
+//  }.elsewhen(funct3 === "b011".U) {
+//    io.uopc_out := isSLTU
+//  }
+//}.elsewhen(opcode === "b0010011".U) { // I-type (e.g., ADDI)
+//  when(funct3 === "b000".U) {
+//    io.uopc_out := isADDI
+//  }
+//}
+//}
+
 
 // -----------------------------------------
 // Execute Stage
@@ -250,7 +290,9 @@ import uopc._
 
 class EX extends Module {
   val io = IO(new Bundle {
-    // What inputs and / or outputs does this pipeline stage need?
+
+
+
   })
 
   /* 

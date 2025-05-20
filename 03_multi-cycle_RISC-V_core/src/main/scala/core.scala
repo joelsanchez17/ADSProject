@@ -60,7 +60,7 @@ import chisel3.util.experimental.loadMemoryFromFile
 
 class MultiCycleRV32Icore (BinaryFile: String) extends Module {
   val io = IO(new Bundle {
-    val check_res = Output(UInt(32.W))
+    val check_res = Output(SInt(32.W))
   })
 
   val fetch :: decode :: execute :: memory :: writeback :: Nil = Enum(5) // Enum datatype to define the stages of the processor FSM
@@ -105,18 +105,18 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
   val instReg = RegInit(0.U(32.W))
 
   /**  ID/EX Decode to Execute */
-  val rdReg = Reg(UInt(5.W))
-  val rs1Reg = Reg(UInt(5.W))
-  val rs2Reg = Reg(UInt(5.W))
+  val rdReg = RegInit(0.U(5.W))
+  val rs1Reg = Reg(SInt(5.W))
+  val rs2Reg = Reg(SInt(5.W))
 
 
   /**  EX/MEM Execute to Memory Access */
 
-  val operandA = Reg(UInt(32.W))
-  val operandB = Reg(UInt(32.W))
+  val operandA = Reg(SInt(32.W))
+  val operandB = Reg(SInt(32.W))
 
   /**  EX/MEM Memory Access to WriteBack */
-  val aluResult = Reg(UInt(32.W))
+  val aluResult = RegInit(0.S(32.W))
 
   /** Control signals */
   val isADD  = RegInit(false.B)
@@ -133,7 +133,7 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
 
 
   // IOs need default case
-  io.check_res := "h_0000_0000".U
+  io.check_res := 0.S
 
 
   // -----------------------------------------
@@ -146,7 +146,6 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
     val inst = Wire(UInt(32.W))
     inst := IMem(PC >> 2.U)
     instReg := inst
-    dontTouch(inst)
     stage:= decode
   } 
     .elsewhen (stage === decode)
@@ -161,16 +160,9 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
     val immI_sext = Wire(UInt(32.W))
 
 
-//    opcodeReg := instReg(6, 0)
-//    rdReg := instReg(11, 7)
-//    funct3Reg := instReg(14, 12)
-//    rs1Reg := instReg(19, 15)
-//    rs2Reg := instReg(24, 20)
-//    funct7Reg := instReg(31, 25)
-
-    val rd  = Wire(UInt(3.W))
-    val rs1 = Wire(UInt(7.W))
-    val rs2 = Wire(UInt(7.W))
+    val rd  = Wire(UInt(5.W))
+    val rs1 = Wire(UInt(5.W))
+    val rs2 = Wire(UInt(5.W))
 
     opcode := instReg(6, 0)
     rd := instReg(11, 7)
@@ -180,8 +172,6 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
     funct7 := instReg(31, 25)
 
     rdReg :=  rd
-    rs1Reg := rs1
-    rs2Reg := rs2
 
     immI := instReg(31, 20)
     immI_sext := Cat(Fill(21, immI(11)), immI)
@@ -189,8 +179,14 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
     /** Functions */
     val isADD_wire = (opcode === "b0110011".U && funct3 === "b000".U && funct7 === "b0000000".U)
     isADD := isADD_wire
+    dontTouch(isADD_wire)
 
-//    isSUB  := (opcodeReg === "b0110011".U && funct3Reg === "b000".U && funct7Reg === "b0100000".U)
+
+    val isADDI_wire = (opcode === "b0010011".U && funct3 === "b000".U)
+    isADDI := isADDI_wire
+
+    val isSUB_wire  = (opcode === "b0110011".U && funct3 === "b000".U && funct7 === "b0100000".U)
+    isSUB := isSUB_wire
 //    // SLL Logical left shift rd = rs1 << (rs2 & 0x1F)
 //    isSLL  := (opcodeReg === "b0110011".U && funct3Reg === "b001".U && funct7Reg === "b0000000".U)
 //    // SLT set if less than (signed) rd = (rs1 < rs2)? 1 : 0
@@ -204,43 +200,41 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
 //    // SRA Arithmetic right shift: preserves sign rd = rs1 >>> (rs & 0x1F)
 //    isSRA  := (opcodeReg === "b0110011".U && funct3Reg === "b101".U && funct7Reg === "b0100000".U)
 //    isOR   := (opcodeReg === "b0110011".U && funct3Reg === "b110".U && funct7Reg === "b0000000".U)
-//    isAND  := (opcodeReg === "b0110011".U && funct3Reg === "b111".U && funct7Reg === "b0000000".U)
+    val isAND_wire  = (opcode === "b0110011".U && funct3 === "b111".U && funct7 === "b0000000".U)
+    isAND := isAND_wire
 
+/**    val A_test = Wire(Bool())
+       val B_test = Wire(Bool())
 
-    val A_test = Wire(Bool())
-    val B_test = Wire(Bool())
+      dontTouch(A_test)
+      dontTouch(B_test)
 
-    dontTouch(A_test)
-    dontTouch(B_test)
-
-    when (opcode === "b0010011".U) {
+      when (opcode === "b0010011".U) {
       A_test := true.B
-    } .otherwise {
-      A_test := false.B
-    }
+      } .otherwise {
+        A_test := false.B
+      }
 
-    when (funct3 === "b000".U) {
-      B_test := true.B
-    } .otherwise {
-      B_test := false.B
-    }
+      when (funct3 === "b000".U) {
+        B_test := true.B
+      } .otherwise {
+        B_test := false.B
+      }
 
-    isADDI := A_test && B_test
-    val isADDI_wire = A_test && B_test
+      isADDI := A_test && B_test
+      val isADDI_wire = A_test && B_test */
 
-    val rs1Data = Wire(UInt(32.W))
-    val rs2Data = Wire(UInt(32.W))
+    val rs1Data = Wire(SInt(32.W))
+    val rs2Data = Wire(SInt(32.W))
 
-    rs1Data := regFile(rs1)
-    rs2Data := Mux(isADDI_wire, immI_sext, regFile(rs2))
+    rs1Data := regFile(rs1.asUInt).asSInt
+    rs2Data := Mux(isADDI_wire, immI_sext.asSInt, regFile(rs2.asUInt).asSInt)
 
-    val operandA_wire = Wire(UInt(32.W))
+    val operandA_wire = Wire(SInt(32.W))
     operandA_wire := rs1Data
 
 
     operandA := operandA_wire
-
-
     operandB := rs2Data
 
     stage := execute
@@ -251,8 +245,8 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
       aluResult := operandA + operandB
     }.elsewhen(isADD) {
       aluResult := operandA + operandB
-//    }.elsewhen(isSUB) {
-//      aluResult := operandA - operandB
+    }.elsewhen(isSUB) {
+      aluResult := operandA - operandB
 //    }.elsewhen(isSLL) {
 //      aluResult := operandA << operandB(4, 0)                          //operandA shifted left by operandB
 //    }.elsewhen(isSLT) {
@@ -270,7 +264,7 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
 //    }.elsewhen(isAND) {
 //      aluResult := operandA & operandB
     }.otherwise {
-      aluResult := 0.U                                                 // Default case for unimplemented instructions
+      aluResult := 0.S                                                 // Default case for unimplemented instructions
     }
 
     stage := memory
@@ -287,7 +281,7 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
 
   /** TODO: Implement Writeback stage*/
     when (rdReg =/= 0.U){         //if rd is not x0 (register 0)
-      regFile(rdReg) := aluResult                      //Ask if we store aluResult in rdReg what happen with ther instr
+      regFile(rdReg.asUInt) := aluResult.asUInt                      //Ask if we store aluResult in rdReg what happen with ther instr
     }
 
   /*

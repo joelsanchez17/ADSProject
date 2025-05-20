@@ -21,14 +21,14 @@ class MultiCycleRISCV32ITest extends AnyFlatSpec with ChiselScalatestTester {
           10,              // ADDI x2, x0, 10     => x2 = 10
           15,              // ADD x3, x1, x2      => x3 = x1 + x2 = 5 + 10
           -5,              // SUB x3, x1, x2      => x3 = x1 - x2 = -5 (signed)
-//          15,              // XOR x3, x1, x2      => 0b0101 ^ 0b1010 = 0b1111 = 15
-//        15,              // OR x3, x1, x2       => 0b0101 | 0b1010 = 0b1111 = 15
           0,               // AND x3, x1, x2      => 0b0101 & 0b1010 = 0
           1,               // SLT x3, x1, x2      => 5 < 10 = 1 (signed)
-//        1,               // SLTU x3, x1, x2     => 5 < 10 = 1 (unsigned)
-//        5120,            // SLL x3, x1, x2      => 5 << (10 & 0x1F) = 5 << 10
-//        0,               // SRL x3, x1, x2      => 5 >> 10 = 0 (logical)
-//        0                // SRA x3, x1, x2      => 5 >>> 10 = 0 (arithmetic)
+          1,               // SLTU x3, x1, x2     => 5 < 10 = 1 (unsigned)
+          5120,            // SLL x3, x1, x2      => 5 << (10 & 0x1F) = 5 << 10
+          0,               // SRL x3, x1, x2      => 5 >> 10 = 0 (logical)
+          0,                // SRA x3, x1, x2      => 5 >>> 10 = 0 (arithmetic)
+          15,              // XOR x3, x1, x2      => 0b0101 ^ 0b1010 = 0b1111 = 15
+          15              // OR x3, x1, x2       => 0b0101 | 0b1010 = 0b1111 = 15
       )
       var first = true
       for (expected <- expectedResults) {
@@ -41,11 +41,6 @@ class MultiCycleRISCV32ITest extends AnyFlatSpec with ChiselScalatestTester {
         dut.io.check_res.expect(expected.S)
       }
 
-
-//     for (expected <- expectedResults) {
-//        dut.clock.step(4) // enough to complete all stages
-//        dut.io.check_res.expect(expected.U)
-//      }
     }
   }
 }

@@ -188,41 +188,28 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
     val isSUB_wire  = (opcode === "b0110011".U && funct3 === "b000".U && funct7 === "b0100000".U)
     isSUB := isSUB_wire
 //    // SLL Logical left shift rd = rs1 << (rs2 & 0x1F)
-//    isSLL  := (opcodeReg === "b0110011".U && funct3Reg === "b001".U && funct7Reg === "b0000000".U)
+    val isSLL_wire  = (opcode === "b0110011".U && funct3 === "b001".U && funct7 === "b0000000".U)
+    isSLL := isSLL_wire
 //    // SLT set if less than (signed) rd = (rs1 < rs2)? 1 : 0
-//    isSLT  := (opcodeReg === "b0110011".U && funct3Reg === "b010".U && funct7Reg === "b0000000".U)
+    val isSLT_wire  = (opcode === "b0110011".U && funct3 === "b010".U && funct7 === "b0000000".U)
+    isSLT := isSLT_wire
 //    // SLTU set if less than (unsigned) rd = (rs1 < rs2)? 1:0
-//    isSLTU := (opcodeReg === "b0110011".U && funct3Reg === "b011".U && funct7Reg === "b0000000".U)
-//    // XOR rd = rs1 ^ rs2 (only one set to 1)
-//    isXOR  := (opcodeReg === "b0110011".U && funct3Reg === "b100".U && funct7Reg === "b0000000".U)
+    val isSLTU_wire = (opcode === "b0110011".U && funct3 === "b011".U && funct7 === "b0000000".U)
+    isSLTU := isSLTU_wire
+    // XOR rd = rs1 ^ rs2 (only one set to 1)
+    val isXOR_wire  = (opcode === "b0110011".U && funct3 === "b100".U && funct7 === "b0000000".U)
+    isXOR := isXOR_wire
 //    // SRL Logical right shift rd = rs1 >> (rs2 & 0x1F)
-//    isSRL  := (opcodeReg === "b0110011".U && funct3Reg === "b101".U && funct7Reg === "b0000000".U)
+    val isSRL_wire  = (opcode === "b0110011".U && funct3 === "b101".U && funct7 === "b0000000".U)
+    isSRL := isSRL_wire
 //    // SRA Arithmetic right shift: preserves sign rd = rs1 >>> (rs & 0x1F)
-//    isSRA  := (opcodeReg === "b0110011".U && funct3Reg === "b101".U && funct7Reg === "b0100000".U)
-//    isOR   := (opcodeReg === "b0110011".U && funct3Reg === "b110".U && funct7Reg === "b0000000".U)
+    val isSRA_wire  = (opcode === "b0110011".U && funct3 === "b101".U && funct7 === "b0100000".U)
+    isSRA := isSRA_wire
+    val isOR_wire   = (opcode === "b0110011".U && funct3 === "b110".U && funct7 === "b0000000".U)
+    isOR := isOR_wire
     val isAND_wire  = (opcode === "b0110011".U && funct3 === "b111".U && funct7 === "b0000000".U)
     isAND := isAND_wire
 
-/**    val A_test = Wire(Bool())
-       val B_test = Wire(Bool())
-
-      dontTouch(A_test)
-      dontTouch(B_test)
-
-      when (opcode === "b0010011".U) {
-      A_test := true.B
-      } .otherwise {
-        A_test := false.B
-      }
-
-      when (funct3 === "b000".U) {
-        B_test := true.B
-      } .otherwise {
-        B_test := false.B
-      }
-
-      isADDI := A_test && B_test
-      val isADDI_wire = A_test && B_test */
 
     val rs1Data = Wire(SInt(32.W))
     val rs2Data = Wire(SInt(32.W))
@@ -247,22 +234,22 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
       aluResult := operandA + operandB
     }.elsewhen(isSUB) {
       aluResult := operandA - operandB
-//    }.elsewhen(isSLL) {
-//      aluResult := operandA << operandB(4, 0)                          //operandA shifted left by operandB
-//    }.elsewhen(isSLT) {
-//      aluResult := Mux(operandA.asSInt < operandB.asSInt, 1.U, 0.U)    //if true 1, otherwise 0
-//    }.elsewhen(isSLTU) {
-//      aluResult := Mux(operandA < operandB, 1.U, 0.U)                  //if true 1, otherwise 0
-//    }.elsewhen(isXOR) {
-//      aluResult := operandA ^ operandB
-//    }.elsewhen(isSRL) {
-//      aluResult := operandA >> operandB(4, 0)
-//    }.elsewhen(isSRA) {
-//      aluResult := (operandA.asSInt() >> operandB(4,0)).asUInt
-//    }.elsewhen(isOR) {
-//      aluResult := operandA | operandB
-//    }.elsewhen(isAND) {
-//      aluResult := operandA & operandB
+    }.elsewhen(isSLL) {
+      aluResult := operandA << operandB(4, 0)                          //operandA shifted left by operandB
+    }.elsewhen(isSLT) {
+      aluResult := Mux(operandA.asSInt < operandB.asSInt, 1.S, 0.S)    //if true 1, otherwise 0
+    }.elsewhen(isSLTU) {
+      aluResult := Mux(operandA < operandB, 1.S, 0.S)                  //if true 1, otherwise 0
+    }.elsewhen(isXOR) {
+      aluResult := operandA ^ operandB
+    }.elsewhen(isSRL) {
+      aluResult := operandA >> operandB(4, 0)
+    }.elsewhen(isSRA) {
+      aluResult := (operandA.asSInt() >> operandB(4,0)).asSInt
+    }.elsewhen(isOR) {
+      aluResult := operandA | operandB
+    }.elsewhen(isAND) {
+      aluResult := operandA & operandB
     }.otherwise {
       aluResult := 0.S                                                 // Default case for unimplemented instructions
     }
@@ -271,22 +258,15 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
   }
     .elsewhen (stage === memory)
   {
-    /** No memory operations implemented in this basic CPU
-     * TODO: There might still something be missing here */
 
     stage := writeback
   }
     .elsewhen (stage === writeback)
   {
-
-  /** TODO: Implement Writeback stage*/
-    when (rdReg =/= 0.U){         //if rd is not x0 (register 0)
-      regFile(rdReg.asUInt) := aluResult.asUInt                      //Ask if we store aluResult in rdReg what happen with ther instr
+    when (rdReg =/= 0.U){                               //if rd is not x0 (register 0)
+      regFile(rdReg.asUInt) := aluResult.asUInt        //Ask if we store aluResult in rdReg what happen with ther instr
     }
 
-  /*
-   * TODO: Write result to output
-   */
     io.check_res := aluResult
     PC := PC + 4.U
     stage := fetch

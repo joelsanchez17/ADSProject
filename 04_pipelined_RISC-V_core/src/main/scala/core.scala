@@ -192,12 +192,13 @@ class ID extends Module {
     val pc_in         = Input(UInt(32.W))
     val data1_out     = Output(UInt(32.W))
     val data2_out     = Output(UInt(32.W))
-    val sign_ext_out  = Output(UInt(32.W))
+    val signExt_out  = Output(UInt(32.W))
     val alu_pc        = Output(UInt(32.W))   //belong here?
     val rs1_out       = Output(UInt(5.W))
     val rs2_out       = Output(UInt(5.W))
     val rd_out        = Output(UInt(5.W))
-    val upo           = Output(uopc())
+    val upo           = Output(uopc.Type())
+
 
   })
 
@@ -218,16 +219,18 @@ import uopc._
     io.rs1_out := rs1
     io.rs2_out := rs2
     io.rd_out  := rd
-    io.alu_pc  := io.pc_in + 4.U   //sure?
-    io.sign_ext_out := Cat(Fill(20, immI(11)), immI)
+    io.alu_pc  := io.pc_in + 4.U
+    io.signExt_out := Cat(Fill(20, immI(11)), immI)
 
  //Register File
     val rf = Module(new regFile)
-    rf.io.req.rs1  := rs1
-    rf.io.req.rs2  := rs2
-    rf.io.write.en := 0.U
+    rf.io.req.rs1    := rs1
+    rf.io.req.rs2    := rs2
+    rf.io.write.en   := 0.U
+    rf.io.write.data := 0.U
 
 /** Determine the uop based on the disassembled instruction */
+  io.upo := invalid
 
     when(opcode === "b0110011".U){                                          // R-Type instruction
       when(funct3 === "b000".U && funct7 === "b0000000".U ){
@@ -290,22 +293,29 @@ import uopc._
 
 class EX extends Module {
   val io = IO(new Bundle {
-
-
-
+    val data1_in         = Input(UInt(32.W))
+    val data2_in         = Input(UInt(32.W))
+    val signExt_in       = Input(UInt(32.W))
+    val upo_in           = Input(uopc())
+    val aluResult_out    = Output(UInt(32.W))
   })
 
-  /* 
-    TODO: Perform the ALU operation based on the uopc
+    val aluResult = Wire(UInt(32.W))
+    val operandA = io.data1_in
+    val operandB = Mux(io.upo_in === isADDI, io.signExt_in, io.data2_in)
 
-    when( uopc === isXYZ ){
-      result := operandA + operandB
-    }.elsewhen( uopc === isABC ){
-      result := operandA - operandB
+import uopc._
+
+    when( io.upo_in === isADD){
+      aluResult := operandA + operandB
+    }.elsewhen( io.upo_in === isADDI ){
+      aluResult := operandA + operandB
     }.otherwise{
-      maybe also declare a case to catch invalid instructions
+      aluResult := 0.U
     }
-  */
+
+  io.aluResult_out := aluResult
+
 }
 
 // -----------------------------------------

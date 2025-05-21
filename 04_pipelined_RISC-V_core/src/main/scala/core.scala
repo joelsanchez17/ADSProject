@@ -193,7 +193,7 @@ class ID extends Module {
     val data1_out     = Output(UInt(32.W))
     val data2_out     = Output(UInt(32.W))
     val signExt_out  = Output(UInt(32.W))
-    val alu_pc        = Output(UInt(32.W))   //belong here?
+//    val alu_pc        = Output(UInt(32.W))   //belong here?
     val rs1_out       = Output(UInt(5.W))
     val rs2_out       = Output(UInt(5.W))
     val rd_out        = Output(UInt(5.W))
@@ -219,7 +219,6 @@ import uopc._
     io.rs1_out := rs1
     io.rs2_out := rs2
     io.rd_out  := rd
-    io.alu_pc  := io.pc_in + 4.U
     io.signExt_out := Cat(Fill(20, immI(11)), immI)
 
  //Register File
@@ -333,10 +332,10 @@ class MEM extends Module {
 class WB extends Module {
   val io = IO(new Bundle {
     val aluResult_in     = Input(UInt(32.W))
-    val regWriteData_out = Output(UInt(32.W))
+    val aluResult_out = Output(UInt(32.W))
   })
 
-  io.regWriteData_out := io.aluResult_in
+  io.aluResult_out := io.aluResult_in
 
 }
 
@@ -377,16 +376,23 @@ class IDBarrier extends Module {
     val data1_in   = Input(UInt(32.W))
     val data2_in   = Input(UInt(32.W))
     val signExt_in = Input(UInt(32.W))
-    val rs1_in     = Input(UInt(32.W))
-    val rs2_in     = Input(UInt(32.W))
-    val upo_in     = Input(UInt(32.W))
+    val upo_in     = Input(uopc())
+//    val rd_in      = Input(UInt(32.W))
+//    val rs1_in     = Input(UInt(32.W))
+//    val rs2_in     = Input(UInt(32.W))
+
+
+
+
 
     val data1_out   = Output(UInt(32.W))
     val data2_out   = Output(UInt(32.W))
     val signExt_out = Output(UInt(32.W))
-    val rs1_out     = Output(UInt(32.W))
-    val rs2_out     = Output(UInt(32.W))
-    val upo_out     = Output(UInt(32.W))
+    val upo_out     = Output(uopc())
+//    val rd_out      = Output(UInt(32.W))
+//    val rs1_out     = Output(UInt(32.W))
+//    val rs2_out     = Output(UInt(32.W))
+
 
 
   })
@@ -394,23 +400,29 @@ class IDBarrier extends Module {
     val data1Reg   = Reg(UInt(32.W))
     val data2Reg   = Reg(UInt(32.W))
     val signExtReg = Reg(UInt(32.W))
-    val rs1Reg     = Reg(UInt(32.W))
-    val rs2Reg     = Reg(UInt(32.W))
-    val upoReg     = Reg(UInt(32.W))
+    val upoReg     = Reg(uopc())
+//    val rdReg      = Reg(UInt(32.W))
+//    val rs1Reg     = Reg(UInt(32.W))
+//    val rs2Reg     = Reg(UInt(32.W))
+
 
     data1Reg   := io.data1_in
     data2Reg   := io.data2_in
     signExtReg := io.signExt_in
-    rs1Reg     := io.rs1_in
-    rs2Reg     := io.rs2_in
     upoReg     := io.upo_in
+//    rdReg      := io.rd_in
+//    rs1Reg     := io.rs1_in
+//    rs2Reg     := io.rs2_in
+
 
     io.data1_out   := data1Reg
     io.data2_out   := data2Reg
     io.signExt_out := signExtReg
-    io.rs1_out     := rs1Reg
-    io.rs2_out     := rs2Reg
     io.upo_out     := upoReg
+//    io.rd_out      := rdReg
+//    io.rs1_out     := rs1Reg
+//    io.rs2_out     := rs2Reg
+
 
 }
 
@@ -468,39 +480,64 @@ class WBBarrier extends Module {
 
 }
 
-
-
 class PipelinedRV32Icore (BinaryFile: String) extends Module {
   val io = IO(new Bundle {
     val check_res = Output(UInt(32.W))
   })
 
-  val rf = Module(new regFile)
-  rf.io.req.rs1    := rs1
-  rf.io.req.rs2    := rs2
-  rf.io.write.en   := 0.U
-  rf.io.write.data := 0.U
+  /** Initiation stages */
+  val ifStage  = Module(new IF (BinaryFile: String))
+  val idStage  = Module(new ID)
+  val exStage  = Module(new EX)
+  val memStage = Module(new MEM)
+  val wbStage  = Module(new WB)
 
-  /* 
-   * TODO: Instantiate Barriers
-   */
-
-
-  /* 
-   * TODO: Instantiate Pipeline Stages
-   */
+  /** Initiation Barriers */
+  val idBarrier  = Module(new IDBarrier)
+  val exBarrier  = Module(new EXBarrier)
+  val memBarrier = Module(new MEMBarrier)
+  val wbBarrier  = Module(new WBBarrier)
 
 
-  /* 
-   * TODO: Instantiate Register File
-   */
+  /** TODO: Instantiate Pipeline Stages */
 
-  io.check_res := 0.U // necessary to make the empty design buildable TODO: change this
+  /** ID -> IDBarrier    */
+  idBarrier.io.data1_in    := idStage.io.data1_out
+  idBarrier.io.data2_in    := idStage.io.data2_out
+  idBarrier.io.signExt_in  := idStage.io.signExt_out
+  idBarrier.io.upo_in      := idStage.io.upo.asUInt
 
-  /* 
-   * TODO: Connect all IOs between the stages, barriers and register file.
-   * Do not forget the global output of the core module
-   */
+  // Not sure if needed
+//  idBarrier.io.rs1_in      := idStage.io.rs1_out
+//  idBarrier.io.rs2_in      := idStage.io.rs2_out
+//  idBarrier.io.rd_in       := idStage.io.rd_out
+
+  /** IDBarrier -> EX */
+  exStage.io.data1_in   := idBarrier.io.data1_out
+  exStage.io.data2_in   := idBarrier.io.data2_out
+  exStage.io.signExt_in := idBarrier.io.signExt_out
+  exStage.io.upo_in     := idBarrier.io.upo_out.asTypeOf(uopc())
+
+
+  /** EX -> EXBarrier */
+   exBarrier.io.aluResult_in  := exStage.io.aluResult_out
+
+  /** EXBarrier -> MEM */
+   memStage.io.aluResult_in   := exBarrier.io.aluResult_out
+
+  /** MEM -> MEMBarrier */
+   memBarrier.io.aluResult_in := memStage.io.aluResult_out
+
+  /** MEMBarrier -> WB */
+   wbStage.io.aluResult_in    := memBarrier.io.aluResult_out
+
+  /** WB -> WBBarrier */
+  wbBarrier.io.aluResult_in   := wbStage.io.aluResult_out
+
+  /** TODO: Instantiate Register Files */
+
+  io.check_res := wbBarrier.io.aluResult_out
+
 
 }
 

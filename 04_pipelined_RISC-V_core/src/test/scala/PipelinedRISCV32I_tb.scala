@@ -40,7 +40,7 @@ class PipelinedRISCV32ITest extends AnyFlatSpec with ChiselScalatestTester {
         } else {
           dut.clock.step(5)
         }
-        dut.io.check_res.expect(expected.S)
+        dut.io.result.expect(expected.U)
       }
 
     }
@@ -48,8 +48,6 @@ class PipelinedRISCV32ITest extends AnyFlatSpec with ChiselScalatestTester {
 }
 
            
-    }
-  }
-}
+
 
 

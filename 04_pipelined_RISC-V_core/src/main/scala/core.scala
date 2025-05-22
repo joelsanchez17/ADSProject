@@ -175,8 +175,6 @@ class IF (BinaryFile: String) extends Module {
     io.pc_out   := pc
     io.inst_out := inst
 
-/** TODO: Update the program counter (no jumps or branches, next PC always reads next address from IMEM) */
-
     pc := pc + 4.U
 }
 
@@ -192,13 +190,11 @@ class ID extends Module {
     val pc_in         = Input(UInt(32.W))
     val data1_out     = Output(UInt(32.W))
     val data2_out     = Output(UInt(32.W))
-    val signExt_out  = Output(UInt(32.W))
-//    val alu_pc        = Output(UInt(32.W))   //belong here?
+    val signExt_out   = Output(UInt(32.W))
     val rs1_out       = Output(UInt(5.W))
     val rs2_out       = Output(UInt(5.W))
     val rd_out        = Output(UInt(5.W))
-    val upo           = Output(uopc.Type())
-
+    val upo           = Output(uopc())
 
   })
 
@@ -252,6 +248,8 @@ import uopc._
 
     io.data1_out := rf.io.resp.data1
     io.data2_out := rf.io.resp.data2
+    rf.io.write.rd := 0.U
+
     }
 }
 
@@ -493,6 +491,7 @@ class PipelinedRV32Icore (BinaryFile: String) extends Module {
   val wbStage  = Module(new WB)
 
   /** Initiation Barriers */
+  val ifBarrier  = Module(new IFBarrier)
   val idBarrier  = Module(new IDBarrier)
   val exBarrier  = Module(new EXBarrier)
   val memBarrier = Module(new MEMBarrier)
@@ -501,11 +500,19 @@ class PipelinedRV32Icore (BinaryFile: String) extends Module {
 
   /** TODO: Instantiate Pipeline Stages */
 
+  /** IF -> IFBarrier    */
+  ifBarrier.io.pc_in   := ifStage.io.pc_out
+  ifBarrier.io.inst_in := ifStage.io.inst_out
+
+  /** IFBarrier -> ID    */
+  idStage.io.pc_in     := ifBarrier.io.pc_out
+  idStage.io.inst_in   := ifBarrier.io.inst_out
+
   /** ID -> IDBarrier    */
   idBarrier.io.data1_in    := idStage.io.data1_out
   idBarrier.io.data2_in    := idStage.io.data2_out
   idBarrier.io.signExt_in  := idStage.io.signExt_out
-  idBarrier.io.upo_in      := idStage.io.upo.asUInt
+  idBarrier.io.upo_in      := idStage.io.upo
 
   // Not sure if needed
 //  idBarrier.io.rs1_in      := idStage.io.rs1_out

@@ -82,9 +82,7 @@ object uopc extends ChiselEnum {
   val isSRA   = Value(0x08.U)
   val isSLT   = Value(0x09.U)
   val isSLTU  = Value(0x0A.U)
-
   val isADDI  = Value(0x10.U)
-
   val invalid = Value(0xFF.U)
 }
 
@@ -133,7 +131,9 @@ class regFile extends Module {
           and handle the read and write requests*/
 
   val regFile = Mem(32, UInt(32.W))
-  regFile(0) := 0.U
+  when(io.write.en && io.write.rd =/= 0.U) {
+    regFile(io.write.rd) := io.write.data
+  }
 
   io.resp.data1 := regFile(io.req.rs1)
   io.resp.data2 := regFile(io.req.rs2)
@@ -215,6 +215,7 @@ import uopc._
     io.rs1_out := rs1
     io.rs2_out := rs2
     io.rd_out  := rd
+
     io.signExt_out := Cat(Fill(20, immI(11)), immI)
 
  //Register File
@@ -223,8 +224,13 @@ import uopc._
     rf.io.req.rs2    := rs2
     rf.io.write.en   := 0.U
     rf.io.write.data := 0.U
+    rf.io.write.rd   := 0.U
 
-/** Determine the uop based on the disassembled instruction */
+    io.data1_out := rf.io.resp.data1
+    io.data2_out := rf.io.resp.data2
+
+
+  /** Determine the uop based on the disassembled instruction */
   io.upo := invalid
 
     when(opcode === "b0110011".U){                                          // R-Type instruction
@@ -234,24 +240,14 @@ import uopc._
 //        io.upo := isSUB
 //      }.elsewhere(funct3Reg === "b001".U && funct7Reg === "b0000000".U){
 //        io.upo := isSLL
-//      }
-    }.elsewhen(opcode === "b0010011".U ){                                    // I-Type Instruction
-      when(funct3 === "b000".U ){
-        io.upo := isADDI
-    }.otherwise{
-      io.upo := invalid
-     }
-   }
-  /* 
-   * TODO: Read the operands from teh register file
-   */
-
-    io.data1_out := rf.io.resp.data1
-    io.data2_out := rf.io.resp.data2
-    rf.io.write.rd := 0.U
-
     }
-}
+    }.elsewhen(opcode === "b0010011".U ){                                    // I-Type Instruction
+      when(funct3 === "b000".U && funct7 === "b0000000".U){
+        io.upo := isADDI
+    }
+     }
+    }
+
 
 //  }.elsewhen(funct3 === "b100".U) {
 //    io.uopc_out := isXOR
@@ -523,7 +519,7 @@ class PipelinedRV32Icore (BinaryFile: String) extends Module {
   exStage.io.data1_in   := idBarrier.io.data1_out
   exStage.io.data2_in   := idBarrier.io.data2_out
   exStage.io.signExt_in := idBarrier.io.signExt_out
-  exStage.io.upo_in     := idBarrier.io.upo_out.asTypeOf(uopc())
+  exStage.io.upo_in     := idBarrier.io.upo_out
 
 
   /** EX -> EXBarrier */

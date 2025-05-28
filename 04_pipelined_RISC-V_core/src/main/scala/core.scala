@@ -188,17 +188,20 @@ class ID extends Module {
 /** What inputs and / or outputs does this pipeline stage need? */
     val inst_in       = Input(UInt(32.W))
     val pc_in         = Input(UInt(32.W))
+    val data_in       = Input(UInt(32.W))
+    val rdReg_in      = Input(UInt(32.W))
     val data1_out     = Output(UInt(32.W))
     val data2_out     = Output(UInt(32.W))
     val signExt_out   = Output(UInt(32.W))
-    val rs1_out       = Output(UInt(5.W))
-    val rs2_out       = Output(UInt(5.W))
-    val rd_out        = Output(UInt(5.W))
     val upo           = Output(uopc())
+    val rd_out        = Output(UInt(32.W))
+
 
   })
 
 /** TODO: Any internal signals needed? */
+    val data1Reg = Reg(UInt(32.W))
+
 //Decoding
 import uopc._
 
@@ -212,22 +215,26 @@ import uopc._
 
 //Outputs
 
-    io.rs1_out := rs1
-    io.rs2_out := rs2
-    io.rd_out  := rd
 
     io.signExt_out := Cat(Fill(20, immI(11)), immI)
+    io.rd_out      := rd
 
  //Register File
     val rf = Module(new regFile)
     rf.io.req.rs1    := rs1
     rf.io.req.rs2    := rs2
-    rf.io.write.en   := 0.U
-    rf.io.write.data := 0.U
-    rf.io.write.rd   := 0.U
+    rf.io.write.rd   := io.rdReg_in
+    rf.io.write.en   := 1.U
+    rf.io.write.data := io.data_in
+
+
+
+    data1Reg := rf.io.resp.data1
 
     io.data1_out := rf.io.resp.data1
     io.data2_out := rf.io.resp.data2
+
+
 
 
   /** Determine the uop based on the disassembled instruction */
@@ -371,7 +378,7 @@ class IDBarrier extends Module {
     val data2_in   = Input(UInt(32.W))
     val signExt_in = Input(UInt(32.W))
     val upo_in     = Input(uopc())
-//    val rd_in      = Input(UInt(32.W))
+    val rd_in      = Input(UInt(32.W))
 //    val rs1_in     = Input(UInt(32.W))
 //    val rs2_in     = Input(UInt(32.W))
 
@@ -383,7 +390,7 @@ class IDBarrier extends Module {
     val data2_out   = Output(UInt(32.W))
     val signExt_out = Output(UInt(32.W))
     val upo_out     = Output(uopc())
-//    val rd_out      = Output(UInt(32.W))
+    val rd_out      = Output(UInt(32.W))
 //    val rs1_out     = Output(UInt(32.W))
 //    val rs2_out     = Output(UInt(32.W))
 
@@ -395,7 +402,7 @@ class IDBarrier extends Module {
     val data2Reg   = Reg(UInt(32.W))
     val signExtReg = Reg(UInt(32.W))
     val upoReg     = Reg(uopc())
-//    val rdReg      = Reg(UInt(32.W))
+    val rdReg      = Reg(UInt(32.W))
 //    val rs1Reg     = Reg(UInt(32.W))
 //    val rs2Reg     = Reg(UInt(32.W))
 
@@ -404,7 +411,8 @@ class IDBarrier extends Module {
     data2Reg   := io.data2_in
     signExtReg := io.signExt_in
     upoReg     := io.upo_in
-//    rdReg      := io.rd_in
+    rdReg      := io.rd_in
+    dontTouch(rdReg)
 //    rs1Reg     := io.rs1_in
 //    rs2Reg     := io.rs2_in
 
@@ -413,7 +421,8 @@ class IDBarrier extends Module {
     io.data2_out   := data2Reg
     io.signExt_out := signExtReg
     io.upo_out     := upoReg
-//    io.rd_out      := rdReg
+    io.rd_out      := rdReg
+
 //    io.rs1_out     := rs1Reg
 //    io.rs2_out     := rs2Reg
 
@@ -503,6 +512,8 @@ class PipelinedRV32Icore (BinaryFile: String) extends Module {
   /** IFBarrier -> ID    */
   idStage.io.pc_in     := ifBarrier.io.pc_out
   idStage.io.inst_in   := ifBarrier.io.inst_out
+  idStage.io.data_in   := exStage.io.aluResult_out
+  idStage.io.rdReg_in  := idBarrier.io.rd_out
 
   /** ID -> IDBarrier    */
   idBarrier.io.data1_in    := idStage.io.data1_out
@@ -513,7 +524,7 @@ class PipelinedRV32Icore (BinaryFile: String) extends Module {
   // Not sure if needed
 //  idBarrier.io.rs1_in      := idStage.io.rs1_out
 //  idBarrier.io.rs2_in      := idStage.io.rs2_out
-//  idBarrier.io.rd_in       := idStage.io.rd_out
+  idBarrier.io.rd_in       := idStage.io.rd_out
 
   /** IDBarrier -> EX */
   exStage.io.data1_in   := idBarrier.io.data1_out

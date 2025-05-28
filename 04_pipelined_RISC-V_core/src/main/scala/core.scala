@@ -294,7 +294,7 @@ class EX extends Module {
     val aluResult_out    = Output(UInt(32.W))
   })
 
-    val aluResult = Wire(UInt(32.W))
+    val aluResult = Reg(UInt(32.W))
     val operandA = io.data1_in
     val operandB = Mux(io.upo_in === isADDI, io.signExt_in, io.data2_in)
 
@@ -356,13 +356,10 @@ class IFBarrier extends Module {
   })
 
   val pcReg = Reg(UInt(32.W))
-  val instReg = Reg(UInt(32.W))
 
   pcReg    := io.pc_in
-  instReg  := io.inst_in
-
   io.pc_out   := pcReg
-  io.inst_out := instReg
+  io.inst_out := io.inst_in
 
 }
 
@@ -381,9 +378,6 @@ class IDBarrier extends Module {
     val rd_in      = Input(UInt(32.W))
 //    val rs1_in     = Input(UInt(32.W))
 //    val rs2_in     = Input(UInt(32.W))
-
-
-
 
 
     val data1_out   = Output(UInt(32.W))
@@ -441,11 +435,10 @@ class EXBarrier extends Module {
     val aluResult_out = Output(UInt(32.W))
 
   })
+    val aluReg = Reg(UInt(32.W))
 
-    val aluResultReg = Reg(UInt(32.W))
-
-    aluResultReg      := io.aluResult_in
-    io.aluResult_out  := aluResultReg
+    aluReg := io.aluResult_in
+    io.aluResult_out  := aluReg
 }
 
 
@@ -459,10 +452,7 @@ class MEMBarrier extends Module {
     val aluResult_out = Output(UInt(32.W))
   })
 
-    val aluResultReg = Reg(UInt(32.W))
-
-    aluResultReg      := io.aluResult_in
-    io.aluResult_out  := aluResultReg
+    io.aluResult_out  := io.aluResult_in
 }
 
 
@@ -476,10 +466,7 @@ class WBBarrier extends Module {
     val aluResult_out = Output(UInt(32.W))
   })
 
-    val aluResultReg = Reg(UInt(32.W))
-
-    aluResultReg      := io.aluResult_in
-    io.aluResult_out  := aluResultReg
+    io.aluResult_out  := io.aluResult_in
 
 }
 

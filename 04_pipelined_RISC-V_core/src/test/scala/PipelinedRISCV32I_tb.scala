@@ -23,7 +23,7 @@ class PipelinedRISCV32ITest extends AnyFlatSpec with ChiselScalatestTester {
         10,              // ADDI x2, x0, 10     => x2 = 10
         0,               // ADDI x0, x0, 0
         15,              // ADD x3, x1, x2      => x3 = x1 + x2 = 5 + 10
-        0,              // SUB x3, x1, x2      => x3 = x1 - x2 = -5 (signed)
+        -5,              // SUB x3, x1, x2      => x3 = x1 - x2 = -5 (signed)
         0,               // AND x3, x1, x2      => 0b0101 & 0b1010 = 0
 //        1,               // SLT x3, x1, x2      => 5 < 10 = 1 (signed)
 //        1,               // SLTU x3, x1, x2     => 5 < 10 = 1 (unsigned)
@@ -41,7 +41,8 @@ class PipelinedRISCV32ITest extends AnyFlatSpec with ChiselScalatestTester {
         } else {
           dut.clock.step(1)
         }
-        dut.io.result.expect(expected.U)
+//        dut.io.result.expect(expected.U)
+        dut.io.result.expect((expected & 0xFFFFFFFFL).U)
       }
 
     }

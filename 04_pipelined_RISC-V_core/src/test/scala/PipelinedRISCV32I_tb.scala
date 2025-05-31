@@ -21,7 +21,8 @@ class PipelinedRISCV32ITest extends AnyFlatSpec with ChiselScalatestTester {
       val expectedResults = Seq(
         5,               // ADDI x1, x0, 5      => x1 = 5
         10,              // ADDI x2, x0, 10     => x2 = 10
-        5,              // ADD x3, x1, x2      => x3 = x1 + x2 = 5 + 10
+        0,               // ADDI x0, x0, 0
+        15,              // ADD x3, x1, x2      => x3 = x1 + x2 = 5 + 10
         0,              // SUB x3, x1, x2      => x3 = x1 - x2 = -5 (signed)
         0,               // AND x3, x1, x2      => 0b0101 & 0b1010 = 0
 //        1,               // SLT x3, x1, x2      => 5 < 10 = 1 (signed)
@@ -35,7 +36,7 @@ class PipelinedRISCV32ITest extends AnyFlatSpec with ChiselScalatestTester {
       var first = true
       for (expected <- expectedResults) {
         if (first) {
-          dut.clock.step(3)
+          dut.clock.step(4)
           first = false
         } else {
           dut.clock.step(1)

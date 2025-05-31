@@ -200,7 +200,7 @@ class ID extends Module {
   })
 
 /** TODO: Any internal signals needed? */
-    val data1Reg = Reg(UInt(32.W))
+
 
 //Decoding
 import uopc._
@@ -227,9 +227,6 @@ import uopc._
     rf.io.write.en   := 1.U
     rf.io.write.data := io.data_in
 
-
-
-    data1Reg := rf.io.resp.data1
 
     io.data1_out := rf.io.resp.data1
     io.data2_out := rf.io.resp.data2
@@ -294,7 +291,7 @@ class EX extends Module {
     val aluResult_out    = Output(UInt(32.W))
   })
 
-    val aluResult = Reg(UInt(32.W))
+    val aluResult = Wire(UInt(32.W))
     val operandA = io.data1_in
     val operandB = Mux(io.upo_in === isADDI, io.signExt_in, io.data2_in)
 
@@ -356,11 +353,13 @@ class IFBarrier extends Module {
   })
 
   val pcReg = Reg(UInt(32.W))
+  val instReg = Reg(UInt(32.W))
 
   pcReg    := io.pc_in
   io.pc_out   := pcReg
-  io.inst_out := io.inst_in
 
+  instReg := io.inst_in
+  io.inst_out := instReg
 }
 
 
@@ -414,6 +413,10 @@ class IDBarrier extends Module {
     io.data1_out   := data1Reg
     io.data2_out   := data2Reg
     io.signExt_out := signExtReg
+//    io.data1_out   := io.data1_in
+//    io.data2_out   := io.data2_in
+//    io.signExt_out := io.signExt_in
+
     io.upo_out     := upoReg
     io.rd_out      := rdReg
 
@@ -432,11 +435,16 @@ class EXBarrier extends Module {
   val io = IO(new Bundle {
 
     val aluResult_in  = Input(UInt(32.W))
+    val rd_in         = Input(UInt(32.W))
     val aluResult_out = Output(UInt(32.W))
 
   })
     val aluReg = Reg(UInt(32.W))
+    val rd     = Reg(UInt(32.W))
 
+
+    rd := io.rd_in
+    dontTouch(rd)
     aluReg := io.aluResult_in
     io.aluResult_out  := aluReg
 }
@@ -452,7 +460,10 @@ class MEMBarrier extends Module {
     val aluResult_out = Output(UInt(32.W))
   })
 
-    io.aluResult_out  := io.aluResult_in
+  val aluReg = Reg(UInt(32.W))
+
+  aluReg := io.aluResult_in
+  io.aluResult_out  := aluReg
 }
 
 
@@ -522,6 +533,7 @@ class PipelinedRV32Icore (BinaryFile: String) extends Module {
 
   /** EX -> EXBarrier */
    exBarrier.io.aluResult_in  := exStage.io.aluResult_out
+   exBarrier.io.rd_in  := idStage.io.rd_out
 
   /** EXBarrier -> MEM */
    memStage.io.aluResult_in   := exBarrier.io.aluResult_out

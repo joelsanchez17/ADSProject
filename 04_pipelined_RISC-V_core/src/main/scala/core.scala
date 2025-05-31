@@ -240,8 +240,8 @@ import uopc._
     when(opcode === "b0110011".U){                                          // R-Type instruction
       when(funct3 === "b000".U && funct7 === "b0000000".U ){
         io.upo := isADD
-//      }.elsewhere(funct3 === "b000".U && funct7 === "b0100000".U){
-//        io.upo := isSUB
+      }.elsewhen(funct3 === "b000".U && funct7 === "b0100000".U){
+        io.upo := isSUB
 //      }.elsewhere(funct3Reg === "b001".U && funct7Reg === "b0000000".U){
 //        io.upo := isSLL
     }
@@ -292,18 +292,27 @@ class EX extends Module {
   })
 
     val aluResult = Wire(UInt(32.W))
+    aluResult := 0.U
     val operandA = io.data1_in
     val operandB = Mux(io.upo_in === isADDI, io.signExt_in, io.data2_in)
 
 import uopc._
 
-    when( io.upo_in === isADD){
-      aluResult := operandA + operandB
-    }.elsewhen( io.upo_in === isADDI ){
-      aluResult := operandA + operandB
-    }.otherwise{
-      aluResult := 0.U
-    }
+//    when( io.upo_in === isADD){
+//      aluResult := operandA + operandB
+//    }.elsewhen( io.upo_in === isADDI ){
+//      aluResult := operandA + operandB
+//    }.elsewhen( io.upo_in === isSUB ){
+//      aluResult := operandA - operandB
+//    }.otherwise{
+//      aluResult := 0.U
+//    }
+  switch(io.upo_in) {
+    is(isADD)  { aluResult := operandA + operandB }
+    is(isADDI) { aluResult := operandA + operandB }
+    is(isSUB)  { aluResult := operandA - operandB }
+    // Add more cases here as needed
+  }
 
   io.aluResult_out := aluResult
 

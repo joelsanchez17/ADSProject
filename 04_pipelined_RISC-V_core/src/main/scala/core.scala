@@ -242,14 +242,28 @@ import uopc._
         io.upo := isADD
       }.elsewhen(funct3 === "b000".U && funct7 === "b0100000".U){
         io.upo := isSUB
-//      }.elsewhere(funct3Reg === "b001".U && funct7Reg === "b0000000".U){
-//        io.upo := isSLL
-    }
+      }.elsewhen(funct3 === "b111".U) {
+        io.upo := isAND
+      }.elsewhen(funct3 === "b010".U) {
+        io.upo := isSLT
+      }.elsewhen(funct3 === "b011".U) {
+        io.upo := isSLTU
+      }.elsewhen(funct3 === "b001".U) {
+        io.upo := isSLL
+      }.elsewhen(funct3 === "b101".U && funct7 === "b0000000".U) {
+        io.upo := isSRL
+      }.elsewhen(funct3 === "b101".U && funct7 === "b0100000".U) {
+        io.upo := isSRA
+      }.elsewhen(funct3 === "b100".U) {
+        io.upo := isXOR
+      }.elsewhen(funct3 === "b110".U) {
+        io.upo := isOR
+      }
     }.elsewhen(opcode === "b0010011".U ){                                    // I-Type Instruction
       when(funct3 === "b000".U && funct7 === "b0000000".U){
         io.upo := isADDI
-    }
-     }
+        }
+      }
     }
 
 
@@ -266,7 +280,7 @@ import uopc._
 //  }.elsewhen(funct3 === "b101".U && funct7 === "b0100000".U) {
 //    io.uopc_out := isSRA
 //  }.elsewhen(funct3 === "b010".U) {
-//    io.uopc_out := isSLT
+////    io.uopc_out := isSLT
 //  }.elsewhen(funct3 === "b011".U) {
 //    io.uopc_out := isSLTU
 //  }
@@ -311,7 +325,14 @@ import uopc._
     is(isADD)  { aluResult := operandA + operandB }
     is(isADDI) { aluResult := operandA + operandB }
     is(isSUB)  { aluResult := operandA - operandB }
-    // Add more cases here as needed
+    is(isAND)  { aluResult := operandA & operandB }
+    is(isSLT)  { aluResult := Mux(operandA < operandB, 1.U, 0.U)}
+    is(isSLTU) { aluResult := Mux(operandA < operandB, 1.U, 0.U)}
+    is(isSLL)  { aluResult := operandA << operandB(4, 0)}
+    is(isSRL)  { aluResult := operandA >> operandB(4, 0)}
+    is(isSRA)  { aluResult := operandA >> operandB(4,0)}
+    is(isXOR)  { aluResult := operandA ^ operandB}
+    is(isOR)  { aluResult := operandA | operandB}
   }
 
   io.aluResult_out := aluResult

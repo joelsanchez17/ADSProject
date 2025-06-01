@@ -25,13 +25,13 @@ class PipelinedRISCV32ITest extends AnyFlatSpec with ChiselScalatestTester {
         15,              // ADD x3, x1, x2      => x3 = x1 + x2 = 5 + 10
         -5,              // SUB x3, x1, x2      => x3 = x1 - x2 = -5 (signed)
         0,               // AND x3, x1, x2      => 0b0101 & 0b1010 = 0
-//        1,               // SLT x3, x1, x2      => 5 < 10 = 1 (signed)
-//        1,               // SLTU x3, x1, x2     => 5 < 10 = 1 (unsigned)
-//        5120,            // SLL x3, x1, x2      => 5 << (10 & 0x1F) = 5 << 10
-//        0,               // SRL x3, x1, x2      => 5 >> 10 = 0 (logical)
-//        0,                // SRA x3, x1, x2      => 5 >>> 10 = 0 (arithmetic)
-//        15,              // XOR x3, x1, x2      => 0b0101 ^ 0b1010 = 0b1111 = 15
-//        15              // OR x3, x1, x2       => 0b0101 | 0b1010 = 0b1111 = 15
+        1,               // SLT x3, x1, x2      => 5 < 10 = 1 (signed)
+        1,               // SLTU x3, x1, x2     => 5 < 10 = 1 (unsigned)
+        5120,            // SLL x3, x1, x2      => 5 << (10 & 0x1F) = 5 << 10
+        0,               // SRL x3, x1, x2      => 5 >> 10 = 0 (logical)
+        0,                // SRA x3, x1, x2      => 5 >>> 10 = 0 (arithmetic)
+        15,              // XOR x3, x1, x2      => 0b0101 ^ 0b1010 = 0b1111 = 15
+        15              // OR x3, x1, x2       => 0b0101 | 0b1010 = 0b1111 = 15
       )
       var first = true
       for (expected <- expectedResults) {

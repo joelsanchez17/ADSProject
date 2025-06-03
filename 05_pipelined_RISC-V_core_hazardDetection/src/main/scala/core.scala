@@ -517,27 +517,27 @@ class HazardDetectionRV32Icore (BinaryFile: String) extends Module {
 
   /** TODO: Connect the I/Os of the forwarding unit */
 
-    FU.io.inRS1   :=    IDBarrier.io.outRS1
-    FU.io.inRS2   :=    IDBarrier.io.outRS2
-    FU.io.RD_mem  :=    EXBarrier.io.outRD
-    FU.io.RD_wb   :=    MEMBarrier.io.outRD
+    FU.io.inRS1     :=    IDBarrier.io.outRS1
+    FU.io.inRS2     :=    IDBarrier.io.outRS2
+    FU.io.inRD_mem  :=    EXBarrier.io.outRD
+    FU.io.inRD_wb   :=    MEMBarrier.io.outRD
 
 
   /* TODO: Implement MUXes to select which values are sent to the EX stage as operands*/
 
-  val operandA = WireDefault(io.rs1_data)
-  val operandB = WireDefault(io.rs2_data)
+  val operandA = WireDefault(IDBarrier.io.outOperandA)
+  val operandB = WireDefault(IDBarrier.io.outOperandB)
 
   switch(FU.io.forwardA) {
-    is("b01".U) { operandA := io.mem_result }
-    is("b10".U) { operandA := io.wb_result }
+    is("b01".U) { operandA := EXBarrier.io.outAluResult }
+    is("b10".U) { operandA := MEMBarrier.io.outAluResult }
   }
 
   switch(FU.io.forwardB) {
-    is("b01".U) { operandB := io.mem_result }
-    is("b10".U) { operandB := io.wb_result }
+    is("b01".U) { operandB := EXBarrier.io.outAluResult }
+    is("b10".U) { operandB := MEMBarrier.io.outAluResult }
   }
-  
+
   EX.io.uop := IDBarrier.io.outUOP
 
   /* TODO: Connect operand inputs in EX stage to forwarding logic*/

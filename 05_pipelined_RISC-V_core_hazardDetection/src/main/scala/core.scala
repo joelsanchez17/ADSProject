@@ -69,18 +69,18 @@ class regFileReadResp extends Bundle {
 }
 
 class regFileWriteReq extends Bundle {
-    val addr  = Input(UInt(5.W))
+    val addr  = Input(UInt(5.W)  // rd
     val data  = Input(UInt(32.W))
     val wr_en = Input(Bool())
 }
 
 class regFile extends Module {
   val io = IO(new Bundle {
-    val req_1  = new regFileReadReq
-    val resp_1 = new regFileReadResp
-    val req_2  = new regFileReadReq
-    val resp_2 = new regFileReadResp
-    val req_3  = new regFileWriteReq
+    val req_1  = new regFileReadReq    // rs1
+    val resp_1 = new regFileReadResp   // data1
+    val req_2  = new regFileReadReq    // rs2
+    val resp_2 = new regFileReadResp   // data2
+    val req_3  = new regFileWriteReq   // writeBack 3 Wires (rd, data, en)
 })
 
   val regFile = Mem(32, UInt(32.W))
@@ -99,7 +99,7 @@ class regFile extends Module {
 
 class ForwardingUnit extends Module {
   val io = IO(new Bundle {
-    // What inputs and / or outputs does the forwarding unit need?
+    
   })
 
 
@@ -349,7 +349,7 @@ class IFBarrier extends Module {
 // -----------------------------------------
 
 class IDBarrier extends Module {
-  val io = IO(new Bundle {
+  val io = IO(new Bundle {S
     val inUOP       = Input(uopc())
     val inRD        = Input(UInt(5.W))
     val inRS1       = Input(UInt(5.W))
@@ -385,7 +385,6 @@ class IDBarrier extends Module {
   operandB := io.inOperandB
 
 }
-
 
 // -----------------------------------------
 // EX-Barrier

@@ -107,25 +107,25 @@ class ForwardingUnit extends Module {
     val forwardB = Output(UInt(2.W))
   })
 
-    val forwardA = WireDefault("b00".U(2.U))
-    val forwardB = WireDefault("b00".U(2.U))
+    val forwardA = WireDefault(0.U(2.U))
+    val forwardB = WireDefault(0.U(2.U))
 
   /**Hazard detetction logic and Forwarding Selection*/
 
    //Forwarding logic for RS1
 
     when(io.inRD_mem =/= 0.U && io.inRD_mem === io.inRS1){
-      forwardA := "b01".U
+      forwardA := 1.U
     }.elsewhen(io.inRD_wb =/= 0.U && io.inRD_wb ===io.inRS1){
-      forwardA := "b10".U
+      forwardA := 1.U
     }
 
   //Forwarding logic for RS2
 
   when(io.inRD_mem =/= 0.U && io.inRD_mem === io.inRS2){
-    forwardB := "b01".U
+    forwardB := 2.U
   }.elsewhen(io.inRD_wb =/= 0.U && io.inRD_wb ===io.inRS2){
-    forwardB := "b10".U
+    forwardB := 2.U
   }
 
     io.forwardA := forwardA
@@ -525,7 +525,7 @@ class HazardDetectionRV32Icore (BinaryFile: String) extends Module {
 
   /* TODO: Implement MUXes to select which values are sent to the EX stage as operands*/
 
-  val operandA = WireDefault(IDBarrier.io.outOperandA)
+ /* val operandA = WireDefault(IDBarrier.io.outOperandA)
   val operandB = WireDefault(IDBarrier.io.outOperandB)
 
   switch(FU.io.forwardA) {
@@ -536,14 +536,21 @@ class HazardDetectionRV32Icore (BinaryFile: String) extends Module {
   switch(FU.io.forwardB) {
     is("b01".U) { operandB := EXBarrier.io.outAluResult }
     is("b10".U) { operandB := MEMBarrier.io.outAluResult }
-  }
+  }*/
+
+  //Mux(FU.io.forwardA === 0.U, operandA := IDBarrier.io.outOperandA, Mux(FU.io.forwardA === 1.U, operandA := EXBarrier.io.outAluResult, operandA := MEMBarrier.io.outAluResult))
+
+  EX.io.operandA := Mux(FU.io.forwardA === 0.U, IDBarrier.io.outOperandA, Mux(FU.io.forwardA === 1.U, EXBarrier.io.outAluResult, MEMBarrier.io.outAluResult))
+  EX.io.operandB := Mux(FU.io.forwardB === 0.U, IDBarrier.io.outOperandB, Mux(FU.io.forwardB === 1.U, EXBarrier.io.outAluResult, MEMBarrier.io.outAluResult))
+
+  assert(FU.io.forwardA =/= 3.U, "Message")
 
   EX.io.uop := IDBarrier.io.outUOP
 
   /* TODO: Connect operand inputs in EX stage to forwarding logic*/
 
-  EX.io.operandA := operandA
-  EX.io.operandB := operandB
+ // EX.io.operandA := operandA
+ // EX.io.operandB := operandB
 
 
 

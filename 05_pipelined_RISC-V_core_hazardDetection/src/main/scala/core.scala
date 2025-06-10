@@ -105,10 +105,12 @@ class ForwardingUnit extends Module {
     val inRD_wb  = Input(UInt(5.W))
     val forwardA = Output(UInt(2.W))
     val forwardB = Output(UInt(2.W))
+
   })
 
-    val forwardA = WireDefault(0.U(2.U))
-    val forwardB = WireDefault(0.U(2.U))
+    val forwardA = WireDefault(0.U(2.W))
+    val forwardB = WireDefault(0.U(2.W))
+
 
   /**Hazard detetction logic and Forwarding Selection*/
 
@@ -117,13 +119,13 @@ class ForwardingUnit extends Module {
     when(io.inRD_mem =/= 0.U && io.inRD_mem === io.inRS1){
       forwardA := 1.U
     }.elsewhen(io.inRD_wb =/= 0.U && io.inRD_wb ===io.inRS1){
-      forwardA := 1.U
+      forwardA := 2.U
     }
 
   //Forwarding logic for RS2
 
   when(io.inRD_mem =/= 0.U && io.inRD_mem === io.inRS2){
-    forwardB := 2.U
+    forwardB := 1.U
   }.elsewhen(io.inRD_wb =/= 0.U && io.inRD_wb ===io.inRS2){
     forwardB := 2.U
   }
@@ -286,7 +288,7 @@ class EX extends Module {
     }.elsewhen(uop === isADD) {                           
       io.aluResult := operandA + operandB 
     }.elsewhen(uop === isSUB) {  
-      io.aluResult := operandA - operandB 
+      io.aluResult := operandA - operandB
     }.elsewhen(uop === isXOR) {  
       io.aluResult := operandA ^ operandB 
     }.elsewhen(uop === isOR) {  

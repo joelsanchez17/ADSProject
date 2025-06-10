@@ -103,13 +103,16 @@ class ForwardingUnit extends Module {
     val inRS2    = Input(UInt(5.W))
     val inRD_mem = Input(UInt(5.W))
     val inRD_wb  = Input(UInt(5.W))
+    val RD_wb_2 = Input(UInt(5.W))
     val forwardA = Output(UInt(2.W))
     val forwardB = Output(UInt(2.W))
+
 
   })
 
     val forwardA = WireDefault(0.U(2.W))
     val forwardB = WireDefault(0.U(2.W))
+
 
 
   /**Hazard detetction logic and Forwarding Selection*/
@@ -120,14 +123,18 @@ class ForwardingUnit extends Module {
       forwardA := 1.U
     }.elsewhen(io.inRD_wb =/= 0.U && io.inRD_wb ===io.inRS1){
       forwardA := 2.U
+    }.elsewhen(io.inRD_wb =/= 0.U && io.RD_wb_2 === io.inRS1){
+      forwardA := 3.U
     }
 
   //Forwarding logic for RS2
 
   when(io.inRD_mem =/= 0.U && io.inRD_mem === io.inRS2){
     forwardB := 1.U
-  }.elsewhen(io.inRD_wb =/= 0.U && io.inRD_wb ===io.inRS2){
+  }.elsewhen(io.inRD_wb =/= 0.U && io.inRD_wb === io.inRS2){
     forwardB := 2.U
+  }.elsewhen(io.inRD_wb =/= 0.U && io.RD_wb_2 === io.inRS2){
+    forwardB := 3.U
   }
 
     io.forwardA := forwardA
@@ -461,9 +468,15 @@ class WBBarrier extends Module {
   val io = IO(new Bundle {
     val inCheckRes   = Input(UInt(32.W))
     val outCheckRes  = Output(UInt(32.W))
+    val inRD         = Input(UInt(5.W))
+    val outRD        = Output(UInt(5.W))
   })
 
   val check_res   = RegInit(0.U(32.W))
+  val rd          = RegInit(0.U(5.W))
+
+  io.outRD := rd
+  rd := io.inRD
 
   io.outCheckRes := check_res
   check_res      := io.inCheckRes
@@ -523,6 +536,7 @@ class HazardDetectionRV32Icore (BinaryFile: String) extends Module {
     FU.io.inRS2     :=    IDBarrier.io.outRS2
     FU.io.inRD_mem  :=    EXBarrier.io.outRD
     FU.io.inRD_wb   :=    MEMBarrier.io.outRD
+    FU.io.RD_wb_2 :=    WBBarrier.io.outRD
 
 
   /* TODO: Implement MUXes to select which values are sent to the EX stage as operands*/
@@ -542,10 +556,14 @@ class HazardDetectionRV32Icore (BinaryFile: String) extends Module {
 
   //Mux(FU.io.forwardA === 0.U, operandA := IDBarrier.io.outOperandA, Mux(FU.io.forwardA === 1.U, operandA := EXBarrier.io.outAluResult, operandA := MEMBarrier.io.outAluResult))
 
-  EX.io.operandA := Mux(FU.io.forwardA === 0.U, IDBarrier.io.outOperandA, Mux(FU.io.forwardA === 1.U, EXBarrier.io.outAluResult, MEMBarrier.io.outAluResult))
-  EX.io.operandB := Mux(FU.io.forwardB === 0.U, IDBarrier.io.outOperandB, Mux(FU.io.forwardB === 1.U, EXBarrier.io.outAluResult, MEMBarrier.io.outAluResult))
+//  EX.io.operandA := Mux(FU.io.forwardA === 0.U, IDBarrier.io.outOperandA, Mux(FU.io.forwardA === 1.U, EXBarrier.io.outAluResult, MEMBarrier.io.outAluResult))
+//  EX.io.operandB := Mux(FU.io.forwardB === 0.U, IDBarrier.io.outOperandB, Mux(FU.io.forwardB === 1.U, EXBarrier.io.outAluResult, MEMBarrier.io.outAluResult))
+  EX.io.operandA := Mux(FU.io.forwardA === 0.U, IDBarrier.io.outOperandA, Mux(FU.io.forwardA === 1.U, EXBarrier.io.outAluResult, Mux(FU.io.forwardA === 2.U,MEMBarrier.io.outAluResult,io.check_res)))
+  EX.io.operandB := Mux(FU.io.forwardB === 0.U, IDBarrier.io.outOperandB, Mux(FU.io.forwardB === 1.U, EXBarrier.io.outAluResult, Mux(FU.io.forwardB === 2.U,MEMBarrier.io.outAluResult,io.check_res)))
 
-  assert(FU.io.forwardA =/= 3.U, "Message")
+
+
+//  assert(FU.io.forwardA =/= 3.U, "Message")
 
   EX.io.uop := IDBarrier.io.outUOP
 
@@ -567,6 +585,7 @@ class HazardDetectionRV32Icore (BinaryFile: String) extends Module {
   WB.io.regFileReq          <> regFile.io.req_3
 
   WBBarrier.io.inCheckRes   := WB.io.check_res
+  WBBarrier.io.inRD         := MEMBarrier.io.outRD
 
   io.check_res              := WBBarrier.io.outCheckRes
 

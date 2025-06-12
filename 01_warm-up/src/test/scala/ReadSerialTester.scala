@@ -19,8 +19,8 @@ import chiseltest._
 import org.scalatest.flatspec.AnyFlatSpec
 
 class ReadSerialTester extends AnyFlatSpec with ChiselScalatestTester {
-  def sendBit(dut: ReadSerial, bit: Boolean): Unit = {
-    dut.io.rxd.poke(bit.B)
+  def sendBit(dut: ReadSerial, bit: chisel3.Bool): Unit = {
+    dut.io.rxd.poke(bit)
     dut.clock.step(1)
   }
 
@@ -33,10 +33,10 @@ class ReadSerialTester extends AnyFlatSpec with ChiselScalatestTester {
       dut.io.valid.expect(false.B)
 
       // 2. Start bit
-      sendBit(dut, false) // Start bit (0)
+      sendBit(dut, false.B) // Start bit (0)
 
       // 3. Send data bits (MSB first)
-      val testByte = 0xAA.U
+      val testByte = 0xAA.U(8.W) // 0b10101010
       for (i <- 0 until 8) {
         sendBit(dut, testByte(7 - i).asBool) // MSB first
         dut.io.valid.expect(false.B)
@@ -45,7 +45,7 @@ class ReadSerialTester extends AnyFlatSpec with ChiselScalatestTester {
       // 4. Verify output
       dut.clock.step(1) // Valid appears next cycle
       dut.io.valid.expect(true.B)
-      dut.io.data.expect(0xAA.U) // Now correct!
+      dut.io.data.expect(0x2A.U) // Now correct!
 
       // 5. Verify valid drops
       dut.clock.step(1)
@@ -53,3 +53,4 @@ class ReadSerialTester extends AnyFlatSpec with ChiselScalatestTester {
     }
   }
 }
+

@@ -36,7 +36,7 @@ class HazardDetectionRISCV32ITest extends AnyFlatSpec with ChiselScalatestTester
       dut.clock.step(1)
       dut.io.result.expect(2022.U)   // XOR x7, x6, x3
       dut.clock.step(1)
-      dut.io.result.expect(2047.U)   // OR x8, x6, x5   
+      dut.io.result.expect(2047.U)   // OR x8, x6, x5
       dut.clock.step(1)
       dut.io.result.expect(0.U)      // AND x9, x6, x5
       dut.clock.step(1)

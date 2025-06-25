@@ -179,30 +179,28 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
     /** Functions */
     val isADD_wire = (opcode === "b0110011".U && funct3 === "b000".U && funct7 === "b0000000".U)
     isADD := isADD_wire
-    dontTouch(isADD_wire)
-
 
     val isADDI_wire = (opcode === "b0010011".U && funct3 === "b000".U)
     isADDI := isADDI_wire
 
     val isSUB_wire  = (opcode === "b0110011".U && funct3 === "b000".U && funct7 === "b0100000".U)
     isSUB := isSUB_wire
-//    // SLL Logical left shift rd = rs1 << (rs2 & 0x1F)
+   // SLL Logical left shift rd = rs1 << (rs2 & 0x1F)
     val isSLL_wire  = (opcode === "b0110011".U && funct3 === "b001".U && funct7 === "b0000000".U)
     isSLL := isSLL_wire
-//    // SLT set if less than (signed) rd = (rs1 < rs2)? 1 : 0
+    // SLT set if less than (signed) rd = (rs1 < rs2)? 1 : 0
     val isSLT_wire  = (opcode === "b0110011".U && funct3 === "b010".U && funct7 === "b0000000".U)
     isSLT := isSLT_wire
-//    // SLTU set if less than (unsigned) rd = (rs1 < rs2)? 1:0
+    // SLTU set if less than (unsigned) rd = (rs1 < rs2)? 1:0
     val isSLTU_wire = (opcode === "b0110011".U && funct3 === "b011".U && funct7 === "b0000000".U)
     isSLTU := isSLTU_wire
     // XOR rd = rs1 ^ rs2 (only one set to 1)
     val isXOR_wire  = (opcode === "b0110011".U && funct3 === "b100".U && funct7 === "b0000000".U)
     isXOR := isXOR_wire
-//    // SRL Logical right shift rd = rs1 >> (rs2 & 0x1F)
+    // SRL Logical right shift rd = rs1 >> (rs2 & 0x1F)
     val isSRL_wire  = (opcode === "b0110011".U && funct3 === "b101".U && funct7 === "b0000000".U)
     isSRL := isSRL_wire
-//    // SRA Arithmetic right shift: preserves sign rd = rs1 >>> (rs & 0x1F)
+    // SRA Arithmetic right shift: preserves sign rd = rs1 >>> (rs & 0x1F)
     val isSRA_wire  = (opcode === "b0110011".U && funct3 === "b101".U && funct7 === "b0100000".U)
     isSRA := isSRA_wire
     val isOR_wire   = (opcode === "b0110011".U && funct3 === "b110".U && funct7 === "b0000000".U)
@@ -219,7 +217,6 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
 
     val operandA_wire = Wire(SInt(32.W))
     operandA_wire := rs1Data
-
 
     operandA := operandA_wire
     operandB := rs2Data
@@ -258,7 +255,6 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
   }
     .elsewhen (stage === memory)
   {
-
     stage := writeback
   }
     .elsewhen (stage === writeback)

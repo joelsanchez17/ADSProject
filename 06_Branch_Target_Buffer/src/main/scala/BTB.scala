@@ -1,7 +1,4 @@
 
-{}
-package core_tile
-
 import chisel3._
 import chisel3.experimental.ChiselEnum
 import chisel3.util._
@@ -76,8 +73,8 @@ class BranchTargetBuffer extends Module {
     when(io.mispredicted) {
       w0.predictor := w0.predictor + 1.U
       } .otherwise {    // predictor is correct
-      when(w0.predictor === (1.U || 3.0)) { w0.predictor := w0.predictor - 1.U }
-      when(w0.predictor === (2.U || 0.U)) { w0.predictor := w0.predictor }
+      when(w0.predictor === 1.U || w0.predictor === 3.U) { w0.predictor := w0.predictor - 1.U }
+      when(w0.predictor === 2.U || w0.predictor === 0.U) { w0.predictor := w0.predictor }
     }
     lru(updIndex) := true.B // mark way1 as LRU (way0 was just used)
   } .elsewhen(match1) {
@@ -86,8 +83,8 @@ class BranchTargetBuffer extends Module {
     when(io.mispredicted) {
       w1.predictor := w1.predictor + 1.U
     } .otherwise {      // predictor is correct
-    when(w1.predictor === (1.U || 3.0)) { w1.predictor := w1.predictor - 1.U }
-    when(w1.predictor === (2.U || 0.U)) { w1.predictor := w1.predictor }
+    when(w1.predictor === 1.U || w1.predictor === 3.U) { w1.predictor := w1.predictor - 1.U }
+    when(w1.predictor === 2.U || w1.predictor === 0.U) { w1.predictor := w1.predictor }
     }
     lru(updIndex) := false.B // mark way0 as LRU
   } .otherwise {

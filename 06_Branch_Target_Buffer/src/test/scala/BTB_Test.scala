@@ -41,11 +41,11 @@ class BTBTester extends AnyFlatSpec with ChiselScalatestTester {
         c.io.target.expect(target0)
         c.io.predictedTaken.expect(true.B)
 
-//        c.io.PC.poke(pc1)
-//        c.clock.step()
-//        c.io.valid.expect(true.B)
-//        c.io.target.expect(target1)
-//        c.io.predictedTaken.expect(true.B)
+        c.io.PC.poke(pc1)
+        c.clock.step()
+        c.io.valid.expect(true.B)
+        c.io.target.expect(target1)
+        c.io.predictedTaken.expect(true.B)
      }
   }
 }

@@ -71,40 +71,58 @@ class BranchTargetBuffer extends Module {
 
 
     when(match0) {
+      // Update entry in way0
       w0.target := io.updateTarget
       when(io.mispredicted) {
         w0.predictor := Mux(w0.predictor === 3.U, 3.U, w0.predictor + 1.U)
       }.otherwise {
         w0.predictor := Mux(w0.predictor === 0.U, 0.U, w0.predictor - 1.U)
       }
-      nextLRU(updIndex) := true.B // mark way1 as LRU (way0 was just used)
-  } .elsewhen(match1) {
-    // Update entry in way1
+      nextLRU(updIndex) := true.B // way0 used → way1 becomes LRU
+    } .elsewhen(match1) {
+      // Update entry in way1
       w1.target := io.updateTarget
       when(io.mispredicted) {
         w1.predictor := Mux(w1.predictor === 3.U, 3.U, w1.predictor + 1.U)
       }.otherwise {
         w1.predictor := Mux(w1.predictor === 0.U, 0.U, w1.predictor - 1.U)
       }
-      nextLRU(updIndex) := false.B // mark way0 as LRU
-  } .otherwise {
-    // No match
-    when(lru(updIndex)) {
-      // Replace way0
-      btb0(updIndex).valid := true.B
-      btb0(updIndex).tag := updTag
-      btb0(updIndex).target := io.updateTarget
-      btb0(updIndex).predictor := "b10".U // weak taken
-      nextLRU(updIndex) := true.B
+      nextLRU(updIndex) := false.B // way1 used → way0 becomes LRU
     } .otherwise {
-      // Replace way1
-      btb1(updIndex).valid := true.B
-      btb1(updIndex).tag := updTag
-      btb1(updIndex).target := io.updateTarget
-      btb1(updIndex).predictor := "b10".U
-      nextLRU(updIndex) := false.B
+      // No match
+      when(!w0.valid) {
+        // Write to empty way0
+        btb0(updIndex).valid := true.B
+        btb0(updIndex).tag := updTag
+        btb0(updIndex).target := io.updateTarget
+        btb0(updIndex).predictor := "b10".U
+        nextLRU(updIndex) := true.B
+      } .elsewhen(!w1.valid) {
+        // Write to empty way1
+        btb1(updIndex).valid := true.B
+        btb1(updIndex).tag := updTag
+        btb1(updIndex).target := io.updateTarget
+        btb1(updIndex).predictor := "b10".U
+        nextLRU(updIndex) := false.B
+      } .otherwise {
+        // Both valid → use LRU
+        when(lru(updIndex)) {
+          // Replace way0
+          btb0(updIndex).valid := true.B
+          btb0(updIndex).tag := updTag
+          btb0(updIndex).target := io.updateTarget
+          btb0(updIndex).predictor := "b10".U
+          nextLRU(updIndex) := true.B
+        } .otherwise {
+          // Replace way1
+          btb1(updIndex).valid := true.B
+          btb1(updIndex).tag := updTag
+          btb1(updIndex).target := io.updateTarget
+          btb1(updIndex).predictor := "b10".U
+          nextLRU(updIndex) := false.B
+        }
       }
     }
+    lru := nextLRU
   }
-  lru := nextLRU
 }

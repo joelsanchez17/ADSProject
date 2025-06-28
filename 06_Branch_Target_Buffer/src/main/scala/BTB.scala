@@ -1,3 +1,4 @@
+package BranchTargetBuffer
 
 import chisel3._
 import chisel3.experimental.ChiselEnum
@@ -27,9 +28,11 @@ class BranchTargetBuffer extends Module {
 
 
 // BTBEntries [set][way]
-  val btb0 = RegInit(Vec(8, new BTBEntry)) // Way 0
-  val btb1 = RegInit(Vec(8, new BTBEntry)) // Way 1
+  val btb0 = RegInit(VecInit(Seq.fill(8)(0.U.asTypeOf(new BTBEntry))))
+  val btb1 = RegInit(VecInit(Seq.fill(8)(0.U.asTypeOf(new BTBEntry))))
+
   val lru = RegInit(VecInit(Seq.fill(8)(false.B)))
+  val nextLRU = RegInit(VecInit(Seq.fill(8)(false.B)))
 
 
 // Extract index and tag from PC
@@ -40,7 +43,7 @@ class BranchTargetBuffer extends Module {
   val entry0 = btb0(index)
   val entry1 = btb1(index)
 
-// If tag from PC matchs with any tag from BTB (valid), then hit is true
+// If tag from PC match with any tag from BTB (valid), then hit is true
   val hit0 = entry0.valid && entry0.tag === tag
   val hit1 = entry1.valid && entry1.tag === tag
 
@@ -62,31 +65,28 @@ class BranchTargetBuffer extends Module {
   val w0 = btb0(updIndex)               // Reading from updatePC
   val w1 = btb1(updIndex)               // Reading from updatePC
 
+
   val match0 = w0.valid && w0.tag === updTag  //Check match
   val match1 = w1.valid && w1.tag === updTag
 
 
-  when(match0) {
-    // Update entry in way0
-    w0.target := io.updateTarget
-    // Logic of Predictor
-    when(io.mispredicted) {
-      w0.predictor := w0.predictor + 1.U
-      } .otherwise {    // predictor is correct
-      when(w0.predictor === 1.U || w0.predictor === 3.U) { w0.predictor := w0.predictor - 1.U }
-      when(w0.predictor === 2.U || w0.predictor === 0.U) { w0.predictor := w0.predictor }
-    }
-    lru(updIndex) := true.B // mark way1 as LRU (way0 was just used)
+    when(match0) {
+      w0.target := io.updateTarget
+      when(io.mispredicted) {
+        w0.predictor := Mux(w0.predictor === 3.U, 3.U, w0.predictor + 1.U)
+      }.otherwise {
+        w0.predictor := Mux(w0.predictor === 0.U, 0.U, w0.predictor - 1.U)
+      }
+      nextLRU(updIndex) := true.B // mark way1 as LRU (way0 was just used)
   } .elsewhen(match1) {
     // Update entry in way1
-    w1.target := io.updateTarget
-    when(io.mispredicted) {
-      w1.predictor := w1.predictor + 1.U
-    } .otherwise {      // predictor is correct
-    when(w1.predictor === 1.U || w1.predictor === 3.U) { w1.predictor := w1.predictor - 1.U }
-    when(w1.predictor === 2.U || w1.predictor === 0.U) { w1.predictor := w1.predictor }
-    }
-    lru(updIndex) := false.B // mark way0 as LRU
+      w1.target := io.updateTarget
+      when(io.mispredicted) {
+        w1.predictor := Mux(w1.predictor === 3.U, 3.U, w1.predictor + 1.U)
+      }.otherwise {
+        w1.predictor := Mux(w1.predictor === 0.U, 0.U, w1.predictor - 1.U)
+      }
+      nextLRU(updIndex) := false.B // mark way0 as LRU
   } .otherwise {
     // No match
     when(lru(updIndex)) {
@@ -95,15 +95,16 @@ class BranchTargetBuffer extends Module {
       btb0(updIndex).tag := updTag
       btb0(updIndex).target := io.updateTarget
       btb0(updIndex).predictor := "b10".U // weak taken
-      lru(updIndex) := true.B
+      nextLRU(updIndex) := true.B
     } .otherwise {
       // Replace way1
       btb1(updIndex).valid := true.B
       btb1(updIndex).tag := updTag
       btb1(updIndex).target := io.updateTarget
       btb1(updIndex).predictor := "b10".U
-      lru(updIndex) := false.B
+      nextLRU(updIndex) := false.B
       }
     }
   }
+  lru := nextLRU
 }

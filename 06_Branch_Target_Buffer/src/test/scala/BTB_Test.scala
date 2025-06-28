@@ -46,32 +46,34 @@ class BTBTester extends AnyFlatSpec with ChiselScalatestTester {
         c.io.valid.expect(true.B)
         c.io.target.expect(target1)
         c.io.predictedTaken.expect(true.B)
-     }
-  }
+
+
+
+        // Forcing eviction: insert pc2 into same set
+        val pc2 = 0x44.U  // same index = 1, tag = 2
+        val target2 = 0x300.U
+
+        c.io.update.poke(true.B)
+        c.io.updatePC.poke(pc2)
+        c.io.updateTarget.poke(target2)
+        c.io.mispredicted.poke(true.B)
+        c.clock.step(2)
+
+        /* ON PROCESS */
+
+        // Only 2 of the 3 branches should be in BTB (due to LRU)
+        c.io.update.poke(false.B)
+
+        // Test prediction for pc0 again (should be evicted or still present depending on LRU)
+        c.io.PC.poke(pc0)
+        c.clock.step()
+        c.io.valid.expect(false.B)
+        c.io.target.expect(0.U)
+        c.io.predictedTaken.expect(false.B)
+        
+    }
+ }
 }
-//
-//
-//        // Forcing eviction: insert pc2 into same set
-//        val pc2 = 0x44.U  // same index = 1, tag = 2
-//        val target2 = 0x300.U
-//
-//        c.io.update.poke(true.B)
-//        c.io.updatePC.poke(pc2)
-//        c.io.updateTarget.poke(target2)
-//        c.io.mispredicted.poke(true.B)
-//        c.clock.step(2)
-//
-//        // Only 2 of the 3 branches should be in BTB (due to LRU)
-//        c.io.update.poke(false.B)
-//
-//
-//
-//
-//
-//        // Test prediction for pc0 again (should be evicted or still present depending on LRU)
-//        c.io.PC.poke(pc0)
-//        c.clock.step()
-//        println(s"[After eviction] PC0 -> Valid: ${c.io.valid.peek()}, Target: ${c.io.target.peek()}")
 //
 //        // === Test FSM transitions ===
 //

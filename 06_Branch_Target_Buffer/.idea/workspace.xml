@@ -8,7 +8,8 @@
       <change beforePath="$PROJECT_DIR$/../.idea/ADSProject.iml" beforeDir="false" afterPath="$PROJECT_DIR$/../.idea/ADSProject.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/modules/root-02_single-cycle_risc-v_core.root-02_single-cycle_risc-v_core-build.iml" beforeDir="false" afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/modules/root-02_single-cycle_risc-v_core.root-02_single-cycle_risc-v_core-build.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/sbt.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/sbt.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/BTB.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/BTB.scala" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/scala/BTB_Test.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/scala/BTB_Test.scala" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

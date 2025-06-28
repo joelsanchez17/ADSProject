@@ -5,98 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="85827cc6-bd4f-4d56-985b-61f054b4e1ef" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__com_github_nscala_time_nscala_time_2_12_2_22_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__com_github_scopt_scopt_2_12_3_7_1_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__com_google_protobuf_protobuf_java_3_18_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__com_lihaoyi_geny_2_12_0_7_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__com_lihaoyi_os_lib_2_12_0_8_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__com_lihaoyi_utest_2_12_0_7_9_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__com_thoughtworks_paranamer_paranamer_2_8_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__edu_berkeley_cs_chisel3_2_12_3_5_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__edu_berkeley_cs_chisel3_core_2_12_3_5_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__edu_berkeley_cs_chisel3_macros_2_12_3_5_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__edu_berkeley_cs_chiseltest_2_12_0_5_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__edu_berkeley_cs_firrtl_2_12_1_5_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__edu_berkeley_cs_treadle_2_12_1_5_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__io_github_alexarchambault_data_class_2_12_0_2_5_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__joda_time_joda_time_2_10_1_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__net_java_dev_jna_jna_5_10_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__net_jcazevedo_moultingyaml_2_12_0_4_2_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__org_antlr_antlr4_runtime_4_9_3_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__org_apache_commons_commons_lang3_3_11_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__org_apache_commons_commons_text_1_9_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__org_fusesource_jansi_jansi_1_11_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__org_joda_joda_convert_2_2_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__org_json4s_json4s_ast_2_12_3_6_12_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__org_json4s_json4s_core_2_12_3_6_12_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__org_json4s_json4s_native_2_12_3_6_12_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__org_json4s_json4s_scalap_2_12_3_6_12_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__org_portable_scala_portable_scala_reflect_2_12_0_1_1_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__org_scala_lang_modules_scala_jline_2_12_1_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__org_scala_lang_modules_scala_xml_2_12_1_2_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__org_scala_lang_scala_library_2_12_13_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__org_scala_lang_scala_reflect_2_12_13_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__org_scala_sbt_test_interface_1_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__org_scalactic_scalactic_2_12_3_1_4_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__org_scalatest_scalatest_2_12_3_1_4_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__org_yaml_snakeyaml_1_26_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/libraries/sbt__scala_sdk_2_12_13.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/modules/root-02_single-cycle_risc-v_core.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/.name" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/codeStyles/codeStyleConfig.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__com_github_nscala_time_nscala_time_2_12_2_22_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__com_github_scopt_scopt_2_12_3_7_1_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__com_google_protobuf_protobuf_java_3_18_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__com_lihaoyi_geny_2_12_0_7_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__com_lihaoyi_os_lib_2_12_0_8_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__com_lihaoyi_utest_2_12_0_7_9_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__com_thoughtworks_paranamer_paranamer_2_8_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__edu_berkeley_cs_chisel3_2_12_3_5_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__edu_berkeley_cs_chisel3_core_2_12_3_5_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__edu_berkeley_cs_chisel3_macros_2_12_3_5_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__edu_berkeley_cs_chiseltest_2_12_0_5_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__edu_berkeley_cs_firrtl_2_12_1_5_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__edu_berkeley_cs_treadle_2_12_1_5_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__io_github_alexarchambault_data_class_2_12_0_2_5_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__joda_time_joda_time_2_10_1_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__net_java_dev_jna_jna_5_10_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__net_jcazevedo_moultingyaml_2_12_0_4_2_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__org_antlr_antlr4_runtime_4_9_3_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__org_apache_commons_commons_lang3_3_11_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__org_apache_commons_commons_text_1_9_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__org_fusesource_jansi_jansi_1_11_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__org_joda_joda_convert_2_2_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__org_json4s_json4s_ast_2_12_3_6_12_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__org_json4s_json4s_core_2_12_3_6_12_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__org_json4s_json4s_native_2_12_3_6_12_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__org_json4s_json4s_scalap_2_12_3_6_12_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__org_portable_scala_portable_scala_reflect_2_12_0_1_1_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__org_scala_lang_modules_scala_jline_2_12_1_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__org_scala_lang_modules_scala_xml_2_12_1_2_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__org_scala_lang_scala_library_2_12_13_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__org_scala_lang_scala_reflect_2_12_13_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__org_scala_sbt_test_interface_1_0_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__org_scalactic_scalactic_2_12_3_1_4_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__org_scalatest_scalatest_2_12_3_1_4_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__org_yaml_snakeyaml_1_26_jar.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/libraries/sbt__scala_sdk_2_12_13.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules/root-06_branch_target_buffer.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules/root-06_branch_target_buffer.root-06_branch_target_buffer-build.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/sbt.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/scala_compiler.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/scala_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../.idea/ADSProject.iml" beforeDir="false" afterPath="$PROJECT_DIR$/../.idea/ADSProject.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/modules/root-02_single-cycle_risc-v_core.root-02_single-cycle_risc-v_core-build.iml" beforeDir="false" afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/modules/root-02_single-cycle_risc-v_core.root-02_single-cycle_risc-v_core-build.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/sbt.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../02_single-cycle_RISC-V_core/.idea/sbt.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/scala/BTB.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/BTB.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/HazardDetectionRISCV32I.scala" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/scala/MakeVerilog.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/scala/MakeVerilog.scala" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/scala/BTB_Test.scala" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/scala/BTB_Test.scala" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

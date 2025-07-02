@@ -59,8 +59,6 @@ class BTBTester extends AnyFlatSpec with ChiselScalatestTester {
         c.io.mispredicted.poke(true.B)
         c.clock.step(2)
 
-        /* ON PROCESS */
-
         // Only 2 of the 3 branches should be in BTB (due to LRU)
         c.io.update.poke(false.B)
 
@@ -71,20 +69,30 @@ class BTBTester extends AnyFlatSpec with ChiselScalatestTester {
         c.io.target.expect(0.U)
         c.io.predictedTaken.expect(false.B)
         
+
+        // Test FSM transitions
+
+        // Repeat pc2 update with mispredicted = false to move toward not taken
+        for (_ <- 0 until 3) {
+            c.io.update.poke(true.B)
+            c.io.updatePC.poke(pc2)
+            c.io.updateTarget.poke(target2)
+            c.io.mispredicted.poke(false.B) // prediction was correct
+            c.clock.step()
+        }
+        // Now prediction should still be "taken". Predictor is at 0 (strong taken)
+        c.io.update.poke(false.B)  // stop updating
+        c.io.PC.poke(pc2)          // input pc2
+        c.clock.step()
+
+        // ✅ Expected output of BTB based on predictor = 0
+        c.io.valid.expect(true.B)             // pc2 is still stored in BTB
+        c.io.predictedTaken.expect(false.B)    // predict taken
+        c.io.target.expect(target2)           // correct target address returned
+
     }
  }
 }
-//
-//        // === Test FSM transitions ===
-//
-//        // Repeat pc2 update with mispredicted = false to move toward not taken
-//        for (_ <- 0 until 3) {
-//            c.io.update.poke(true.B)
-//            c.io.updatePC.poke(pc2)
-//            c.io.updateTarget.poke(target2)
-//            c.io.mispredicted.poke(false.B) // prediction was correct
-//            c.clock.step()
-//        }
 //
 //        // Now prediction should change from weak taken to not taken
 //        c.io.update.poke(false.B)

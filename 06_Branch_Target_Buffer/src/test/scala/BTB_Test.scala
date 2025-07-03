@@ -57,7 +57,7 @@ class BTBTester extends AnyFlatSpec with ChiselScalatestTester {
         c.io.updatePC.poke(pc2)
         c.io.updateTarget.poke(target2)
         c.io.mispredicted.poke(true.B)
-        c.clock.step(2)
+        c.clock.step(1)
 
         // Only 2 of the 3 branches should be in BTB (due to LRU)
         c.io.update.poke(false.B)
@@ -68,7 +68,7 @@ class BTBTester extends AnyFlatSpec with ChiselScalatestTester {
         c.io.valid.expect(false.B)
         c.io.target.expect(0.U)
         c.io.predictedTaken.expect(false.B)
-        
+
 
         // Test FSM transitions
 
@@ -80,7 +80,7 @@ class BTBTester extends AnyFlatSpec with ChiselScalatestTester {
             c.io.mispredicted.poke(false.B) // prediction was correct
             c.clock.step()
         }
-        // Now prediction should still be "taken". Predictor is at 0 (strong taken)
+        // Now prediction should be "not taken". Predictor is at 0 (strong not taken)
         c.io.update.poke(false.B)  // stop updating
         c.io.PC.poke(pc2)          // input pc2
         c.clock.step()
@@ -90,17 +90,29 @@ class BTBTester extends AnyFlatSpec with ChiselScalatestTester {
         c.io.predictedTaken.expect(false.B)    // predict taken
         c.io.target.expect(target2)           // correct target address returned
 
+        // Repeat pc2 update with mispredicted = true to move toward not taken
+        for (_ <- 0 until 3) {
+            c.io.update.poke(true.B)
+            c.io.updatePC.poke(pc2)
+            c.io.updateTarget.poke(target2)
+            c.io.mispredicted.poke(true.B) // prediction was correct
+            c.clock.step()
+        }
+
+        //Inserting pc3 in another index
+        val pc3 = 0x48.U  // another index = 2
+        val target3 = 0x400.U
+
+        c.io.update.poke(true.B)
+        c.io.updatePC.poke(pc3)
+        c.io.updateTarget.poke(target3)
+        c.io.mispredicted.poke(false.B)
+        c.clock.step(1)
+
     }
  }
 }
-//
-//        // Now prediction should change from weak taken to not taken
-//        c.io.update.poke(false.B)
-//        c.io.PC.poke(pc2)
-//        c.clock.step()
-//        println(s"[FSM test] PC2 -> Valid: ${c.io.valid.peek()}, Taken: ${c.io.predictedTaken.peek()}, Target: ${c.io.target.peek()}")
-//    }
-// }
+
 
 
 

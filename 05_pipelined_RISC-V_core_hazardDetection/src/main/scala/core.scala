@@ -149,6 +149,7 @@ class ForwardingUnit extends Module {
 class IF (BinaryFile: String) extends Module {
   val io = IO(new Bundle {
     val instr = Output(UInt(32.W))
+    val pc    = Output(UInt(32.W))
   })
 
   val IMem = Mem(4096, UInt(32.W))
@@ -161,9 +162,9 @@ class IF (BinaryFile: String) extends Module {
   // Update PC
   // no jumps or branches, next PC always reads next address from IMEM
   PC := PC + 4.U
+  io.pc := PC
   
 }
-
 
 // -----------------------------------------
 // Decode Stage
@@ -358,15 +359,20 @@ class WB extends Module {
 
 class IFBarrier extends Module {
   val io = IO(new Bundle {
-    val inInstr  = Input(UInt(32.W))
-    val outInstr = Output(UInt(32.W))
+    val inst_in  = Input(UInt(32.W))
+    val inst_out = Output(UInt(32.W))
+    val pc_in  = Input(UInt(32.W))
+    val pc_out = Output(UInt(32.W))
   })
 
-  val instrReg = RegInit(0.U(32.W))
+//  val instrReg = RegInit(0.U(32.W))
+//  val pcReg    = RegInit(0.U(32.W))
 
-  io.outInstr := instrReg
-  instrReg    := io.inInstr
+//  io.inst_out:= instrReg
+//  instrReg    := io.inst_in
 
+  io.pc_out := io.pc_in
+  io.inst_out := io.inst_in
 }
 
 
@@ -388,6 +394,10 @@ class IDBarrier extends Module {
     val outRS2      = Output(UInt(5.W))
     val outOperandA = Output(UInt(32.W))
     val outOperandB = Output(UInt(32.W))
+    val pc_in  = Input(UInt(32.W))
+    val pc_out = Output(UInt(32.W))
+    val inst_in  = Input(UInt(32.W))
+    val inst_out = Output(UInt(32.W))
   })
 
   val uop      = Reg(uopc())
@@ -396,6 +406,9 @@ class IDBarrier extends Module {
   val rs2      = RegInit(0.U(5.W))
   val operandA = RegInit(0.U(32.W))
   val operandB = RegInit(0.U(32.W))
+  val pcReg    = RegInit(0.U(32.W))
+  val instReg    = RegInit(0.U(32.W))
+
 
   io.outUOP := uop
   uop := io.inUOP
@@ -409,6 +422,15 @@ class IDBarrier extends Module {
   operandA := io.inOperandA
   io.outOperandB := operandB
   operandB := io.inOperandB
+  pcReg := io.pc_in
+  io.pc_out := pcReg
+  dontTouch(pcReg)
+
+  instReg := io.inst_in
+  io.inst_out := instReg
+  dontTouch(instReg)
+
+
 
 }
 
@@ -422,10 +444,17 @@ class EXBarrier extends Module {
     val outAluResult = Output(UInt(32.W))
     val inRD         = Input(UInt(5.W))
     val outRD        = Output(UInt(5.W))
+    val pc_in  = Input(UInt(32.W))
+    val pc_out = Output(UInt(32.W))
+    val inst_in  = Input(UInt(32.W))
+    val inst_out = Output(UInt(32.W))
   })
 
   val aluResult = RegInit(0.U(32.W))
   val rd       = RegInit(0.U(5.W))
+  val pcReg    = RegInit(0.U(32.W))
+  val instReg    = RegInit(0.U(32.W))
+
 
   io.outAluResult := aluResult
   aluResult       := io.inAluResult
@@ -433,6 +462,14 @@ class EXBarrier extends Module {
   io.outRD := rd
   rd := io.inRD
 
+
+  pcReg := io.pc_in
+  io.pc_out := pcReg
+  dontTouch(pcReg)
+
+  instReg := io.inst_in
+  io.inst_out := instReg
+  dontTouch(instReg)
 }
 
 
@@ -446,10 +483,16 @@ class MEMBarrier extends Module {
     val outAluResult = Output(UInt(32.W))
     val inRD         = Input(UInt(5.W))
     val outRD        = Output(UInt(5.W))
+    val pc_in  = Input(UInt(32.W))
+    val pc_out = Output(UInt(32.W))
+    val inst_in  = Input(UInt(32.W))
+    val inst_out = Output(UInt(32.W))
   })
 
   val aluResult = RegInit(0.U(32.W))
   val rd        = RegInit(0.U(5.W))
+  val pcReg    = RegInit(0.U(32.W))
+  val instReg    = RegInit(0.U(32.W))
 
   io.outAluResult := aluResult
   aluResult       := io.inAluResult
@@ -457,6 +500,13 @@ class MEMBarrier extends Module {
   io.outRD := rd
   rd := io.inRD
 
+  pcReg := io.pc_in
+  io.pc_out := pcReg
+  dontTouch(pcReg)
+
+  instReg := io.inst_in
+  io.inst_out := instReg
+  dontTouch(instReg)
 }
 
 
@@ -470,13 +520,27 @@ class WBBarrier extends Module {
     val outCheckRes  = Output(UInt(32.W))
     val inRD         = Input(UInt(5.W))
     val outRD        = Output(UInt(5.W))
+    val pc_in  = Input(UInt(32.W))
+    val pc_out = Output(UInt(32.W))
+    val inst_in  = Input(UInt(32.W))
+    val inst_out = Output(UInt(32.W))
   })
 
   val check_res   = RegInit(0.U(32.W))
   val rd          = RegInit(0.U(5.W))
+  val pcReg    = RegInit(0.U(32.W))
+  val instReg    = RegInit(0.U(32.W))
 
   io.outRD := rd
   rd := io.inRD
+
+  pcReg := io.pc_in
+  io.pc_out := pcReg
+  dontTouch(pcReg)
+
+  instReg := io.inst_in
+  io.inst_out := instReg
+  dontTouch(instReg)
 
   io.outCheckRes := check_res
   check_res      := io.inCheckRes
@@ -491,6 +555,18 @@ class HazardDetectionRV32Icore (BinaryFile: String) extends Module {
   val io = IO(new Bundle {
     val check_res = Output(UInt(32.W))
   })
+  val pc_if    = RegInit(0.U(32.W))
+  val pc_id    = RegInit(0.U(32.W))
+  val pc_ex    = RegInit(0.U(32.W))
+  val pc_mem   = RegInit(0.U(32.W))
+  val pc_wb    = RegInit(0.U(32.W))
+
+  dontTouch(pc_if)
+  dontTouch(pc_id)
+  dontTouch(pc_ex)
+  dontTouch(pc_mem)
+  dontTouch(pc_wb)
+
 
 
   // Pipeline Registers
@@ -515,14 +591,17 @@ class HazardDetectionRV32Icore (BinaryFile: String) extends Module {
   val regFile = Module(new regFile)
 
   // Connections for IOs
-  IFBarrier.io.inInstr      := IF.io.instr
+  IFBarrier.io.inst_in     := IF.io.instr
+  IFBarrier.io.pc_in        := IF.io.pc
   
-  ID.io.instr               := IFBarrier.io.outInstr
+  ID.io.instr               := IFBarrier.io.inst_out
   ID.io.regFileReq_A        <> regFile.io.req_1
   ID.io.regFileReq_B        <> regFile.io.req_2
   ID.io.regFileResp_A       <> regFile.io.resp_1
   ID.io.regFileResp_B       <> regFile.io.resp_2
 
+  IDBarrier.io.pc_in        := IFBarrier.io.pc_out
+  IDBarrier.io.inst_in      := IFBarrier.io.inst_out
   IDBarrier.io.inUOP        := ID.io.uop
   IDBarrier.io.inRD         := ID.io.rd
   IDBarrier.io.inRS1        := ID.io.rs1
@@ -573,10 +652,13 @@ class HazardDetectionRV32Icore (BinaryFile: String) extends Module {
  // EX.io.operandB := operandB
 
 
-
+  EXBarrier.io.pc_in        := IDBarrier.io.pc_out
+  EXBarrier.io.inst_in      := IDBarrier.io.inst_out
   EXBarrier.io.inRD         := IDBarrier.io.outRD
   EXBarrier.io.inAluResult  := EX.io.aluResult
 
+  MEMBarrier.io.pc_in        := EXBarrier.io.pc_out
+  MEMBarrier.io.inst_in      := EXBarrier.io.inst_out
   MEMBarrier.io.inRD        := EXBarrier.io.outRD
   MEMBarrier.io.inAluResult := EXBarrier.io.outAluResult
 
@@ -584,8 +666,17 @@ class HazardDetectionRV32Icore (BinaryFile: String) extends Module {
   WB.io.aluResult           := MEMBarrier.io.outAluResult
   WB.io.regFileReq          <> regFile.io.req_3
 
+  WBBarrier.io.pc_in        := MEMBarrier.io.pc_out
+  WBBarrier.io.inst_in        := MEMBarrier.io.inst_out
   WBBarrier.io.inCheckRes   := WB.io.check_res
   WBBarrier.io.inRD         := MEMBarrier.io.outRD
+
+  pc_wb  := pc_mem
+  pc_mem := pc_ex
+  pc_ex  := pc_id
+  pc_id  := pc_if
+  pc_if  := IF.io.pc
+
 
   io.check_res              := WBBarrier.io.outCheckRes
 

@@ -11,7 +11,7 @@ The functionality is the same as in task 4, but the core should now also be able
 In addition to the pipelined design from task 4, you need to implement the following modules and functionality:
 
     Hazard Detection and Forwarding:
-        Forwarding Unit: Determines if and from where data should be forwarded to resolve hazards. 
+        Forwarding Unit: Determines if and from where data should be forwarded to resolve hazards.
                          Resolves data hazards by forwarding the correct values from later pipeline stages to earlier ones.
                          - Inputs: Register identifiers from the ID, EX, MEM, and WB stages.
                          - Outputs: Forwarding select signals (forwardA and forwardB) indicating where to forward the values from.
@@ -83,8 +83,12 @@ class regFile extends Module {
     val req_3  = new regFileWriteReq   // writeBack 3 Wires (rd, data, en)
 })
 
-  val regFile = Mem(32, UInt(32.W))
+  val regFile = Reg(Vec(32, UInt(32.W)))
+  for (i <- 0 until 32) { dontTouch(regFile(i)) }
   regFile(0) := 0.U                           // hard-wired zero for x0
+
+
+
 
   when(io.req_3.wr_en){
     when(io.req_3.addr =/= 0.U){
@@ -95,6 +99,20 @@ class regFile extends Module {
   io.resp_1.data := Mux(io.req_1.addr === 0.U, 0.U, regFile(io.req_1.addr))
   io.resp_2.data := Mux(io.req_2.addr === 0.U, 0.U, regFile(io.req_2.addr))
 
+  when(io.req_3.wr_en) {
+    when(io.req_3.addr === io.req_1.addr) {
+      io.resp_1.data := io.req_3.data
+    }
+    when(io.req_3.addr === io.req_2.addr) {
+      io.resp_2.data := io.req_3.data
+    }
+  }
+  dontTouch(io.req_3.addr)
+  dontTouch(io.req_3.data)
+  dontTouch(io.req_3.wr_en)
+
+
+
 }
 
 class ForwardingUnit extends Module {
@@ -103,7 +121,7 @@ class ForwardingUnit extends Module {
     val inRS2    = Input(UInt(5.W))
     val inRD_mem = Input(UInt(5.W))
     val inRD_wb  = Input(UInt(5.W))
-    val RD_wb_2 = Input(UInt(5.W))
+//    val RD_wb_2 = Input(UInt(5.W))
     val forwardA = Output(UInt(2.W))
     val forwardB = Output(UInt(2.W))
 
@@ -123,8 +141,8 @@ class ForwardingUnit extends Module {
       forwardA := 1.U
     }.elsewhen(io.inRD_wb =/= 0.U && io.inRD_wb ===io.inRS1){
       forwardA := 2.U
-    }.elsewhen(io.inRD_wb =/= 0.U && io.RD_wb_2 === io.inRS1){
-      forwardA := 3.U
+//    }.elsewhen(io.inRD_wb =/= 0.U && io.RD_wb_2 === io.inRS1){
+//      forwardA := 3.U
     }
 
   //Forwarding logic for RS2
@@ -133,8 +151,8 @@ class ForwardingUnit extends Module {
     forwardB := 1.U
   }.elsewhen(io.inRD_wb =/= 0.U && io.inRD_wb === io.inRS2){
     forwardB := 2.U
-  }.elsewhen(io.inRD_wb =/= 0.U && io.RD_wb_2 === io.inRS2){
-    forwardB := 3.U
+//  }.elsewhen(io.inRD_wb =/= 0.U && io.RD_wb_2 === io.inRS2){
+//    forwardB := 3.U
   }
 
     io.forwardA := forwardA
@@ -155,15 +173,17 @@ class IF (BinaryFile: String) extends Module {
   val IMem = Mem(4096, UInt(32.W))
   loadMemoryFromFile(IMem, BinaryFile)
 
+
+
   val PC = RegInit(0.U(32.W))
-  
+
   io.instr := IMem(PC>>2.U)
 
   // Update PC
   // no jumps or branches, next PC always reads next address from IMEM
   PC := PC + 4.U
   io.pc := PC
-  
+
 }
 
 // -----------------------------------------
@@ -172,10 +192,10 @@ class IF (BinaryFile: String) extends Module {
 
 class ID extends Module {
   val io = IO(new Bundle {
-    val regFileReq_A  = Flipped(new regFileReadReq) 
-    val regFileResp_A = Flipped(new regFileReadResp) 
-    val regFileReq_B  = Flipped(new regFileReadReq) 
-    val regFileResp_B = Flipped(new regFileReadResp) 
+    val regFileReq_A  = Flipped(new regFileReadReq)
+    val regFileResp_A = Flipped(new regFileReadResp)
+    val regFileReq_B  = Flipped(new regFileReadReq)
+    val regFileResp_B = Flipped(new regFileReadResp)
     val instr         = Input(UInt(32.W))
     val uop           = Output(uopc())
     val rd            = Output(UInt(5.W))
@@ -195,7 +215,7 @@ class ID extends Module {
   val rs2     = io.instr(24, 20)
 
   // I-Type
-  val imm     = io.instr(31, 20) 
+  val imm     = io.instr(31, 20)
 
   when(opcode === "b0110011".U){
     when(funct3 === "b000".U){
@@ -272,7 +292,7 @@ class ID extends Module {
 
   io.rs1     := rs1
   io.rs2     := rs2
-  
+
 }
 
 // -----------------------------------------
@@ -291,31 +311,31 @@ class EX extends Module {
   val operandB = io.operandB
   val uop      = io.uop
 
-  when(uop === isADDI) { 
-      io.aluResult := operandA + operandB 
-    }.elsewhen(uop === isADD) {                           
-      io.aluResult := operandA + operandB 
-    }.elsewhen(uop === isSUB) {  
+  when(uop === isADDI) {
+      io.aluResult := operandA + operandB
+    }.elsewhen(uop === isADD) {
+      io.aluResult := operandA + operandB
+    }.elsewhen(uop === isSUB) {
       io.aluResult := operandA - operandB
-    }.elsewhen(uop === isXOR) {  
-      io.aluResult := operandA ^ operandB 
-    }.elsewhen(uop === isOR) {  
-      io.aluResult := operandA | operandB 
-    }.elsewhen(uop === isAND) {  
-      io.aluResult := operandA & operandB 
-    }.elsewhen(uop === isSLL) {  
-      io.aluResult := operandA << operandB(4, 0) 
-    }.elsewhen(uop === isSRL) {  
-      io.aluResult := operandA >> operandB(4, 0) 
-    }.elsewhen(uop === isSRA) {  
+    }.elsewhen(uop === isXOR) {
+      io.aluResult := operandA ^ operandB
+    }.elsewhen(uop === isOR) {
+      io.aluResult := operandA | operandB
+    }.elsewhen(uop === isAND) {
+      io.aluResult := operandA & operandB
+    }.elsewhen(uop === isSLL) {
+      io.aluResult := operandA << operandB(4, 0)
+    }.elsewhen(uop === isSRL) {
+      io.aluResult := operandA >> operandB(4, 0)
+    }.elsewhen(uop === isSRA) {
       io.aluResult := operandA >> operandB(4, 0)          // automatic sign extension, if SInt datatype is used
-    }.elsewhen(uop === isSLT) {  
+    }.elsewhen(uop === isSLT) {
       io.aluResult := Mux(operandA < operandB, 1.U, 0.U)  // automatic sign extension, if SInt datatype is used
-    }.elsewhen(uop === isSLTU) {  
-      io.aluResult := Mux(operandA < operandB, 1.U, 0.U) 
+    }.elsewhen(uop === isSLTU) {
+      io.aluResult := Mux(operandA < operandB, 1.U, 0.U)
     }.otherwise{
       io.aluResult := "h_FFFF_FFFF".U // = 2^32 - 1; self-defined encoding for invalid operation, value is unlikely to be reached in a regular arithmetic operation
-    } 
+    }
 
 }
 
@@ -338,7 +358,7 @@ class MEM extends Module {
 
 class WB extends Module {
   val io = IO(new Bundle {
-    val regFileReq = Flipped(new regFileWriteReq) 
+    val regFileReq = Flipped(new regFileWriteReq)
     val rd         = Input(UInt(5.W))
     val aluResult  = Input(UInt(32.W))
     val check_res  = Output(UInt(32.W))
@@ -373,6 +393,9 @@ class IFBarrier extends Module {
 
   io.pc_out := io.pc_in
   io.inst_out := io.inst_in
+
+
+
 }
 
 
@@ -593,7 +616,7 @@ class HazardDetectionRV32Icore (BinaryFile: String) extends Module {
   // Connections for IOs
   IFBarrier.io.inst_in     := IF.io.instr
   IFBarrier.io.pc_in        := IF.io.pc
-  
+
   ID.io.instr               := IFBarrier.io.inst_out
   ID.io.regFileReq_A        <> regFile.io.req_1
   ID.io.regFileReq_B        <> regFile.io.req_2
@@ -615,7 +638,7 @@ class HazardDetectionRV32Icore (BinaryFile: String) extends Module {
     FU.io.inRS2     :=    IDBarrier.io.outRS2
     FU.io.inRD_mem  :=    EXBarrier.io.outRD
     FU.io.inRD_wb   :=    MEMBarrier.io.outRD
-    FU.io.RD_wb_2 :=    WBBarrier.io.outRD
+//    FU.io.RD_wb_2 :=    WBBarrier.io.outRD
 
 
   /* TODO: Implement MUXes to select which values are sent to the EX stage as operands*/

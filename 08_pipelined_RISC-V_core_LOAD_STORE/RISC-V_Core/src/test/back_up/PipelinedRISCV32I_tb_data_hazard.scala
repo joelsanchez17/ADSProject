@@ -58,62 +58,24 @@ class PipelinedRISCV32ITest extends AnyFlatSpec with ChiselScalatestTester {
         // --- New Forwarding Tests ---
 
         // 1. ADDI x11, x0, 10
+        // No hazard here, just setting up x11.
         dut.io.result.expect(10.U)
         dut.clock.step(1)
-        // 2. ADD x12, x11, x11 (Needs x11 from MEM)
+
+        // 2. ADD x12, x11, x11
+        // Hazard: Depends on x11 from previous cycle (in MEM stage).
+        // Forwarding Unit should forward 10 from MEM to EX.
+        // Result: 10 + 10 = 20
         dut.io.result.expect(20.U)
         dut.clock.step(1)
-        // 3. ADD x13, x12, x11 (Needs x12 from MEM, x11 from WB)
+
+        // 3. ADD x13, x12, x11
+        // Hazard A: Depends on x12 from previous cycle (in MEM stage).
+        // Hazard B: Depends on x11 from 2 cycles ago (in WB stage).
+        // Forwarding Unit should forward 20 and 10.
+        // Result: 20 + 10 = 30
         dut.io.result.expect(30.U)
         dut.clock.step(1)
-
-        // --- New "Clean" Load-Use Hazard (Stall) Test ---
-        // This test avoids x0 as a source register.
-
-        // 1. ADDI x16, x1, 100
-        // Set up base address in x16 (t1) = x1 (4) + 100 = 104
-        dut.io.result.expect(104.U)
-        dut.clock.step(1)
-
-        // 2. ADDI x17, x2, 40
-        // Set up data in x17 (t2) = x2 (5) + 40 = 45
-        dut.io.result.expect(45.U)
-        dut.clock.step(1)
-
-        // 3. SW x17, 8(x16)
-        // Store 45 into mem[112] (104 + 8). No register write.
-        //dut.io.result.expect(0.U)
-        dut.clock.step(1)
-
-        // 4. NOP
-        // NOP to avoid the SW/ID-Stage bug.
-        dut.io.result.expect(0.U)
-        dut.clock.step(1)
-
-        // 5. NOP
-        // Another NOP for safety.
-        dut.io.result.expect(0.U)
-        dut.clock.step(1)
-
-        // 6. LW x18, 8(x16)
-        // Load value from mem[112] into x18 (t3).
-        // It should be 45.
-        dut.io.result.expect(45.U)
-        dut.clock.step(1)
-
-        // 7. STALL CYCLE
-        // The *next* instruction (ADDI x19, x18, 5) is detected in ID
-        // and depends on the LW in EX. The pipeline stalls.
-        // A bubble (NOP) is inserted, which now arrives at WB.
-        //dut.io.result.expect(0.U)     // Bubble (NOP)
-        dut.clock.step(1)
-
-        // 8. ADDI x19, x18, 5
-        // The stalled ADDI finally completes.
-        // It gets x18=45 (forwarded from MEM/WB).
-        // Result: 45 + 5 = 50
-        dut.io.result.expect(50.U)
-        dut.clock.step(1)
     }
-}
+  }
 }

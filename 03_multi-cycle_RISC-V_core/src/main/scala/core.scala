@@ -89,7 +89,8 @@ class MultiCycleRV32Icore (BinaryFile: String) extends Module {
 
   /** TODO: Implement the Register File as described above */
 
-  val regFile = Mem(32,UInt(32.W))
+  val regFile = Reg(Vec(32, UInt(32.W)))
+  for (i <- 0 until 32) { dontTouch(regFile(i)) }
   regFile(0) := 0.U                        //Register x0 is hard-wired to zero
 
   // -----------------------------------------

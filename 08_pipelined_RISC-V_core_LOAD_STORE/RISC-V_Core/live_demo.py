@@ -4,7 +4,7 @@ import time
 
 def start_client():
     host = 'localhost'
-    port = 8888  # Must match Scala
+    port = 8888
 
     print(f"🔄 [PYTHON] Connecting to {host}:{port}...")
 
@@ -20,44 +20,43 @@ def start_client():
             time.sleep(2)
 
     print("✅ [PYTHON] Connected!")
-
-    # CREATE A FILE-LIKE INTERFACE
-    # This ensures we read exactly one line at a time (syncs with Scala println)
     f = s.makefile('r', encoding='utf-8')
 
     try:
         while True:
-            # 1. Read Line (Blocking)
             line = f.readline()
+            if not line: break
 
-            # If line is empty, connection is dead
-            if not line:
-                print("⚠️  Chisel disconnected (EOF).")
-                break
-
-            # 2. Parse Data
             try:
-                state = json.loads(line.strip())
-                cycle = state.get('cycle', '?')
-                pc = state.get('pc', '?')
-                print(f"   ⏱️  Cycle: {cycle} | 📍 Result/PC: {pc}")
+                st = json.loads(line.strip())
+
+                # --- PRETTY PRINT PIPELINE ---
+                print("\n" + "="*40)
+                print(f" ⏱️  CYCLE: {st.get('cycle', 0)}")
+                print("-" * 40)
+
+                # Helper to format hex
+                def h(val): return f"0x{int(val):08x}" if val is not None else "   -   "
+
+                print(f" [IF]  PC: {h(st.get('STAGE_IF'))} | Instr: {h(st.get('INSTR_IF'))}")
+                print(f" [ID]  PC: {h(st.get('STAGE_ID'))} | Instr: {h(st.get('INSTR_ID'))}")
+                print(f" [EX]  PC: {h(st.get('STAGE_EX'))} | ALU Result: {h(st.get('EX_ALU_RESULT'))}")
+                print(f" [MEM] PC: {h(st.get('STAGE_MEM'))}")
+                print(f" [WB]  PC: {h(st.get('STAGE_WB'))} | Writeback: {h(st.get('WB_DATA'))}")
+                print("="*40)
+
             except json.JSONDecodeError:
-                print(f"   ⚠️  Bad Data: {line}")
+                print(f"⚠️ Bad Data: {line}")
 
-            # 3. User Input
-            cmd = input("   👉 Press [Enter] to Step... ")
-
-            if cmd == "quit":
+            cmd = input("👉 [Enter] Step | [q] Quit: ")
+            if cmd == 'q':
                 s.sendall(b"quit\n")
                 break
             else:
                 s.sendall(b"step\n")
 
     except KeyboardInterrupt:
-        print("\n[PYTHON] Exiting.")
         s.sendall(b"quit\n")
-    except BrokenPipeError:
-        print("❌ Socket closed.")
     finally:
         f.close()
         s.close()

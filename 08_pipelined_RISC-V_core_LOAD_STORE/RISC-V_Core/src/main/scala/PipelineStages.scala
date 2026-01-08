@@ -26,12 +26,17 @@ class IF extends Module {
 
     // Update PC
     val PC = RegInit(0.U(32.W))
+
+
+
     when(io.PCWrite === 1.U){
         PC := Mux((io.PCSrc === 0.U), (PC+4.U), io.PC_JB)
+        //io.pc := Mux((io.PCSrc === 0.U), (io.pc+4.U), io.PC_JB)
     }
-    
+
     io.pc := PC
     io.PCMem := PC
+    //io.PCMem := io.pc
     io.instr := io.instrMem
 
 }

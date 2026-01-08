@@ -92,6 +92,7 @@ class PipelinedRV32Icore extends Module {
     IDBarrier.io.inMemRd      := ControlUnit_inst.io.memRd
     IDBarrier.io.inMemWr      := ControlUnit_inst.io.memWr
     IDBarrier.io.inMemtoReg   := ControlUnit_inst.io.memtoReg
+    IDBarrier.io.id_stall := HazardDetectionUnit_inst.io.id_stall
     IDBarrier.io.flush        := EX.io.flush
 
     ForwardingUnit_inst.io.rs1_id   := IDBarrier.io.outRS1

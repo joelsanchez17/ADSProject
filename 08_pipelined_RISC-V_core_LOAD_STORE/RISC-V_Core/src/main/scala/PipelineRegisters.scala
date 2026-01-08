@@ -52,6 +52,7 @@ class IFBarrier extends Module {
 
 class IDBarrier extends Module {
     val io = IO(new Bundle {
+        val id_stall = Input(UInt(1.W))
         val flush    = Input(UInt(1.W))
         val inALUOp     = Input(ALUOpT())
         val inInstr     = Input(UInt(32.W))
@@ -84,21 +85,23 @@ class IDBarrier extends Module {
         val outRD       = Output(UInt(5.W))
         val outWrEn     = Output(UInt(1.W))
     })
+    val inject_bubble = io.flush | io.id_stall // Treat stall like a flush for ID/EX
 
-    io.outALUOp    := RegNext(Mux((io.flush === 0.U), io.inALUOp, ALUOpT.isADD), ALUOpT.invalid)
-    io.outInstr    := RegNext(Mux((io.flush === 0.U), io.inInstr, 0x00000013.U), 0x00000013.U) // ADDI x0, x0, 0
-    io.outRD       := RegNext(Mux((io.flush === 0.U), io.inRD, 0.U), 0.U)
-    io.outRS1      := RegNext(Mux((io.flush === 0.U), io.inRS1, 0.U), 0.U)
-    io.outRS2      := RegNext(Mux((io.flush === 0.U), io.inRS2, 0.U), 0.U)
-    io.outOperandA := RegNext(Mux((io.flush === 0.U), io.inOperandA, 0.U), 0.U)
-    io.outOperandB := RegNext(Mux((io.flush === 0.U), io.inOperandB, 0.U), 0.U)
-    io.outImme     := RegNext(Mux((io.flush === 0.U), io.inImme, 0.U), 0.U)
-    io.outPC       := RegNext(Mux((io.flush === 0.U), io.inPC, 0.U), 0.U)
-    io.outAluSrcA  := RegNext(Mux((io.flush === 0.U), io.inAluSrcA, aluOpAPCMux.forwardMuxA), aluOpAPCMux.forwardMuxA)
-    io.outAluSrcB  := RegNext(Mux((io.flush === 0.U), io.inAluSrcB, aluOpBImmMux.forwardMuxB), aluOpBImmMux.forwardMuxB)
-    io.outWrEn     := RegNext(Mux((io.flush === 0.U), io.inWrEn, 0.U), 0.U)
-    io.outMemRd    := RegNext(Mux((io.flush === 0.U), io.inMemRd, memRdOpT.IDLE), memRdOpT.IDLE)
-    io.outMemWr    := RegNext(Mux((io.flush === 0.U), io.inMemWr, memWrOpT.IDLE), memWrOpT.IDLE)
+    io.outALUOp    := RegNext(Mux((inject_bubble === 0.U), io.inALUOp, ALUOpT.invalid), ALUOpT.invalid)
+    io.outInstr    := RegNext(Mux((inject_bubble === 0.U), io.inInstr, 0x00000013.U), 0x00000013.U)
+    io.outRD       := RegNext(Mux((inject_bubble === 0.U), io.inRD, 0.U), 0.U)
+    io.outRS1      := RegNext(Mux((inject_bubble === 0.U), io.inRS1, 0.U), 0.U)
+    io.outRS2      := RegNext(Mux((inject_bubble === 0.U), io.inRS2, 0.U), 0.U)
+    io.outOperandA := RegNext(Mux((inject_bubble === 0.U), io.inOperandA, 0.U), 0.U)
+    io.outOperandB := RegNext(Mux((inject_bubble === 0.U), io.inOperandB, 0.U), 0.U)
+    io.outImme     := RegNext(Mux((inject_bubble === 0.U), io.inImme, 0.U), 0.U)
+    io.outPC       := RegNext(Mux((inject_bubble === 0.U), io.inPC, 0.U), 0.U)
+    io.outAluSrcA  := RegNext(Mux((inject_bubble === 0.U), io.inAluSrcA, aluOpAPCMux.forwardMuxA), aluOpAPCMux.forwardMuxA)
+    io.outAluSrcB  := RegNext(Mux((inject_bubble === 0.U), io.inAluSrcB, aluOpBImmMux.forwardMuxB), aluOpBImmMux.forwardMuxB)
+    io.outWrEn     := RegNext(Mux((inject_bubble === 0.U), io.inWrEn, 0.U), 0.U)
+    io.outMemRd    := RegNext(Mux((inject_bubble === 0.U), io.inMemRd, memRdOpT.IDLE), memRdOpT.IDLE)
+    io.outMemWr    := RegNext(Mux((inject_bubble === 0.U), io.inMemWr, memWrOpT.IDLE), memWrOpT.IDLE)
+
     io.outMemtoReg := RegNext(io.inMemtoReg, 0.U)
 }
 

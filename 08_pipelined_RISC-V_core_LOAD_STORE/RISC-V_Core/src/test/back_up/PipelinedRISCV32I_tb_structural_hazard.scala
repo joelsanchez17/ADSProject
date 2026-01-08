@@ -67,8 +67,7 @@ class PipelinedRISCV32ITest extends AnyFlatSpec with ChiselScalatestTester {
         dut.io.result.expect(30.U)
         dut.clock.step(1)
 
-        // --- New "Clean" Load-Use Hazard (Stall) Test ---
-        // This test avoids x0 as a source register.
+        // --- Load-Use Hazard (Stall) Test ---
 
         // 1. ADDI x16, x1, 100
         // Set up base address in x16 (t1) = x1 (4) + 100 = 104

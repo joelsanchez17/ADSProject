@@ -14,105 +14,84 @@ import org.scalatest.flatspec.AnyFlatSpec
 
 class PipelinedRISCV32ITest extends AnyFlatSpec with ChiselScalatestTester {
 
-"PipelinedRV32I_Tester" should "work" in {
-    test(new PipelinedRV32I("src/test/programs/BinaryFile")).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
+    "PipelinedRV32I_Tester" should "work" in {
+        test(new PipelinedRV32I("src/test/programs/BinaryFile")).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
 
-        dut.clock.setTimeout(0)
+            dut.clock.setTimeout(0)
 
-        dut.clock.step(5)             // it is important to wait until the first instruction travelled through the entire pipeline
 
-        // --- Original Instructions ---
-        dut.io.result.expect(0.U)     // ADDI x0, x0, 0
-        dut.clock.step(1)
-        dut.io.result.expect(4.U)     // ADDI x1, x0, 4
-        dut.clock.step(1)
-        dut.io.result.expect(5.U)     // ADDI x2, x0, 5
-        dut.clock.step(1)
-        dut.io.result.expect(2047.U)  // ADDI x3, x0, 2047
-        dut.clock.step(1)
-        dut.io.result.expect(16.U)    // ADDI x4, x0, 16
-        dut.clock.step(1)
-        dut.io.result.expect(0.U)     // ADDI x0, x0, 0
-        dut.clock.step(1)
-        dut.io.result.expect(9.U)     // ADD x5, x1, x2
-        dut.clock.step(1)
-        dut.io.result.expect(1.U)     // SUB x6, x2, x1
-        dut.clock.step(1)
-        dut.io.result.expect(13.U)    // ORI x7, x2, 0xc
-        dut.clock.step(1)
-        dut.io.result.expect(10.U)    // SLLI x8, x2, 1
-        dut.clock.step(1)
-        dut.io.result.expect(511.U)   // SRAI x9, x3, 2
-        dut.clock.step(1)
-        // dut.io.result.expect(0.U)  // sw x2, 4(x1)
-        dut.clock.step(1)
-        dut.io.result.expect(0.U)     // ADDI x0, x0, 0 (NOP)
-        dut.clock.step(1)
-        dut.io.result.expect(0.U)     // ADDI x0, x0, 0 (NOP)
-        dut.clock.step(1)
-        dut.io.result.expect(0.U)     // ADDI x0, x0, 0 (NOP)
-        dut.clock.step(1)
-        dut.io.result.expect(5.U)     // lw x10, 4(x1)
-        dut.clock.step(1)
+            // --- Program Instructions ---
+            // 1. ADDI x1, x0, 100   (x1 = 100)
+            // 2. ADDI x2, x0, 5     (x2 = 5)
+            // 3. SW x2, 0(x1)       (mem[100] = 5)
+            // 4. ADDI x3, x0, 8     (x3 = 8)
+            // 5. SW x3, 4(x1)       (mem[104] = 8)
+            // 6. NOP
+            // 7. NOP
+            // 8. LW x5, 0(x1)       (x5 = 5)
+            // 9. ADDI x6, x5, 1     (HAZARD: Stall!) -> x6 = 6
+            // 10. LW x7, 4(x1)      (x7 = 8)
+            // 11. ADD x8, x7, x6    (HAZARD: Stall!) -> x8 = 8 + 6 = 14
+            // 12. LW x9, 0(x1)      (x9 = 5)
+            // 13. NOP
+            // 14. ADDI x10, x9, 1   (NO STALL) -> x10 = 5 + 1 = 6
 
-        // --- New Forwarding Tests ---
+            dut.clock.step(5)             // Wait for first instruction to reach WB
 
-        // 1. ADDI x11, x0, 10
-        dut.io.result.expect(10.U)
-        dut.clock.step(1)
-        // 2. ADD x12, x11, x11 (Needs x11 from MEM)
-        dut.io.result.expect(20.U)
-        dut.clock.step(1)
-        // 3. ADD x13, x12, x11 (Needs x12 from MEM, x11 from WB)
-        dut.io.result.expect(30.U)
-        dut.clock.step(1)
+            // --- Setup Phase ---
+            dut.io.result.expect(100.U)   // 1. ADDI x1, x0, 100
+            dut.clock.step(1)
+            dut.io.result.expect(5.U)     // 2. ADDI x2, x0, 5
+            dut.clock.step(1)
+            //dut.io.result.expect(0.U)     // 3. SW x2, 0(x1)
+            dut.clock.step(1)
+            dut.io.result.expect(8.U)     // 4. ADDI x3, x0, 8
+            dut.clock.step(1)
+            //dut.io.result.expect(0.U)     // 5. SW x3, 4(x1)
+            dut.clock.step(1)
+            dut.io.result.expect(0.U)     // 6. NOP
+            dut.clock.step(1)
+            dut.io.result.expect(0.U)     // 7. NOP
+            dut.clock.step(1)
 
-        // --- Load-Use Hazard (Stall) Test ---
+            // --- Stall Test 1 ---
+            dut.io.result.expect(5.U)     // 8. LW x5, 0(x1)
+            dut.clock.step(1)
+            // STALL: ADDI x6 is in ID, LW x5 is in EX.
+            // Hazard Unit inserts a bubble (NOP) into EX.
+            // That bubble now arrives at WB.
+            //dut.io.result.expect(0.U)     // 9a. STALL BUBBLE
+            dut.clock.step(1)
+            // The ADDI x6 instruction has now passed.
+            // It received x5=5 from the MEM/WB stage.
+            dut.io.result.expect(6.U)     // 9b. ADDI x6, x5, 1 (5 + 1)
+            dut.clock.step(1)
 
-        // 1. ADDI x16, x1, 100
-        // Set up base address in x16 (t1) = x1 (4) + 100 = 104
-        dut.io.result.expect(104.U)
-        dut.clock.step(1)
+            // --- Stall Test 2 ---
+            dut.io.result.expect(8.U)     // 10. LW x7, 4(x1)
+            dut.clock.step(1)
+            // STALL: ADD x8 is in ID, LW x7 is in EX.
+            // Hazard Unit inserts a bubble (NOP).
+            //dut.io.result.expect(0.U)     // 11a. STALL BUBBLE
+            dut.clock.step(1)
+            // The ADD x8 instruction has now passed.
+            // It received x7=8 (from MEM/WB) and x6=6 (from WB).
+            dut.io.result.expect(14.U)    // 11b. ADD x8, x7, x6 (8 + 6)
+            dut.clock.step(1)
 
-        // 2. ADDI x17, x2, 40
-        // Set up data in x17 (t2) = x2 (5) + 40 = 45
-        dut.io.result.expect(45.U)
-        dut.clock.step(1)
-
-        // 3. SW x17, 8(x16)
-        // Store 45 into mem[112] (104 + 8). No register write.
-        //dut.io.result.expect(0.U)
-        dut.clock.step(1)
-
-        // 4. NOP
-        // NOP to avoid the SW/ID-Stage bug.
-        dut.io.result.expect(0.U)
-        dut.clock.step(1)
-
-        // 5. NOP
-        // Another NOP for safety.
-        dut.io.result.expect(0.U)
-        dut.clock.step(1)
-
-        // 6. LW x18, 8(x16)
-        // Load value from mem[112] into x18 (t3).
-        // It should be 45.
-        dut.io.result.expect(45.U)
-        dut.clock.step(1)
-
-        // 7. STALL CYCLE
-        // The *next* instruction (ADDI x19, x18, 5) is detected in ID
-        // and depends on the LW in EX. The pipeline stalls.
-        // A bubble (NOP) is inserted, which now arrives at WB.
-        //dut.io.result.expect(0.U)     // Bubble (NOP)
-        dut.clock.step(1)
-
-        // 8. ADDI x19, x18, 5
-        // The stalled ADDI finally completes.
-        // It gets x18=45 (forwarded from MEM/WB).
-        // Result: 45 + 5 = 50
-        dut.io.result.expect(50.U)
-        dut.clock.step(1)
+            // --- No-Stall Test ---
+            dut.io.result.expect(5.U)     // 12. LW x9, 0(x1)
+            dut.clock.step(1)
+            // The NOP instruction is in the EX stage.
+            // The LW x9 is in the MEM stage.
+            // The ADDI x10 is in the ID stage. No hazard!
+            dut.io.result.expect(0.U)     // 13. NOP (The NOP itself, NOT a bubble)
+            dut.clock.step(1)
+            // The ADDI x10 instruction is in the EX stage.
+            // The LW x9 is in the WB stage.
+            // Forwarding from WB works. No stall occurred.
+            dut.io.result.expect(6.U)     // 14. ADDI x10, x9, 1 (5 + 1)
+            dut.clock.step(1)
+        }
     }
-}
 }

@@ -100,7 +100,7 @@ class BTBTester extends AnyFlatSpec with ChiselScalatestTester {
         }
 
         //Inserting pc3 in another index
-        val pc3 = 0x48.U  // another index = 2
+        val pc3 = 0x48.U  //  index = 2
         val target3 = 0x400.U
 
         c.io.update.poke(true.B)

@@ -227,7 +227,7 @@ class ID extends Module {
         io.uop := invalid
       }
     }.elsewhen(funct3 === "b100".U){
-      when(funct7 === "b0000000".U){
+      when(funct7 === "b0100000".U){
         io.uop := isXOR
       }.otherwise{
         io.uop := invalid

@@ -9,6 +9,11 @@ import ALUOpT._
 import aluOpAMux._
 import aluOpBMux._
 
+
+
+
+
+
 class DMEM_IO extends  Bundle{
     val addr = Input(UInt(32.W))
     val wData = Input(UInt(32.W))
@@ -32,6 +37,19 @@ class PipelinedRV32Icore extends Module {
         val gpRegVal = Output(UInt(32.W)) // gp (x3) reg is contains the riscv-tests pass fail status
         val dmem = Flipped(new DMEM_IO)
         val imem = Flipped(new IMEM_IO)
+
+        val dbg = new Bundle {
+            val if_pc    = Output(UInt(32.W))
+            val if_inst  = Output(UInt(32.W))
+            val id_pc    = Output(UInt(32.W))
+            val id_inst  = Output(UInt(32.W))
+            val ex_pc    = Output(UInt(32.W))
+            val ex_inst  = Output(UInt(32.W))
+            val mem_pc   = Output(UInt(32.W))
+            val mem_inst = Output(UInt(32.W))
+            val wb_pc    = Output(UInt(32.W))
+            val wb_inst  = Output(UInt(32.W))
+        }
     })
 
     // Pipeline Registers
@@ -160,6 +178,23 @@ class PipelinedRV32Icore extends Module {
     WB.io.regFileReq    <> RegFile_inst.io.req_3
 
     WBBarrier.io.inCheckRes   := WB.io.check_res
+
+
+    io.dbg.if_pc   := IFBarrier.io.outPC
+    io.dbg.if_inst := IFBarrier.io.outInstr
+
+    io.dbg.id_pc   := IDBarrier.io.outPC
+    io.dbg.id_inst := IDBarrier.io.outInstr
+
+    io.dbg.ex_pc   := EXBarrier.io.outPC
+    io.dbg.ex_inst := EXBarrier.io.outInstr
+
+    io.dbg.mem_pc   := MEMBarrier.io.outPC
+    io.dbg.mem_inst := MEMBarrier.io.outInstr
+
+    io.dbg.wb_pc   := WBBarrier.io.outPC
+    io.dbg.wb_inst := WBBarrier.io.outInstr
+
 
     io.check_res := WBBarrier.io.outCheckRes
     io.coreDone  := HazardDetectionUnit_inst.io.coreDone

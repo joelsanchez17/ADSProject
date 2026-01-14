@@ -7,11 +7,13 @@ import org.scalatest.flatspec.AnyFlatSpec
 import java.net._
 import java.io._
 
+
 class LivePipelineTest extends AnyFlatSpec with ChiselScalatestTester {
   behavior of "PipelinedRV32I"
 
   it should "run in live mode waiting for Python" in {
-      test(new PipelinedRV32I("src/test/programs/BinaryFile")).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
+    // Keep the Annotation to ensure 'dontTouch' works optimally
+    test(new PipelinedRV32I("src/test/programs/BinaryFile")).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
 
       val port = 8888
       val server = new ServerSocket(port)
@@ -22,45 +24,77 @@ class LivePipelineTest extends AnyFlatSpec with ChiselScalatestTester {
       val in = new BufferedReader(new InputStreamReader(client.getInputStream))
       println("🟩 [CHISEL] Connected! Starting Loop...")
 
+
+      // Dumps a Data's simulator target and whether it is peekable
+      def probe(label: String, d: Data): Unit = {
+        val target = d.toTarget.serialize
+        try {
+          val v = d.peek().litValue
+          println(f"✅ PROBE $label%-30s  target=$target  value=0x${v.toString(16)}")
+        } catch {
+          case e: Throwable =>
+            println(s"❌ PROBE $label  target=$target  ERROR=${e.getClass.getSimpleName}: ${e.getMessage}")
+        }
+      }
+
+      // Lists all IO fields of a module and probes them
+      def probeIO(moduleLabel: String, io: Record): Unit = {
+        println(s"\n🔎 IO PROBE for $moduleLabel")
+        io.elements.foreach { case (name, data) =>
+          probe(s"$moduleLabel.io.$name", data)
+        }
+      }
+
+
+
+
+
+
+
+      // --- One-time debug dump: what signals really exist + are peekable? ---
+      probe("dut.io.result", dut.io.result)
+
+      probeIO("dut.io.dbg", dut.io.dbg)
+
+
+
+
       var cycle = 0
       var running = true
 
-      // Helper to safely read signals or return 0 if they don't exist
+      // "Unsafe" Peek - We WANT it to crash if the key is missing so we know!
       def peekOrZero(signal: => Data): BigInt = {
-        // If the path is wrong, THIS WILL CRASH and tell us the real name!
         signal.peek().litValue
       }
+
+
+
 
       try {
         while (running) {
 
-          // --- FIX: ADDED ".io." TO ALL PATHS ---
           val jsonState = s"""{
-            "cycle": $cycle,
-            "pc": ${peekOrZero(dut.io.result)},
+          "cycle": $cycle,
+          "result": ${peekOrZero(dut.io.result)},
 
-            "STAGE_IF": ${peekOrZero(dut.core.IFBarrier.io.outPC)},
-            "STAGE_ID": ${peekOrZero(dut.core.IDBarrier.io.outPC)},
-            "STAGE_EX": ${peekOrZero(dut.core.EXBarrier.io.outPC)},
-            "STAGE_MEM": ${peekOrZero(dut.core.MEMBarrier.io.outPC)},
-            "STAGE_WB": ${peekOrZero(dut.core.WBBarrier.io.outPC)},
+          "STAGE_IF": ${peekOrZero(dut.io.dbg.if_pc)},
+          "STAGE_ID": ${peekOrZero(dut.io.dbg.id_pc)},
+          "STAGE_EX": ${peekOrZero(dut.io.dbg.ex_pc)},
+          "STAGE_MEM": ${peekOrZero(dut.io.dbg.mem_pc)},
+          "STAGE_WB": ${peekOrZero(dut.io.dbg.wb_pc)},
 
-            "INSTR_IF": ${peekOrZero(dut.core.IFBarrier.io.outInstr)},
-            "INSTR_ID": ${peekOrZero(dut.core.IDBarrier.io.outInstr)},
-            "INSTR_EX": ${peekOrZero(dut.core.EXBarrier.io.outInstr)},
-            "INSTR_MEM": ${peekOrZero(dut.core.MEMBarrier.io.outInstr)},
-            "INSTR_WB": ${peekOrZero(dut.core.WBBarrier.io.outInstr)},
+          "INSTR_IF": ${peekOrZero(dut.io.dbg.if_inst)},
+          "INSTR_ID": ${peekOrZero(dut.io.dbg.id_inst)},
+          "INSTR_EX": ${peekOrZero(dut.io.dbg.ex_inst)},
+          "INSTR_MEM": ${peekOrZero(dut.io.dbg.mem_inst)},
+          "INSTR_WB": ${peekOrZero(dut.io.dbg.wb_inst)}
 
-            "EX_ALU_RESULT": ${peekOrZero(dut.core.EX.io.aluResult)},
-            "WB_DATA": ${peekOrZero(dut.core.WB.io.check_res)}
-          }"""
 
-          // Send to Python (remove newlines to keep it as one packet)
+        }"""
+
           out.println(jsonState.replaceAll("\n", " "))
 
-          // Wait for command
           val cmd = in.readLine()
-
           if (cmd == null || cmd == "quit") {
             running = false
             println("🟧 [CHISEL] Python disconnected.")

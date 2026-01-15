@@ -9,23 +9,6 @@ import ALUOpT._
 import aluOpAMux._
 import aluOpBMux._
 
-
-
-
-
-
-class DMEM_IO extends  Bundle{
-    val addr = Input(UInt(32.W))
-    val wData = Input(UInt(32.W))
-    val wrEn = Input(UInt(1.W))
-    val rData = Output(UInt(32.W))
-}
-
-class IMEM_IO extends Bundle{
-    val PC = Input(UInt(32.W))
-    val instr = Output(UInt(32.W))
-}
-
 // -----------------------------------------
 // Main Class
 // -----------------------------------------
@@ -38,17 +21,58 @@ class PipelinedRV32Icore extends Module {
         val dmem = Flipped(new DMEM_IO)
         val imem = Flipped(new IMEM_IO)
 
+        // -----------------------------
+        // Debug bus: educational signals
+        // -----------------------------
         val dbg = new Bundle {
-            val if_pc    = Output(UInt(32.W))
-            val if_inst  = Output(UInt(32.W))
-            val id_pc    = Output(UInt(32.W))
-            val id_inst  = Output(UInt(32.W))
-            val ex_pc    = Output(UInt(32.W))
-            val ex_inst  = Output(UInt(32.W))
-            val mem_pc   = Output(UInt(32.W))
-            val mem_inst = Output(UInt(32.W))
-            val wb_pc    = Output(UInt(32.W))
-            val wb_inst  = Output(UInt(32.W))
+            // Pipeline PCs & instructions
+            val if_pc    = Output(UInt(32.W)); val if_inst  = Output(UInt(32.W))
+            val id_pc    = Output(UInt(32.W)); val id_inst  = Output(UInt(32.W))
+            val ex_pc    = Output(UInt(32.W)); val ex_inst  = Output(UInt(32.W))
+            val mem_pc   = Output(UInt(32.W)); val mem_inst = Output(UInt(32.W))
+            val wb_pc    = Output(UInt(32.W)); val wb_inst  = Output(UInt(32.W))
+
+            // Register ids (handy for hazard/forwarding teaching)
+            val id_rs1   = Output(UInt(5.W))
+            val id_rs2   = Output(UInt(5.W))
+            val id_rd    = Output(UInt(5.W))
+            val id_we    = Output(UInt(1.W))
+
+            // Hazard / control
+            val pc_write = Output(UInt(1.W))
+            val if_stall = Output(UInt(1.W))
+            val id_stall = Output(UInt(1.W))
+            val flush    = Output(UInt(1.W))
+
+            // Forwarding selectors (exported as UInt because enums are hard to peek)
+            val fwd_a_sel = Output(UInt(8.W))
+            val fwd_b_sel = Output(UInt(8.W))
+
+            // EX stage summary
+            val ex_alu_result = Output(UInt(32.W))
+            val ex_pc_src     = Output(UInt(1.W))
+            val ex_pc_jb      = Output(UInt(32.W))
+            val ex_rd         = Output(UInt(5.W))
+            val ex_we         = Output(UInt(1.W))
+            val ex_mem_rd_op  = Output(UInt(8.W))
+            val ex_mem_wr_op  = Output(UInt(8.W))
+            val ex_mem_to_reg = Output(UInt(1.W))
+
+            // MEM stage summary
+            val mem_addr    = Output(UInt(32.W))
+            val mem_rd_op   = Output(UInt(8.W))
+            val mem_wr_op   = Output(UInt(8.W))
+            val mem_wdata   = Output(UInt(32.W))
+            val mem_rdata   = Output(UInt(32.W))
+            val mem_rd      = Output(UInt(5.W))
+            val mem_we      = Output(UInt(1.W))
+            val mem_to_reg  = Output(UInt(1.W))
+
+            // WB stage summary
+            val wb_rd        = Output(UInt(5.W))
+            val wb_we        = Output(UInt(1.W))
+            val wb_wdata     = Output(UInt(32.W))
+            val wb_check_res = Output(UInt(32.W))
         }
     })
 
@@ -85,33 +109,32 @@ class PipelinedRV32Icore extends Module {
     HazardDetectionUnit_inst.io.instr       := IFBarrier.io.outInstr
     HazardDetectionUnit_inst.io.ex_RD       := IDBarrier.io.outRD
     HazardDetectionUnit_inst.io.ex_memRd    := IDBarrier.io.outMemRd
-    
+
     ControlUnit_inst.io.instr := IFBarrier.io.outInstr
-    
+
     ID.io.instr               := IFBarrier.io.outInstr
-    ID.io.regFileReq_A        <> RegFile_inst.io.req_1
-    ID.io.regFileReq_B        <> RegFile_inst.io.req_2
-    ID.io.regFileResp_A       <> RegFile_inst.io.resp_1
-    ID.io.regFileResp_B       <> RegFile_inst.io.resp_2
-    
     IDBarrier.io.inInstr      := IFBarrier.io.outInstr
     IDBarrier.io.inPC         := IFBarrier.io.outPC
+    IDBarrier.io.flush        := EX.io.flush
+    IDBarrier.io.id_stall     := HazardDetectionUnit_inst.io.id_stall
     IDBarrier.io.inRS1        := ID.io.rs1
     IDBarrier.io.inRS2        := ID.io.rs2
     IDBarrier.io.inOperandA   := ID.io.operandA
     IDBarrier.io.inOperandB   := ID.io.operandB
     IDBarrier.io.inImme       := ID.io.imme
-
     IDBarrier.io.inRD         := ID.io.rd
     IDBarrier.io.inWrEn       := ControlUnit_inst.io.wrEn
+    IDBarrier.io.inMemtoReg   := ControlUnit_inst.io.memtoReg
+    IDBarrier.io.inMemRd      := ControlUnit_inst.io.memRd
+    IDBarrier.io.inMemWr      := ControlUnit_inst.io.memWr
     IDBarrier.io.inALUOp      := ControlUnit_inst.io.ALUOp
     IDBarrier.io.inAluSrcA    := ControlUnit_inst.io.ALUSrcA
     IDBarrier.io.inAluSrcB    := ControlUnit_inst.io.ALUSrcB
-    IDBarrier.io.inMemRd      := ControlUnit_inst.io.memRd
-    IDBarrier.io.inMemWr      := ControlUnit_inst.io.memWr
-    IDBarrier.io.inMemtoReg   := ControlUnit_inst.io.memtoReg
-    IDBarrier.io.id_stall := HazardDetectionUnit_inst.io.id_stall
-    IDBarrier.io.flush        := EX.io.flush
+
+    ID.io.regFileReq_A        <> RegFile_inst.io.req_1
+    ID.io.regFileReq_B        <> RegFile_inst.io.req_2
+    ID.io.regFileResp_A       <> RegFile_inst.io.resp_1
+    ID.io.regFileResp_B       <> RegFile_inst.io.resp_2
 
     ForwardingUnit_inst.io.rs1_id   := IDBarrier.io.outRS1
     ForwardingUnit_inst.io.rs2_id   := IDBarrier.io.outRS2
@@ -127,6 +150,7 @@ class PipelinedRV32Icore extends Module {
     EX.io.imme      := IDBarrier.io.outImme
     EX.io.PC        := IDBarrier.io.outPC
     EX.io.instr     := IDBarrier.io.outInstr
+
     EX.io.operandA  := IDBarrier.io.outOperandA // default case
     EX.io.operandB  := IDBarrier.io.outOperandB // default case
     switch(ForwardingUnit_inst.io.aluOpA_ctrl){
@@ -157,19 +181,16 @@ class PipelinedRV32Icore extends Module {
     MEM.io.memRd        := EXBarrier.io.outMemRd
     MEM.io.memWr        := EXBarrier.io.outMemWr
     MEM.io.writeData    := EXBarrier.io.outMemWrData
-    io.dmem <> MEM.io.dmem
+    MEM.io.dmem         <> io.dmem
 
-    MEMBarrier.io.inInstr      := EXBarrier.io.outInstr
     MEMBarrier.io.inPC         := EXBarrier.io.outPC
+    MEMBarrier.io.inInstr      := EXBarrier.io.outInstr
+    MEMBarrier.io.inAluResult  := EXBarrier.io.outAluResult
+    MEMBarrier.io.inMemData    := MEM.io.readData
+    MEMBarrier.io.inMemtoReg   := EXBarrier.io.outMemtoReg
+    MEMBarrier.io.inRD         := EXBarrier.io.outRD
+    MEMBarrier.io.inWrEn       := EXBarrier.io.outWrEn
 
-    MEMBarrier.io.inAluResult := EXBarrier.io.outAluResult
-    MEMBarrier.io.inMemData   := MEM.io.readData
-    MEMBarrier.io.inRD        := EXBarrier.io.outRD
-    MEMBarrier.io.inWrEn      := EXBarrier.io.outWrEn
-    MEMBarrier.io.inMemtoReg  := EXBarrier.io.outMemtoReg
-
-    WBBarrier.io.inInstr      := MEMBarrier.io.outInstr
-    WBBarrier.io.inPC         := MEMBarrier.io.outPC
     WB.io.rd            := MEMBarrier.io.outRD
     WB.io.aluResult     := MEMBarrier.io.outAluResult
     WB.io.memData       := MEMBarrier.io.outMemData
@@ -177,9 +198,13 @@ class PipelinedRV32Icore extends Module {
     WB.io.wrEn          := MEMBarrier.io.outWrEn
     WB.io.regFileReq    <> RegFile_inst.io.req_3
 
+    WBBarrier.io.inPC         := MEMBarrier.io.outPC
+    WBBarrier.io.inInstr      := MEMBarrier.io.outInstr
     WBBarrier.io.inCheckRes   := WB.io.check_res
 
-
+    // -----------------------------
+    // Debug bus assignments
+    // -----------------------------
     io.dbg.if_pc   := IFBarrier.io.outPC
     io.dbg.if_inst := IFBarrier.io.outInstr
 
@@ -195,10 +220,46 @@ class PipelinedRV32Icore extends Module {
     io.dbg.wb_pc   := WBBarrier.io.outPC
     io.dbg.wb_inst := WBBarrier.io.outInstr
 
+    // Register identifiers (from ID barrier)
+    io.dbg.id_rs1 := IDBarrier.io.outRS1
+    io.dbg.id_rs2 := IDBarrier.io.outRS2
+    io.dbg.id_rd  := IDBarrier.io.outRD
+    io.dbg.id_we  := IDBarrier.io.outWrEn
+
+    io.dbg.pc_write := HazardDetectionUnit_inst.io.pcWrite
+    io.dbg.if_stall := HazardDetectionUnit_inst.io.if_stall
+    io.dbg.id_stall := HazardDetectionUnit_inst.io.id_stall
+    io.dbg.flush    := EX.io.flush
+
+    io.dbg.fwd_a_sel := ForwardingUnit_inst.io.aluOpA_ctrl.asUInt
+    io.dbg.fwd_b_sel := ForwardingUnit_inst.io.aluOpB_ctrl.asUInt
+
+    io.dbg.ex_alu_result := EXBarrier.io.outAluResult
+    io.dbg.ex_pc_src     := EXBarrier.io.outPCSrc
+    io.dbg.ex_pc_jb      := EXBarrier.io.outPC_JB
+    io.dbg.ex_rd         := EXBarrier.io.outRD
+    io.dbg.ex_we         := EXBarrier.io.outWrEn
+    io.dbg.ex_mem_rd_op  := EXBarrier.io.outMemRd.asUInt
+    io.dbg.ex_mem_wr_op  := EXBarrier.io.outMemWr.asUInt
+    io.dbg.ex_mem_to_reg := EXBarrier.io.outMemtoReg
+
+    io.dbg.mem_addr   := MEM.io.addr
+    io.dbg.mem_rd_op  := MEM.io.memRd.asUInt
+    io.dbg.mem_wr_op  := MEM.io.memWr.asUInt
+    io.dbg.mem_wdata  := MEM.io.writeData
+    io.dbg.mem_rdata  := MEM.io.readData
+    io.dbg.mem_rd     := MEMBarrier.io.outRD
+    io.dbg.mem_we     := MEMBarrier.io.outWrEn
+    io.dbg.mem_to_reg := MEMBarrier.io.outMemtoReg
+
+    io.dbg.wb_rd        := WB.io.rd
+    io.dbg.wb_we        := WB.io.wrEn
+    io.dbg.wb_wdata     := WB.io.regFileReq.data
+    io.dbg.wb_check_res := WB.io.check_res
 
     io.check_res := WBBarrier.io.outCheckRes
     io.coreDone  := HazardDetectionUnit_inst.io.coreDone
     io.gpRegVal  := RegFile_inst.io.gpRegVal
-
 }
+
 

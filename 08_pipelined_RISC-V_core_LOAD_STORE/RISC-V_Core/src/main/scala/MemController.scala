@@ -5,6 +5,20 @@ import chisel3.experimental.ChiselEnum
 import chisel3.util._
 import chisel3.util.experimental.loadMemoryFromFile
 
+
+class DMEM_IO extends Bundle {
+    val addr  = Input(UInt(32.W))
+    val wData = Input(UInt(32.W))
+    val wrEn  = Input(UInt(1.W))
+    val rData = Output(UInt(32.W))
+}
+
+class IMEM_IO extends Bundle {
+    val PC    = Input(UInt(32.W))
+    val instr = Output(UInt(32.W))
+}
+
+
 class MemController extends Module{
     val io = IO(new Bundle{
         val addr = Input(UInt(32.W))

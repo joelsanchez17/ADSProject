@@ -118,61 +118,217 @@ def stage_line(name: str, pc: int, instr: int) -> str:
     asm = decode_rv32i(instr)
     return f" [{name}] PC: {hex32(pc)} | Instr: {hex32(instr)} | {asm}"
 
+# --------------------------
+# VISUALIZATION HELPERS
+# --------------------------
+class Layout:
+    # ASCII Box Drawing Characters
+    HL = "─"
+    VL = "│"
+    TL = "┌"
+    TR = "┐"
+    BL = "└"
+    BR = "┘"
+    T_DOWN = "┬"
+    T_UP = "┴"
+    T_RIGHT = "├"
+    T_LEFT = "┤"
+    CROSS = "┼"
+
+    # Column Widths (Adjust these to fit your screen)
+    W_STAGE = 4
+    W_STATUS = 12
+    W_PC = 10
+    W_INSTR = 30
+    W_DETAILS = 40
+
+class Colors:
+    RESET = "\033[0m"
+    BOLD = "\033[1m"
+    DIM = "\033[2m"
+
+    # Stage Highlighting
+    IF  = "\033[48;5;229m\033[38;5;0m"  # Black on Light Yellow
+    ID  = "\033[48;5;120m\033[38;5;0m"  # Black on Light Green
+    EX  = "\033[48;5;117m\033[38;5;0m"  # Black on Light Blue
+    MEM = "\033[48;5;213m\033[38;5;0m"  # Black on Pink
+    WB  = "\033[48;5;159m\033[38;5;0m"  # Black on Cyan
+
+    # Text Colors
+    YELLOW = "\033[93m"
+    GREEN = "\033[92m"
+    BLUE = "\033[94m"
+    RED = "\033[91m"
+    ORANGE = "\033[38;5;208m"
+    GRAY = "\033[90m"
+
+def fmt_hex(val):
+    if val is None: return "-"
+    return f"0x{int(val):08x}"
+
+def fit(text, width):
+    """Truncates or pads text to fit exactly into 'width' chars."""
+    s = str(text)
+    if len(s) > width:
+        return s[:width-1] + "…"
+    return f"{s:<{width}}"
+
+def get_fwd_str(sel):
+    """Decodes Forwarding Select Signal"""
+    sel = int(sel)
+    if sel == 0: return ""
+    if sel == 1: return f"{Colors.ORANGE}FWD(MEM){Colors.RESET}"
+    if sel == 2: return f"{Colors.ORANGE}FWD(WB){Colors.RESET}"
+    return f"FWD({sel})"
+
+# --------------------------
+# DASHBOARD RENDERER
+# --------------------------
 def show_snapshot(s: Dict[str, Any]):
     cycle = int(s.get("cycle", 0))
-    pc_if  = int(get(s, "pc.if", 0));   ins_if  = int(get(s, "instr.if", 0))
-    pc_id  = int(get(s, "pc.id", 0));   ins_id  = int(get(s, "instr.id", 0))
-    pc_ex  = int(get(s, "pc.ex", 0));   ins_ex  = int(get(s, "instr.ex", 0))
-    pc_mem = int(get(s, "pc.mem", 0));  ins_mem = int(get(s, "instr.mem", 0))
-    pc_wb  = int(get(s, "pc.wb", 0));   ins_wb  = int(get(s, "instr.wb", 0))
 
+    # Unpack dictionaries with safe defaults
     hazard = get(s, "hazard", {}) or {}
     fwd    = get(s, "fwd", {}) or {}
-    idinfo = get(s, "id", {}) or {}
+    id_info = get(s, "id", {}) or {}
     ex     = get(s, "ex", {}) or {}
     mem    = get(s, "mem", {}) or {}
     wb     = get(s, "wb", {}) or {}
-    until  = get(s, "until", {}) or {}
 
-    print("\n" + "="*56)
-    print(f" ⏱️  CYCLE: {cycle}")
-    hit = int(until.get("hit", 0)) if isinstance(until, dict) else 0
-    steps = int(until.get("steps", 0)) if isinstance(until, dict) else 0
-    if steps > 0:
-        print(f" 🔎 until: {'HIT' if hit else 'TIMEOUT'} (steps={steps})")
-    print("-"*56)
-    print(stage_line("IF ", pc_if,  ins_if))
-    print(stage_line("ID ", pc_id,  ins_id))
-    print(stage_line("EX ", pc_ex,  ins_ex))
-    print(stage_line("MEM", pc_mem, ins_mem))
-    print(stage_line("WB ", pc_wb,  ins_wb))
+    # Detect Control Signals
+    pc_write = int(hazard.get("pc_write", 1))
+    if_stall = int(hazard.get("if_stall", 0))
+    id_stall = int(hazard.get("id_stall", 0))
+    flush    = int(hazard.get("flush", 0))
 
-    print(f" ID regs: rs1={REG[int(idinfo.get('rs1',0))]} rs2={REG[int(idinfo.get('rs2',0))]} rd={REG[int(idinfo.get('rd',0))]} we={int(idinfo.get('we',0))}")
+    # --- 1. HEADER ---
+    width_total = Layout.W_STAGE + Layout.W_STATUS + Layout.W_PC + Layout.W_INSTR + Layout.W_DETAILS + 13
 
-    pcw = int(hazard.get("pc_write", 0))
-    ifs = int(hazard.get("if_stall", 0))
-    ids = int(hazard.get("id_stall", 0))
-    fl  = int(hazard.get("flush", 0))
-    print("-"*56)
-    print(f" hazard: pc_write={pcw} if_stall={ifs} id_stall={ids} flush={fl} | fwd: A={int(fwd.get('a_sel',0))} B={int(fwd.get('b_sel',0))}")
+    print("\n" + Colors.BOLD + Layout.TL + Layout.HL * (width_total - 2) + Layout.TR + Colors.RESET)
+    status_led = f"{Colors.GREEN}● RUNNING{Colors.RESET}" if pc_write else f"{Colors.RED}● STALLED{Colors.RESET}"
+    header_content = f" ⏱️  CYCLE: {cycle:<10} | {status_led}"
+    print(f"{Layout.VL} {header_content:<{width_total + 8}} {Layout.VL}") # +8 for ANSI codes length
 
-    ex_alu = ex.get("alu_result", None)
-    ex_rd  = int(ex.get("rd", 0)); ex_we = int(ex.get("we", 0))
-    if ex_alu is not None:
-        print(f" EX: alu_result={hex32(int(ex_alu))} pc_src={int(ex.get('pc_src',0))} pc_jb={hex32(int(ex.get('pc_jb',0)))} rd={REG[ex_rd]} we={ex_we} mem_rd_op={int(ex.get('mem_rd_op',0))} mem_wr_op={int(ex.get('mem_wr_op',0))} mem_to_reg={int(ex.get('mem_to_reg',0))}")
+    # --- 2. TABLE HEADER ---
+    # Construct the separator line
+    sep = (Layout.T_LEFT + Layout.HL * (Layout.W_STAGE + 2) + Layout.CROSS +
+           Layout.HL * (Layout.W_STATUS + 2) + Layout.CROSS +
+           Layout.HL * (Layout.W_PC + 2) + Layout.CROSS +
+           Layout.HL * (Layout.W_INSTR + 2) + Layout.CROSS +
+           Layout.HL * (Layout.W_DETAILS + 2) + Layout.T_RIGHT)
 
+    print(sep)
+    print(f"{Layout.VL} {'STG':<{Layout.W_STAGE}} {Layout.VL} {'STATUS':<{Layout.W_STATUS}} {Layout.VL} {'PC':<{Layout.W_PC}} {Layout.VL} {'INSTRUCTION':<{Layout.W_INSTR}} {Layout.VL} {'DETAILS / ACTIVITY':<{Layout.W_DETAILS}} {Layout.VL}")
+    print(sep)
+
+    # Helper to print a row
+    def print_stage_row(name, color_code, pc_path, instr_path, status_override=None, detail_str=""):
+        pc_val = int(get(s, pc_path, 0))
+        ins_val = int(get(s, instr_path, 0))
+        asm = decode_rv32i(ins_val)
+
+        # Determine Status Label
+        status = f"{Colors.GREEN}OK{Colors.RESET}"
+
+        # Logic to detect stalls/flushes for this specific stage
+        is_stalled = False
+        if name == "IF" and if_stall: is_stalled = True
+        if name == "ID" and id_stall: is_stalled = True
+
+        is_flushed = False
+        if flush and name in ["ID", "EX"]: is_flushed = True # Usually ID is flushed on branch
+
+        if is_stalled: status = f"{Colors.RED}STALL{Colors.RESET}"
+        if is_flushed: status = f"{Colors.ORANGE}FLUSH{Colors.RESET}"
+        if status_override: status = status_override
+
+        # Format Columns
+        c_stage = f"{color_code} {name:<{Layout.W_STAGE-1}}{Colors.RESET}"
+        c_status = f"{status:<{Layout.W_STATUS+9}}" # +9 for ANSI
+        c_pc = f"{fmt_hex(pc_val):<{Layout.W_PC}}"
+        c_inst = f"{fit(asm, Layout.W_INSTR)}"
+        c_det = f"{fit(detail_str, Layout.W_DETAILS)}"
+
+        print(f"{Layout.VL} {c_stage} {Layout.VL} {c_status} {Layout.VL} {c_pc} {Layout.VL} {c_inst} {Layout.VL} {c_det} {Layout.VL}")
+
+    # --- 3. STAGE ROWS ---
+
+    # [IF] Fetch
+    print_stage_row("IF", Colors.IF, "pc.if", "instr.if",
+                    detail_str="Fetch Instruction")
+
+    # [ID] Decode
+    rs1 = int(id_info.get("rs1", 0))
+    rs2 = int(id_info.get("rs2", 0))
+    rd  = int(id_info.get("rd", 0))
+    id_det = f"rs1:x{rs1} rs2:x{rs2} -> rd:x{rd}"
+    print_stage_row("ID", Colors.ID, "pc.id", "instr.id",
+                    detail_str=id_det)
+
+    # [EX] Execute
+    alu_res = int(ex.get("alu_result", 0))
+    fwd_a = int(fwd.get("a_sel", 0))
+    fwd_b = int(fwd.get("b_sel", 0))
+
+    # Build EX Detail String
+    ex_det_parts = [f"Res:{Colors.BOLD}{fmt_hex(alu_res)}{Colors.RESET}"]
+    if fwd_a: ex_det_parts.append(f"A:{get_fwd_str(fwd_a)}")
+    if fwd_b: ex_det_parts.append(f"B:{get_fwd_str(fwd_b)}")
+
+    # Check for Branch/Jump target
+    pc_src = int(ex.get("pc_src", 0))
+    pc_jb = int(ex.get("pc_jb", 0))
+    if pc_src:
+        ex_det_parts.append(f"{Colors.ORANGE}JMP->{fmt_hex(pc_jb)}{Colors.RESET}")
+
+    print_stage_row("EX", Colors.EX, "pc.ex", "instr.ex",
+                    detail_str=" ".join(ex_det_parts))
+
+    # [MEM] Memory
     mem_addr = int(mem.get("addr", 0))
-    mem_wdata = int(mem.get("wdata", 0))
+    mem_we = int(mem.get("we", 0))
+    mem_data = int(mem.get("wdata", 0))
     mem_rdata = int(mem.get("rdata", 0))
-    mem_rd_op = int(mem.get("rd_op", 0))
-    mem_wr_op = int(mem.get("wr_op", 0))
-    mem_rd = int(mem.get("rd", 0)); mem_we = int(mem.get("we", 0))
-    print(f" MEM: addr={hex32(mem_addr)} rd_op={mem_rd_op} wr_op={mem_wr_op} wdata={hex32(mem_wdata)} rdata={hex32(mem_rdata)} rd={REG[mem_rd]} we={mem_we} mem_to_reg={int(mem.get('mem_to_reg',0))}")
 
-    wb_rd = int(wb.get("rd", 0)); wb_we = int(wb.get("we", 0))
-    wb_wdata = int(wb.get("wdata", 0))
-    print(f" WB: rd={REG[wb_rd]} we={wb_we} wdata={hex32(wb_wdata)} check_res={hex32(int(wb.get('check_res',0)))}")
-    print("="*56)
+    mem_str = f"{Colors.DIM}Idle{Colors.RESET}"
+    if mem_we:
+        mem_str = f"{Colors.ORANGE}WR{Colors.RESET} M[{fmt_hex(mem_addr)}]={fmt_hex(mem_data)}"
+    # Simple heuristic: if instruction is Load, show read.
+    # We can check the opcode string from earlier, but for now lets rely on signals
+    elif mem.get("mem_rd_op", 0): # Assuming this signal exists or we infer it
+        mem_str = f"{Colors.BLUE}RD{Colors.RESET} M[{fmt_hex(mem_addr)}] -> {fmt_hex(mem_rdata)}"
+
+    print_stage_row("MEM", Colors.MEM, "pc.mem", "instr.mem",
+                    detail_str=mem_str)
+
+    # [WB] Writeback
+    wb_reg = int(wb.get("rd", 0))
+    wb_val = int(wb.get("wdata", 0))
+    wb_we = int(wb.get("we", 0))
+
+    wb_str = ""
+    if wb_we and wb_reg != 0:
+        wb_str = f"{Colors.GREEN}Write{Colors.RESET} x{wb_reg} = {fmt_hex(wb_val)}"
+
+    print_stage_row("WB", Colors.WB, "pc.wb", "instr.wb",
+                    detail_str=wb_str)
+
+    print(Layout.BL + Layout.HL * (width_total - 2) + Layout.BR)
+
+    # --- 4. FOOTER (Hazards & Control) ---
+    haz_list = []
+    if if_stall: haz_list.append(f"{Colors.RED}[IF_STALL]{Colors.RESET}")
+    if id_stall: haz_list.append(f"{Colors.RED}[ID_STALL]{Colors.RESET}")
+    if flush:    haz_list.append(f"{Colors.ORANGE}[FLUSH]{Colors.RESET}")
+
+    haz_str = " ".join(haz_list) if haz_list else f"{Colors.DIM}None{Colors.RESET}"
+
+    print(f" {Colors.BOLD}⚡ HAZARDS:{Colors.RESET} {haz_str}")
+
+    # Forwarding Summary (if any)
+    if fwd_a or fwd_b:
+        print(f" {Colors.BOLD}⏩ FORWARD:{Colors.RESET} OpA={get_fwd_str(fwd_a)} OpB={get_fwd_str(fwd_b)}")
+    print(Layout.HL * width_total)
 
 # --------------------------
 # Live protocol client

@@ -1,12 +1,16 @@
-#!/usr/bin/env python3
 import socket
 import json
 import argparse
+import time
 from dataclasses import dataclass
 from typing import Optional, Dict, Any, List
 
 REG = [f"x{i}" for i in range(32)]
+ALLOWED_BP_KINDS = {"if_pc","id_pc","ex_pc","mem_pc","wb_pc","wb_rd","mem_addr","wb_we"}
 
+# --------------------------
+# RISC-V decode helpers
+# --------------------------
 def sign_extend(value: int, bits: int) -> int:
     sign = 1 << (bits - 1)
     return (value & (sign - 1)) - (value & sign)
@@ -25,17 +29,11 @@ def decode_rv32i(instr: int) -> str:
         imm = ((instr >> 7) & 0x1F) | (((instr >> 25) & 0x7F) << 5)
         return sign_extend(imm, 12)
     def b_imm():
-        imm = (((instr >> 8) & 0xF) << 1) \
-              | (((instr >> 25) & 0x3F) << 5) \
-              | (((instr >> 7) & 0x1) << 11) \
-              | (((instr >> 31) & 0x1) << 12)
+        imm = (((instr >> 8) & 0xF) << 1)               | (((instr >> 25) & 0x3F) << 5)               | (((instr >> 7) & 0x1) << 11)               | (((instr >> 31) & 0x1) << 12)
         return sign_extend(imm, 13)
     def u_imm(): return instr & 0xFFFFF000
     def j_imm():
-        imm = (((instr >> 21) & 0x3FF) << 1) \
-              | (((instr >> 20) & 0x1) << 11) \
-              | (((instr >> 12) & 0xFF) << 12) \
-              | (((instr >> 31) & 0x1) << 20)
+        imm = (((instr >> 21) & 0x3FF) << 1)               | (((instr >> 20) & 0x1) << 11)               | (((instr >> 12) & 0xFF) << 12)               | (((instr >> 31) & 0x1) << 20)
         return sign_extend(imm, 21)
 
     if instr == 0x00000013:
@@ -93,11 +91,14 @@ def decode_rv32i(instr: int) -> str:
 
     return "unknown"
 
+# --------------------------
+# Pretty printing
+# --------------------------
 def hex32(x: int) -> str:
     return f"0x{x & 0xFFFFFFFF:08x}"
 
 def get(d: Dict[str, Any], path: str, default=None):
-    cur = d
+    cur: Any = d
     for part in path.split("."):
         if not isinstance(cur, dict) or part not in cur:
             return default
@@ -131,9 +132,14 @@ def show_snapshot(s: Dict[str, Any]):
     ex     = get(s, "ex", {}) or {}
     mem    = get(s, "mem", {}) or {}
     wb     = get(s, "wb", {}) or {}
+    until  = get(s, "until", {}) or {}
 
     print("\n" + "="*56)
     print(f" ⏱️  CYCLE: {cycle}")
+    hit = int(until.get("hit", 0)) if isinstance(until, dict) else 0
+    steps = int(until.get("steps", 0)) if isinstance(until, dict) else 0
+    if steps > 0:
+        print(f" 🔎 until: {'HIT' if hit else 'TIMEOUT'} (steps={steps})")
     print("-"*56)
     print(stage_line("IF ", pc_if,  ins_if))
     print(stage_line("ID ", pc_id,  ins_id))
@@ -168,6 +174,9 @@ def show_snapshot(s: Dict[str, Any]):
     print(f" WB: rd={REG[wb_rd]} we={wb_we} wdata={hex32(wb_wdata)} check_res={hex32(int(wb.get('check_res',0)))}")
     print("="*56)
 
+# --------------------------
+# Live protocol client
+# --------------------------
 @dataclass
 class Breakpoint:
     kind: str
@@ -181,20 +190,35 @@ class LiveClient:
         self.f = None
         self.bp: Optional[Breakpoint] = None
         self.record_file = None
+        self._last_snapshot: Optional[Dict[str, Any]] = None
 
     def connect(self):
         print(f"🔄 [PYTHON] Connecting to {self.host}:{self.port}...")
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        s.connect((self.host, self.port))
+
+        # Retry so you can start Python before sbt is ready
+        while True:
+            try:
+                s.connect((self.host, self.port))
+                break
+            except (ConnectionRefusedError, OSError):
+                print("   ... waiting for Chisel server ...")
+                time.sleep(0.5)
+
         self.sock = s
-        self.f = s.makefile("r")
+        self.f = s.makefile("r", encoding="utf-8")
         print("✅ [PYTHON] Connected!")
 
     def close(self):
         try:
             if self.record_file:
                 self.record_file.close()
+        except Exception:
+            pass
+        try:
+            if self.f:
+                self.f.close()
         except Exception:
             pass
         try:
@@ -209,14 +233,23 @@ class LiveClient:
 
     def recv_snapshot(self) -> Dict[str, Any]:
         assert self.f is not None
-        line = self.f.readline()
-        if not line:
-            raise EOFError("Disconnected")
-        s = json.loads(line.strip())
-        if self.record_file:
-            self.record_file.write(json.dumps(s) + "\n")
-            self.record_file.flush()
-        return s
+        while True:
+            line = self.f.readline()
+            if not line:
+                raise EOFError("Disconnected")
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                s = json.loads(line)
+                self._last_snapshot = s
+                if self.record_file:
+                    self.record_file.write(json.dumps(s) + "\n")
+                    self.record_file.flush()
+                return s
+            except json.JSONDecodeError:
+                print(f"⚠️ Bad JSON from server: {line[:120]}")
+                continue
 
     def parse_int(self, s: str) -> int:
         t = s.strip().lower()
@@ -246,69 +279,226 @@ class LiveClient:
                 except Exception:
                     pass
 
+    def bp_hit(self, snap: Dict[str, Any]) -> bool:
+        if not self.bp:
+            return False
+        k, v = self.bp.kind, self.bp.value
+        if k == "if_pc":    return int(get(snap, "pc.if", 0)) == v
+        if k == "id_pc":    return int(get(snap, "pc.id", 0)) == v
+        if k == "ex_pc":    return int(get(snap, "pc.ex", 0)) == v
+        if k == "mem_pc":   return int(get(snap, "pc.mem", 0)) == v
+        if k == "wb_pc":    return int(get(snap, "pc.wb", 0)) == v
+        if k == "wb_rd":    return int(get(snap, "wb.rd", 0)) == v
+        if k == "wb_we":    return int(get(snap, "wb.we", 0)) == v
+        if k == "mem_addr": return int(get(snap, "mem.addr", 0)) == v
+        return False
+
+    def run_chunked(self, total_cycles: int, chunk: int = 50) -> Dict[str, Any]:
+        """
+        Runs total_cycles cycles by sending repeated 'run <chunk>' commands.
+        Returns the last snapshot received.
+        """
+        if total_cycles <= 0:
+            return self._last_snapshot or self.recv_snapshot()
+
+        done = 0
+        last = self._last_snapshot
+        try:
+            while done < total_cycles:
+                n = min(chunk, total_cycles - done)
+                self.send(f"run {n}")
+                last = self.recv_snapshot()
+                show_snapshot(last)
+                done += n
+        except KeyboardInterrupt:
+            print("\n🟧 Interrupted. You can continue typing commands.")
+        return last or self.recv_snapshot()
+
+    def go_until_bp(self, max_cycles: int = 10000, chunk: int = 50) -> Optional[Dict[str, Any]]:
+        """
+        Runs until breakpoint hit (client-side check) or max_cycles reached.
+        max_cycles: maximum number of cycles to execute while searching for breakpoint.
+        chunk: number of cycles per network round-trip.
+        """
+        if not self.bp:
+            print("No breakpoint set. Use: bp <kind> <value>   or   bp <value> (defaults to if_pc)")
+            return None
+
+        if self.bp.kind.endswith("_pc") and (self.bp.value % 4 != 0):
+            print("⚠️ PC breakpoints are usually 4-byte aligned. This may never hit.")
+
+        print(f"⏩ go: until {self.bp.kind} == {hex32(self.bp.value)} (max {max_cycles} cycles, chunk {chunk})  [Ctrl+C to interrupt]")
+
+        steps = 0
+        last = self._last_snapshot
+        try:
+            while steps < max_cycles:
+                n = min(chunk, max_cycles - steps)
+                self.send(f"run {n}")
+                last = self.recv_snapshot()
+                show_snapshot(last)
+                steps += n
+                if self.bp_hit(last):
+                    print("🟢 Breakpoint HIT")
+                    return last
+            print("🟡 Breakpoint TIMEOUT (max cycles reached)")
+            return last
+        except KeyboardInterrupt:
+            print("\n🟧 Interrupted go. You can continue typing commands.")
+            return last
+
     def run(self):
         self.connect()
         try:
+            snap = self.recv_snapshot()
+            self._last_snapshot = snap
+
             while True:
-                snap = self.recv_snapshot()
                 show_snapshot(snap)
 
                 cmd = input("👉 step/run/bp/go/record/replay/help/q > ").strip()
+
+                # Ignore arrow-key escape garbage
+                if "\x1b" in cmd:
+                    continue
+
+                # Aliases / common typos: b / break / bq -> bp
+                if cmd.startswith("bq "):
+                    cmd = "bp " + cmd[len("bq "):]
+                elif cmd.startswith("break "):
+                    cmd = "bp " + cmd[len("break "):]
+                elif cmd.startswith("b "):
+                    cmd = "bp " + cmd[len("b "):]
+
+                # Shortcut: "<kind> <value>" -> "bp <kind> <value>"
+                parts = cmd.split()
+                if len(parts) == 2 and parts[0] in ALLOWED_BP_KINDS:
+                    cmd = f"bp {parts[0]} {parts[1]}"
+                    parts = cmd.split()
+
                 if cmd == "" or cmd == "step":
                     self.send("step")
+                    snap = self.recv_snapshot()
+
                 elif cmd in ("q", "quit"):
                     self.send("quit")
                     return
-                elif cmd.startswith("run "):
-                    self.send(cmd)
+
+                elif cmd.startswith("run"):
+                    # run N [chunk]
+                    parts = cmd.split()
+                    n = int(parts[1]) if len(parts) >= 2 else 1
+                    chunk = int(parts[2]) if len(parts) >= 3 else 50
+                    chunk = max(1, chunk)
+                    print(f"⏩ run: {n} cycles (chunk {chunk})  [Ctrl+C to interrupt]")
+                    snap = self.run_chunked(n, chunk=chunk)
+
                 elif cmd == "reset":
                     self.send("reset")
+                    snap = self.recv_snapshot()
+
                 elif cmd == "help":
                     print("""
 Commands:
-  [Enter] or step           step 1 cycle
-  run N                     run N cycles
-  bp <kind> <value>         set breakpoint (kind: if_pc id_pc ex_pc mem_pc wb_pc wb_rd mem_addr wb_we)
-  clearbp                   clear breakpoint
-  go [max]                  run until bp hit (server-side until), default max=10000
-  until <kind> <value> [max] direct server-side until
-  reset                     reset DUT
-  record on <file>          start NDJSON recording
-  record off                stop recording
-  replay <file>             offline replay from NDJSON
-  q                         quit
+  [Enter] or step
+      Step the CPU by 1 clock cycle.
+
+  run N [chunk]
+      Run N cycles total.
+      chunk (optional) controls how many cycles are executed per network round-trip.
+      Example: 'run 200 50' runs 200 cycles, receiving a snapshot every 50 cycles.
+
+  bp <value>
+      Set breakpoint on IF stage PC (if_pc) to <value>.
+      Example: 'bp 0x20' breaks when IF PC == 0x00000020.
+
+  bp <kind> <value>
+      Breakpoint on a specific signal.
+      kind in: if_pc id_pc ex_pc mem_pc wb_pc wb_rd wb_we mem_addr
+      Example: 'bp mem_addr 0x00000004'
+
+  <kind> <value>
+      Shortcut for bp. Example: 'if_pc 0x20' is the same as 'bp if_pc 0x20'.
+
+  go [max_cycles] [chunk]
+      Run until breakpoint hit (checked client-side) or max_cycles reached.
+      max_cycles default=10000, chunk default=50.
+      Example: 'go 200' runs up to 200 cycles searching for the breakpoint.
+
+  clearbp
+      Clear current breakpoint.
+
+  until <kind> <value> [max]
+      Server-side until (can look frozen for long runs). Prefer 'go'.
+
+  record on <file>
+      Start recording snapshots to NDJSON. Writes the current snapshot immediately.
+
+  record off
+      Stop recording.
+
+  replay <file>
+      Replay an NDJSON recording offline.
+
+  q
+      Quit.
 """.strip())
+
                 elif cmd.startswith("bp "):
                     parts = cmd.split()
-                    if len(parts) >= 3:
+                    # Allow: bp <value> (defaults to if_pc)
+                    if len(parts) == 2:
+                        kind = "if_pc"
+                        value = self.parse_int(parts[1])
+                        self.bp = Breakpoint(kind, value)
+                        print(f"🧷 Breakpoint set: {kind} == {hex32(value)}")
+                    elif len(parts) >= 3:
                         kind = parts[1]
                         value = self.parse_int(parts[2])
-                        self.bp = Breakpoint(kind, value)
-                        print(f"🧷 Breakpoint set: {kind} == {value}")
+                        if kind not in ALLOWED_BP_KINDS:
+                            print(f"Unknown breakpoint kind '{kind}'. Try one of: {sorted(ALLOWED_BP_KINDS)}")
+                        else:
+                            self.bp = Breakpoint(kind, value)
+                            print(f"🧷 Breakpoint set: {kind} == {hex32(value)}")
+                    else:
+                        print("Usage: bp <value>  OR  bp <kind> <value>")
+
                 elif cmd == "clearbp":
                     self.bp = None
                     print("🧷 Breakpoint cleared")
+
                 elif cmd.startswith("go"):
-                    if not self.bp:
-                        print("No breakpoint set. Use: bp <kind> <value>")
-                    else:
-                        parts = cmd.split()
-                        max_steps = int(parts[1]) if len(parts) >= 2 else 10000
-                        self.send(f"until {self.bp.kind} {self.bp.value} {max_steps}")
+                    parts = cmd.split()
+                    max_cycles = int(parts[1]) if len(parts) >= 2 else 10000
+                    chunk = int(parts[2]) if len(parts) >= 3 else 50
+                    chunk = max(1, chunk)
+                    last = self.go_until_bp(max_cycles=max_cycles, chunk=chunk)
+                    if last is not None:
+                        snap = last
+
                 elif cmd.startswith("until "):
                     self.send(cmd)
+                    snap = self.recv_snapshot()
+
                 elif cmd.startswith("record on "):
                     path = cmd[len("record on "):].strip()
-                    self.record_file = open(path, "w")
+                    self.record_file = open(path, "w", encoding="utf-8")
                     print(f"📝 Recording ON -> {path}")
+                    # Write current snapshot immediately so file isn't empty
+                    if self._last_snapshot is not None:
+                        self.record_file.write(json.dumps(self._last_snapshot) + "\n")
+                        self.record_file.flush()
+
                 elif cmd == "record off":
                     if self.record_file:
                         self.record_file.close()
                     self.record_file = None
                     print("📝 Recording OFF")
+
                 elif cmd.startswith("replay "):
                     path = cmd[len("replay "):].strip()
                     self.replay_mode(path)
+
                 else:
                     print("Unknown command. Type 'help'.")
         finally:

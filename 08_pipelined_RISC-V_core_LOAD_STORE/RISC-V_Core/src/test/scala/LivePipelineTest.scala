@@ -1,3 +1,4 @@
+
 package PipelinedRV32I_Tester
 
 import chisel3._
@@ -39,7 +40,7 @@ class LivePipelineTest extends AnyFlatSpec with ChiselScalatestTester {
         def probeIO(moduleLabel: String, io: Record): Unit = {
           println(s"\n🔎 IO PROBE for $moduleLabel")
           io.elements.toSeq.sortBy(_._1).foreach { case (name, data) =>
-            probe(s"$moduleLabel.$name", data)
+            probe(s"$moduleLabel.io.$name", data)
           }
         }
 
@@ -54,6 +55,10 @@ class LivePipelineTest extends AnyFlatSpec with ChiselScalatestTester {
 
         var cycle = 0L
         var running = true
+
+        // until status (reported back to Python)
+        var lastUntilHit = 0
+        var lastUntilSteps = 0
 
         // sanity probes
         probe("dut.io.result", dut.io.result)
@@ -82,6 +87,8 @@ class LivePipelineTest extends AnyFlatSpec with ChiselScalatestTester {
               "coreDone": ${b(dut.io.coreDone)},
               "gpRegVal": ${b(dut.io.gpRegVal)},
               "result": ${b(dut.io.result)},
+
+              "until": { "hit": $lastUntilHit, "steps": $lastUntilSteps },
 
               "pc": {
                 "if": ${b(dut.io.dbg.if_pc)},
@@ -163,14 +170,21 @@ class LivePipelineTest extends AnyFlatSpec with ChiselScalatestTester {
                     running = false
 
                   case "step" =>
+                    // reset until status
+                    lastUntilHit = 0
+                    lastUntilSteps = 0
                     dut.clock.step(1)
                     cycle += 1
 
                   case "run" =>
+                    lastUntilHit = 0
+                    lastUntilSteps = 0
                     val n = if (parts.length >= 2) parts(1).toInt else 1
                     if (n > 0) { dut.clock.step(n); cycle += n }
 
                   case "reset" =>
+                    lastUntilHit = 0
+                    lastUntilSteps = 0
                     dut.reset.poke(true.B)
                     dut.clock.step(1)
                     dut.reset.poke(false.B)
@@ -190,6 +204,8 @@ class LivePipelineTest extends AnyFlatSpec with ChiselScalatestTester {
                         hit = breakpointHit(kind, value)
                         i += 1
                       }
+                      lastUntilHit = if (hit) 1 else 0
+                      lastUntilSteps = i
                     }
 
                   case _ => // ignore
@@ -206,5 +222,3 @@ class LivePipelineTest extends AnyFlatSpec with ChiselScalatestTester {
       }
   }
 }
-
-

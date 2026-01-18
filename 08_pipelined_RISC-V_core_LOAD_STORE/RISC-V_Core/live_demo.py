@@ -5,6 +5,11 @@ import argparse
 import time
 from dataclasses import dataclass
 from typing import Optional, Dict, Any, List
+import subprocess
+import os
+import signal
+import atexit
+
 
 REG = [f"x{i}" for i in range(32)]
 ALLOWED_BP_KINDS = {"if_pc","id_pc","ex_pc","mem_pc","wb_pc","wb_rd","mem_addr","wb_we"}
@@ -92,6 +97,57 @@ def decode_rv32i(instr: int) -> str:
 
     return "unknown"
 
+
+
+# --------------------------
+# AUTO-LAUNCHER
+# --------------------------
+SERVER_PROCESS = None
+
+def stop_server():
+    """Kills the background SBT process when Python exits."""
+    global SERVER_PROCESS
+    if SERVER_PROCESS:
+        print("\n🔻 Stopping Chisel Server...")
+        try:
+            # Kill the entire process group (SBT + Java + Runner)
+            os.killpg(os.getpgid(SERVER_PROCESS.pid), signal.SIGTERM)
+        except Exception:
+            pass
+        SERVER_PROCESS = None
+
+def ensure_server_running(host, port):
+    """Checks if port is open. If not, launches SBT in the background."""
+    global SERVER_PROCESS
+
+    # 1. Check if server is already running
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        if s.connect_ex((host, port)) == 0:
+            return # Already running, just connect!
+
+    # 2. Not running? Launch it!
+    print(f"🚀 Launching Chisel Simulation on port {port}...")
+    print("   (This takes 10-20 seconds to compile... please wait)")
+
+    # We write logs to a file so they don't mess up your beautiful dashboard
+    log_file = open("chisel_server.log", "w")
+
+    # The Command to run your Scala Test
+    cmd = ["sbt", "testOnly PipelinedRV32I_Tester.LivePipelineTest"]
+
+    # Start the process in a new session (setsid) so we can kill the whole tree later
+    SERVER_PROCESS = subprocess.Popen(
+        cmd,
+        stdout=log_file,
+        stderr=subprocess.STDOUT,
+        preexec_fn=os.setsid
+    )
+
+    # Register the cleanup function to run when this script exits
+    atexit.register(stop_server)
+
+    print("⏳ Waiting 20 seconds for compilation to warm up...")
+    time.sleep(20)
 # --------------------------
 # Pretty printing
 # --------------------------
@@ -649,6 +705,10 @@ def main():
     if args.replay:
         LiveClient(args.host, args.port).replay_mode(args.replay)
         return
+
+
+    ensure_server_running(args.host, args.port)
+
 
     LiveClient(args.host, args.port).run()
 

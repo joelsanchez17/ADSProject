@@ -1,0 +1,50 @@
+[info] welcome to sbt 1.10.7 (Ubuntu Java 11.0.29)
+[info] loading project definition from /import/lab/users/sanchez/Desktop/ADSProject/08_pipelined_RISC-V_core_LOAD_STORE/RISC-V_Core/project
+[info] loading settings for project risc-v_core from build.sbt...
+[info] set current project to risc-v_core (in build file:/import/lab/users/sanchez/Desktop/ADSProject/08_pipelined_RISC-V_core_LOAD_STORE/RISC-V_Core/)
+
+🟦 [CHISEL] Waiting for Python on port 8888...
+🟩 [CHISEL] Connected! Starting Loop...
+✅ PROBE dut.io.result                   target=~PipelinedRV32I|PipelinedRV32I>io.result  value=0x0
+
+🔎 IO PROBE for dut.io.dbg
+✅ PROBE dut.io.dbg.io.ex_alu_result     target=~PipelinedRV32I|PipelinedRV32I>io.dbg.ex_alu_result  value=0x0
+✅ PROBE dut.io.dbg.io.ex_inst           target=~PipelinedRV32I|PipelinedRV32I>io.dbg.ex_inst  value=0x13
+✅ PROBE dut.io.dbg.io.ex_mem_rd_op      target=~PipelinedRV32I|PipelinedRV32I>io.dbg.ex_mem_rd_op  value=0x1
+✅ PROBE dut.io.dbg.io.ex_mem_to_reg     target=~PipelinedRV32I|PipelinedRV32I>io.dbg.ex_mem_to_reg  value=0x0
+✅ PROBE dut.io.dbg.io.ex_mem_wr_op      target=~PipelinedRV32I|PipelinedRV32I>io.dbg.ex_mem_wr_op  value=0x1
+✅ PROBE dut.io.dbg.io.ex_pc             target=~PipelinedRV32I|PipelinedRV32I>io.dbg.ex_pc  value=0x0
+✅ PROBE dut.io.dbg.io.ex_pc_jb          target=~PipelinedRV32I|PipelinedRV32I>io.dbg.ex_pc_jb  value=0x0
+✅ PROBE dut.io.dbg.io.ex_pc_src         target=~PipelinedRV32I|PipelinedRV32I>io.dbg.ex_pc_src  value=0x0
+✅ PROBE dut.io.dbg.io.ex_rd             target=~PipelinedRV32I|PipelinedRV32I>io.dbg.ex_rd  value=0x0
+✅ PROBE dut.io.dbg.io.ex_we             target=~PipelinedRV32I|PipelinedRV32I>io.dbg.ex_we  value=0x0
+✅ PROBE dut.io.dbg.io.flush             target=~PipelinedRV32I|PipelinedRV32I>io.dbg.flush  value=0x0
+✅ PROBE dut.io.dbg.io.fwd_a_sel         target=~PipelinedRV32I|PipelinedRV32I>io.dbg.fwd_a_sel  value=0x0
+✅ PROBE dut.io.dbg.io.fwd_b_sel         target=~PipelinedRV32I|PipelinedRV32I>io.dbg.fwd_b_sel  value=0x0
+✅ PROBE dut.io.dbg.io.id_inst           target=~PipelinedRV32I|PipelinedRV32I>io.dbg.id_inst  value=0x13
+✅ PROBE dut.io.dbg.io.id_pc             target=~PipelinedRV32I|PipelinedRV32I>io.dbg.id_pc  value=0x0
+✅ PROBE dut.io.dbg.io.id_rd             target=~PipelinedRV32I|PipelinedRV32I>io.dbg.id_rd  value=0x0
+✅ PROBE dut.io.dbg.io.id_rs1            target=~PipelinedRV32I|PipelinedRV32I>io.dbg.id_rs1  value=0x0
+✅ PROBE dut.io.dbg.io.id_rs2            target=~PipelinedRV32I|PipelinedRV32I>io.dbg.id_rs2  value=0x0
+✅ PROBE dut.io.dbg.io.id_stall          target=~PipelinedRV32I|PipelinedRV32I>io.dbg.id_stall  value=0x0
+✅ PROBE dut.io.dbg.io.id_we             target=~PipelinedRV32I|PipelinedRV32I>io.dbg.id_we  value=0x0
+✅ PROBE dut.io.dbg.io.if_inst           target=~PipelinedRV32I|PipelinedRV32I>io.dbg.if_inst  value=0x13
+✅ PROBE dut.io.dbg.io.if_pc             target=~PipelinedRV32I|PipelinedRV32I>io.dbg.if_pc  value=0x0
+✅ PROBE dut.io.dbg.io.if_stall          target=~PipelinedRV32I|PipelinedRV32I>io.dbg.if_stall  value=0x0
+✅ PROBE dut.io.dbg.io.mem_addr          target=~PipelinedRV32I|PipelinedRV32I>io.dbg.mem_addr  value=0x0
+✅ PROBE dut.io.dbg.io.mem_inst          target=~PipelinedRV32I|PipelinedRV32I>io.dbg.mem_inst  value=0x13
+✅ PROBE dut.io.dbg.io.mem_pc            target=~PipelinedRV32I|PipelinedRV32I>io.dbg.mem_pc  value=0x0
+✅ PROBE dut.io.dbg.io.mem_rd            target=~PipelinedRV32I|PipelinedRV32I>io.dbg.mem_rd  value=0x0
+✅ PROBE dut.io.dbg.io.mem_rd_op         target=~PipelinedRV32I|PipelinedRV32I>io.dbg.mem_rd_op  value=0x1
+✅ PROBE dut.io.dbg.io.mem_rdata         target=~PipelinedRV32I|PipelinedRV32I>io.dbg.mem_rdata  value=0x0
+✅ PROBE dut.io.dbg.io.mem_to_reg        target=~PipelinedRV32I|PipelinedRV32I>io.dbg.mem_to_reg  value=0x0
+✅ PROBE dut.io.dbg.io.mem_wdata         target=~PipelinedRV32I|PipelinedRV32I>io.dbg.mem_wdata  value=0x0
+✅ PROBE dut.io.dbg.io.mem_we            target=~PipelinedRV32I|PipelinedRV32I>io.dbg.mem_we  value=0x0
+✅ PROBE dut.io.dbg.io.mem_wr_op         target=~PipelinedRV32I|PipelinedRV32I>io.dbg.mem_wr_op  value=0x1
+✅ PROBE dut.io.dbg.io.pc_write          target=~PipelinedRV32I|PipelinedRV32I>io.dbg.pc_write  value=0x1
+✅ PROBE dut.io.dbg.io.wb_check_res      target=~PipelinedRV32I|PipelinedRV32I>io.dbg.wb_check_res  value=0x0
+✅ PROBE dut.io.dbg.io.wb_inst           target=~PipelinedRV32I|PipelinedRV32I>io.dbg.wb_inst  value=0x13
+✅ PROBE dut.io.dbg.io.wb_pc             target=~PipelinedRV32I|PipelinedRV32I>io.dbg.wb_pc  value=0x0
+✅ PROBE dut.io.dbg.io.wb_rd             target=~PipelinedRV32I|PipelinedRV32I>io.dbg.wb_rd  value=0x0
+✅ PROBE dut.io.dbg.io.wb_wdata          target=~PipelinedRV32I|PipelinedRV32I>io.dbg.wb_wdata  value=0x0
+✅ PROBE dut.io.dbg.io.wb_we             target=~PipelinedRV32I|PipelinedRV32I>io.dbg.wb_we  value=0x0

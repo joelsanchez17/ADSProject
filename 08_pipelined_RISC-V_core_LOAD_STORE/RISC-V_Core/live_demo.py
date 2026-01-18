@@ -79,24 +79,18 @@ SERVER_PROCESS = None
 def cleanup():
     """Restores terminal and kills server."""
     global SERVER_PROCESS
-    # Restore Terminal Cursor
-    print("\033[?25h")
-    # Restore sane terminal mode just in case
+    print("\033[?25h") # Show Cursor
     os.system("stty sane")
-
     if SERVER_PROCESS:
         try:
             os.killpg(os.getpgid(SERVER_PROCESS.pid), signal.SIGTERM)
-        except Exception:
-            pass
+        except Exception: pass
         SERVER_PROCESS = None
 
 def ensure_server_running(host, port):
     global SERVER_PROCESS
-    # Check if running
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        if s.connect_ex((host, port)) == 0:
-            return
+        if s.connect_ex((host, port)) == 0: return
 
     print(f"🚀 Launching Chisel Simulation on port {port}...")
     print("   (This takes 10-20 seconds to compile...)")
@@ -200,7 +194,7 @@ def show_snapshot(s: Dict[str, Any]):
 
     print(Layout.BL + Layout.HL*(w_tot-2) + Layout.BR + "\033[K")
 
-    # Hazards with Clear Line (\033[K)
+    # Hazards
     h_list = []
     if haz.get("if_stall"): h_list.append(f"{Colors.RED}[IF_STALL]{Colors.RESET}")
     if haz.get("id_stall"): h_list.append(f"{Colors.RED}[ID_STALL]{Colors.RESET}")
@@ -259,7 +253,6 @@ class LiveClient:
         self.f = s.makefile("r", encoding="utf-8")
 
     def close(self):
-        # FIX: Added missing close method
         try:
             if self.record_file: self.record_file.close()
             if self.f: self.f.close()
@@ -300,61 +293,54 @@ class LiveClient:
             self.send("step")
             self.recv_snapshot()
 
-        # View is auto-updated to new live head by recv_snapshot
-
     def handle_command_input(self):
-        # FIX: Restore terminal to normal mode (Cooked) before asking for input
-        fd = sys.stdin.fileno()
-        old_settings = termios.tcgetattr(fd)
+        print("\033[?25h") # Show cursor
+        os.system("stty sane")
         try:
-            # Restore sane settings so input() works (echo on, line buffering)
-            termios.tcsetattr(fd, termios.TCSADRAIN, termios.tcgetattr(1)) # copy stdout settings? or just sane?
-            # actually os.system("stty sane") is aggressive but works.
-            # Better: use the original settings we saved in get_key? No, we need a persistent store.
-            # Simple approach: manually set flags or just use input() carefully.
-            # Let's try the simplest: Just print and read byte by byte? No, user wants to type words.
-
-            # The most robust way inside a raw-mode loop:
-            print("\033[?25h") # Show cursor
-            # Temporarily reset terminal to default
-            os.system("stty sane")
-
             cmd = input(f"\n{Colors.BOLD}COMMAND > {Colors.RESET}").strip()
+            # FIX: Lowercase command handling
+            cmd_lower = cmd.lower()
 
-            if cmd.startswith("record on "):
+            if cmd_lower.startswith("record on "):
                 path = cmd.split(" ", 2)[2]
                 self.record_file = open(path, "w")
                 print(f"Recording to {path}")
-            elif cmd == "record off":
+
+            elif cmd_lower == "record off":
                 if self.record_file: self.record_file.close()
                 self.record_file = None
                 print("Recording stopped")
-            elif cmd == "reset":
+
+            # FIX: Added Reset / Clear
+            elif cmd_lower in ["reset", "clear"]:
                 self.send("reset")
                 self.history.clear()
                 self.recv_snapshot()
-            elif cmd.startswith("bp "):
+                print("History Cleared & Reset")
+
+            elif cmd_lower.startswith("bp "):
                 parts = cmd.split()
                 if len(parts) > 1:
                     val = int(parts[-1], 16) if parts[-1].startswith("0x") else int(parts[-1])
                     kind = parts[1] if len(parts) > 2 else "if_pc"
                     self.bp = Breakpoint(kind, val)
                     print(f"Breakpoint set: {kind}={val:#x}")
-            elif cmd == "help":
+
+            elif cmd_lower in ["help", "h"]:
                 self.show_help()
 
-            # Pause to let user read output
-            time.sleep(0.8)
+            # Pause to let user read status
+            if cmd: time.sleep(0.8)
 
-        finally:
-            # The main loop will call get_key which re-applies raw mode.
-            # We just need to make sure we don't leave it in a weird state.
-            pass
+        except Exception as e:
+            print(f"Error: {e}")
+            time.sleep(1)
 
     def show_help(self):
         print(f"\n{Colors.BOLD}--- HELP ---{Colors.RESET}")
         print(" [Arrows]     Step Back/Forward (1 cycle)")
-        print(" [PgUp/Dn]    Jump Back/Forward (10 cycles)")
+        print(" [PgUp/Dn]    Jump Back/Forward (100 cycles)")
+        print(" [Up/Down]    Jump Back/Forward (10 cycles)")
         print(" [Home]       Go to Start")
         print(" [Enter]      Jump to Live Head")
         print(" [:]          Enter Command Mode")
@@ -362,7 +348,7 @@ class LiveClient:
         print("\nCommands (type ':' first):")
         print("  bp <val>        Set Breakpoint (IF PC)")
         print("  record on <f>   Start recording to file")
-        print("  reset           Reset Processor")
+        print("  reset / clear   Reset Processor & History")
         input("\nPress Enter to return...")
 
     def run(self):
@@ -378,7 +364,7 @@ class LiveClient:
                 live = len(self.history)-1
                 is_live = (self.view_idx == live)
 
-                # Status Bar with Clear Line
+                # Status Bar
                 print("\033[K")
                 if is_live: print(f"{Colors.GREEN} 🟢 LIVE HEAD {Colors.RESET} | Cycle: {self.history[-1].get('cycle')}\033[K")
                 else:       print(f"{Colors.ORANGE} ⏪ HISTORY {Colors.RESET} | View: {self.view_idx}/{live}\033[K")
@@ -391,15 +377,16 @@ class LiveClient:
                 if key=='q': break
                 elif key=='\r' or key=='\n': self.view_idx = live # Enter -> Live
                 elif key==':' or key == ';': self.handle_command_input()
-                elif key=='h' or key == '?': self.handle_command_input() # abuse cmd handler to show help safely
+                elif key=='h' or key == '?': self.handle_command_input() # abuse cmd handler to show help
 
                 elif key=='RIGHT': self.step_delta(1)
                 elif key=='LEFT':  self.step_delta(-1)
 
-                # PGUP = Forward 10 (Per your request/standard mapping)
-                # Let's map UP/DOWN to 10 as per previous prompt
-                elif key=='UP' or key=='PGUP':    self.step_delta(10)
-                elif key=='DOWN' or key=='PGDN':  self.step_delta(-10)
+                elif key=='UP':    self.step_delta(10)
+                elif key=='DOWN':  self.step_delta(-10)
+
+                elif key=='PGUP':  self.step_delta(100)
+                elif key=='PGDN':  self.step_delta(-100)
 
                 elif key=='HOME': self.view_idx = 0
 

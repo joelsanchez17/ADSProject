@@ -48,4 +48,3 @@
 ✅ PROBE dut.io.dbg.io.wb_rd             target=~PipelinedRV32I|PipelinedRV32I>io.dbg.wb_rd  value=0x0
 ✅ PROBE dut.io.dbg.io.wb_wdata          target=~PipelinedRV32I|PipelinedRV32I>io.dbg.wb_wdata  value=0x0
 ✅ PROBE dut.io.dbg.io.wb_we             target=~PipelinedRV32I|PipelinedRV32I>io.dbg.wb_we  value=0x0
-🟧 [CHISEL] Python disconnected.

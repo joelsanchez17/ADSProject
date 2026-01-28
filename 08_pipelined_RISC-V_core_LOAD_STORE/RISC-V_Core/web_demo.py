@@ -11,5 +11,6 @@ if __name__ == "__main__":
     ensure_server_running("localhost", args.port)
 
     # 2. Start Web Server
-    print("🚀 Starting Web Visualizer at http://localhost:8000")
-    uvicorn.run("web_visualizer.server:socket_app", host="0.0.0.0", port=8000, reload=True)
+    print("🚀 Starting Web Visualizer at http://localhost:8080")
+    # CHANGE 8000 -> 8080 BELOW:
+    uvicorn.run("web_visualizer.server:socket_app", host="0.0.0.0", port=8080, reload=True)

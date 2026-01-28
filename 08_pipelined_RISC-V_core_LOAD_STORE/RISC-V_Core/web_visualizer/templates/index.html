@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>RISC-V Web Visualizer</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script src="/static/client.js" defer></script>
+</head>
+<body>
+
+<div class="toolbar">
+    <h1>RISC-V Live Core</h1>
+    <div class="controls">
+        <button onclick="sendCommand('reset')">⏮ Reset</button>
+        <button onclick="sendCommand('step')">▶ Step</button>
+        <button onclick="sendCommand('run')">⏩ Run 5</button>
+    </div>
+    <div class="status">
+        Cycle: <span id="cycle-display">0</span>
+    </div>
+</div>
+
+<div class="main-container">
+    <div class="svg-wrapper">
+        <object id="pipeline-svg" data="/static/pipeline.svg" type="image/svg+xml"></object>
+    </div>
+
+    <div class="sidebar">
+        <h3>Writeback (WB)</h3>
+        <div id="wb-info" class="panel">Waiting...</div>
+
+        <h3>Hazards</h3>
+        <div id="hazard-info" class="panel">None</div>
+    </div>
+</div>
+
+</body>
+</html>

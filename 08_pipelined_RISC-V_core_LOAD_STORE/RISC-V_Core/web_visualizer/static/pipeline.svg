@@ -1,0 +1,35 @@
+<svg width="800" height="200" viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg">
+    <rect width="800" height="200" fill="#f0f0f0"/>
+
+    <g id="group-if">
+        <rect id="stage-if" x="50" y="50" width="100" height="100" fill="#ddd" stroke="black" stroke-width="2"/>
+        <text x="100" y="105" text-anchor="middle" font-family="sans-serif" font-weight="bold">IF</text>
+        <text id="text-pc-if" x="100" y="130" text-anchor="middle" font-family="monospace" font-size="12">PC: --</text>
+    </g>
+
+    <g id="group-id">
+        <rect id="stage-id" x="200" y="50" width="100" height="100" fill="#ddd" stroke="black" stroke-width="2"/>
+        <text x="250" y="105" text-anchor="middle" font-family="sans-serif" font-weight="bold">ID</text>
+    </g>
+
+    <g id="group-ex">
+        <rect id="stage-ex" x="350" y="50" width="100" height="100" fill="#ddd" stroke="black" stroke-width="2"/>
+        <text x="400" y="105" text-anchor="middle" font-family="sans-serif" font-weight="bold">EX</text>
+    </g>
+
+    <g id="group-mem">
+        <rect id="stage-mem" x="500" y="50" width="100" height="100" fill="#ddd" stroke="black" stroke-width="2"/>
+        <text x="550" y="105" text-anchor="middle" font-family="sans-serif" font-weight="bold">MEM</text>
+    </g>
+
+    <g id="group-wb">
+        <rect id="stage-wb" x="650" y="50" width="100" height="100" fill="#ddd" stroke="black" stroke-width="2"/>
+        <text x="700" y="105" text-anchor="middle" font-family="sans-serif" font-weight="bold">WB</text>
+    </g>
+
+    <line x1="150" y1="100" x2="200" y2="100" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="300" y1="100" x2="350" y2="100" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="450" y1="100" x2="500" y2="100" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="600" y1="100" x2="650" y2="100" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+
+</svg>

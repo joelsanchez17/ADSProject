@@ -1,0 +1,9 @@
+body { font-family: sans-serif; background: #222; color: #fff; margin: 0; }
+.toolbar { background: #333; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
+.controls button { padding: 8px 15px; font-size: 16px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+.controls button:hover { background: #0056b3; }
+.main-container { display: flex; height: 90vh; }
+.svg-wrapper { flex: 3; background: #fff; display: flex; justify-content: center; align-items: center; border-right: 2px solid #444; }
+.sidebar { flex: 1; padding: 20px; background: #2a2a2a; }
+.panel { background: #333; padding: 10px; margin-bottom: 20px; border-radius: 5px; font-family: monospace; }
+object { width: 95%; height: 95%; }

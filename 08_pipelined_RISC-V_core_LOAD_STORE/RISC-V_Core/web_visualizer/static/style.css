@@ -1,9 +1,42 @@
-body { font-family: sans-serif; background: #222; color: #fff; margin: 0; }
-.toolbar { background: #333; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
-.controls button { padding: 8px 15px; font-size: 16px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
-.controls button:hover { background: #0056b3; }
-.main-container { display: flex; height: 90vh; }
-.svg-wrapper { flex: 3; background: #fff; display: flex; justify-content: center; align-items: center; border-right: 2px solid #444; }
-.sidebar { flex: 1; padding: 20px; background: #2a2a2a; }
-.panel { background: #333; padding: 10px; margin-bottom: 20px; border-radius: 5px; font-family: monospace; }
+:root {
+    --bg-color: #1e1e1e;
+    --panel-color: #252526;
+    --accent-color: #007acc;
+    --text-color: #d4d4d4;
+    --success-color: #4ec9b0;
+    --warn-color: #ce9178;
+    --danger-color: #f44747;
+}
+
+body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; display: flex; flex-direction: column; height: 100vh; }
+
+/* Toolbar */
+.toolbar { background: #333333; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+.brand { font-weight: bold; font-size: 1.2rem; color: #fff; letter-spacing: 1px; }
+.controls { display: flex; gap: 10px; }
+.btn { background: var(--panel-color); border: 1px solid #444; color: #fff; padding: 6px 12px; cursor: pointer; border-radius: 4px; transition: all 0.2s; font-size: 0.9rem; }
+.btn:hover { background: #3e3e42; border-color: #666; }
+.btn-primary { background: var(--accent-color); border-color: var(--accent-color); }
+.btn-primary:hover { background: #0062a3; }
+.status-badge { background: #000; padding: 5px 10px; border-radius: 4px; font-family: monospace; font-size: 1.1rem; color: var(--success-color); }
+
+/* Layout */
+.main-container { display: flex; flex: 1; overflow: hidden; }
+.viz-area { flex: 3; display: flex; flex-direction: column; border-right: 1px solid #333; position: relative; }
+.sidebar { flex: 1; background: var(--panel-color); display: flex; flex-direction: column; min-width: 250px; max-width: 350px; }
+
+/* SVG Container */
+.svg-wrapper { flex: 1; background: #1e1e1e; display: flex; justify-content: center; align-items: center; overflow: hidden; }
 object { width: 95%; height: 95%; }
+
+/* Sidebar Panels */
+.panel-header { background: #333; padding: 8px 15px; font-size: 0.85rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; border-top: 1px solid #444; border-bottom: 1px solid #000; }
+.panel-content { padding: 15px; font-family: 'Consolas', monospace; font-size: 0.9rem; line-height: 1.5; color: #ccc; }
+
+/* Register Grid */
+.reg-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; padding: 10px; }
+.reg-box { background: #000; border: 1px solid #444; border-radius: 3px; font-size: 0.75rem; text-align: center; padding: 4px; cursor: default; transition: background 0.3s; }
+.reg-box.active-read { border-color: var(--accent-color); background: rgba(0, 122, 204, 0.2); }
+.reg-box.active-write { border-color: var(--success-color); background: rgba(78, 201, 176, 0.2); }
+.reg-name { color: #888; display: block; font-size: 0.65rem; margin-bottom: 2px; }
+.reg-val { color: #fff; font-weight: bold; }

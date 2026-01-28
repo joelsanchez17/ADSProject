@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>RISC-V Web Visualizer</title>
+    <title>RISC-V Pro Dashboard</title>
     <link rel="stylesheet" href="/static/style.css">
     <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
     <script src="/static/client.js" defer></script>
@@ -10,28 +10,32 @@
 <body>
 
 <div class="toolbar">
-    <h1>RISC-V Live Core</h1>
+    <div class="brand">⚡ RISC-V CORE DEBUGGER</div>
     <div class="controls">
-        <button onclick="sendCommand('reset')">⏮ Reset</button>
-        <button onclick="sendCommand('step')">▶ Step</button>
-        <button onclick="sendCommand('run')">⏩ Run 5</button>
+        <button class="btn" onclick="sendCommand('reset')">⟲ Reset</button>
+        <button class="btn" onclick="sendCommand('step')">Step ➔</button>
+        <button class="btn btn-primary" onclick="sendCommand('run')">Run ▶</button>
     </div>
-    <div class="status">
-        Cycle: <span id="cycle-display">0</span>
-    </div>
+    <div class="status-badge">Cycle: <span id="cycle-display">0</span></div>
 </div>
 
 <div class="main-container">
-    <div class="svg-wrapper">
-        <object id="pipeline-svg" data="/static/pipeline.svg" type="image/svg+xml"></object>
+    <div class="viz-area">
+        <div class="svg-wrapper">
+            <object id="pipeline-svg" data="/static/pipeline.svg" type="image/svg+xml"></object>
+        </div>
     </div>
 
     <div class="sidebar">
-        <h3>Writeback (WB)</h3>
-        <div id="wb-info" class="panel">Waiting...</div>
+        <div class="panel-header">Pipeline Status</div>
+        <div class="panel-content" id="hazard-info">System Ready</div>
 
-        <h3>Hazards</h3>
-        <div id="hazard-info" class="panel">None</div>
+        <div class="panel-header">Register File (x0-x31)</div>
+        <div class="reg-grid" id="reg-grid">
+        </div>
+
+        <div class="panel-header">Writeback Details</div>
+        <div class="panel-content" id="wb-info">--</div>
     </div>
 </div>
 

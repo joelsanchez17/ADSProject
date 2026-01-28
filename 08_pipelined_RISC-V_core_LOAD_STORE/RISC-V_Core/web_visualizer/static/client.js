@@ -1,68 +1,50 @@
 const socket = io();
-
-// --- SETUP REGISTER GRID ---
 const regGrid = document.getElementById('reg-grid');
-regGrid.innerHTML = ""; // Clear existing
+regGrid.innerHTML = "";
 for (let i = 0; i < 32; i++) {
     const div = document.createElement('div');
     div.className = 'reg-box';
     div.id = `reg-box-${i}`;
-    // Use `x0`..`x31` naming
     div.innerHTML = `<span class="reg-name">x${i}</span><div class="reg-val" id="reg-val-${i}">0</div>`;
     regGrid.appendChild(div);
 }
 
-// Keyboard Nav
 document.addEventListener('keydown', (e) => {
     if (e.key === "ArrowRight") sendCommand('step');
     if (e.key === "ArrowLeft")  sendCommand('back');
 });
 
-function sendCommand(action) {
-    socket.emit('command', { action: action });
-}
+function sendCommand(action) { socket.emit('command', { action: action }); }
 
 socket.on('update', (packet) => {
     const data = packet.enriched;
-    const regs = packet.registers; // Array of 32 integers
-
+    const regs = packet.registers;
     document.getElementById('cycle-display').innerText = data.cycle || 0;
 
-    // 1. UPDATE REGISTER GRID
-    if (regs) {
-        for(let i=0; i<32; i++) {
-            const valDiv = document.getElementById(`reg-val-${i}`);
-            // Show Hex
-            valDiv.innerText = "0x" + regs[i].toString(16);
-
-            // Remove old highlights
-            const box = document.getElementById(`reg-box-${i}`);
-            box.classList.remove('active-write', 'active-read');
-        }
+    // 1. Reset Register Grid
+    for(let i=0; i<32; i++) {
+        const box = document.getElementById(`reg-box-${i}`);
+        box.classList.remove('active-write', 'active-read');
+        document.getElementById(`reg-val-${i}`).innerText = "0x" + regs[i].toString(16);
     }
 
-    // 2. HIGHLIGHT ACTIVE REGISTERS (Writeback)
+    // 2. Highlight WB (Green) - Direct from Hardware Signal
     if (data.wb && data.wb.we && data.wb.rd !== 0) {
-        const r = data.wb.rd;
-        const box = document.getElementById(`reg-box-${r}`);
+        const box = document.getElementById(`reg-box-${data.wb.rd}`);
         if(box) box.classList.add('active-write');
-
-        // Update Sidebar Writeback Details
-        document.getElementById('wb-info').innerText =
-            `x${r} = 0x${data.wb.wdata.toString(16)}`;
+        document.getElementById('wb-info').innerText = `x${data.wb.rd} = 0x${data.wb.wdata.toString(16)}`;
     } else {
         document.getElementById('wb-info').innerText = "--";
     }
 
-    // 3. HIGHLIGHT READ REGISTERS (Decode)
-    if (data.id_info) {
-        const rs1 = data.id_info.rs1;
-        const rs2 = data.id_info.rs2;
+    // 3. Highlight EX Operands (Blue)
+    if (data.ex_info) {
+        const rs1 = data.ex_info.rs1;
+        const rs2 = data.ex_info.rs2;
         if (rs1 !== 0) document.getElementById(`reg-box-${rs1}`)?.classList.add('active-read');
         if (rs2 !== 0) document.getElementById(`reg-box-${rs2}`)?.classList.add('active-read');
     }
 
-    // 4. UPDATE SVG
     updateSVG(data, regs);
 });
 
@@ -73,73 +55,51 @@ function updateSVG(data, regs) {
 
     const setText = (id, val) => { const e = svg.getElementById(id); if(e) e.textContent = val; };
     const setFill = (id, col) => { const e = svg.getElementById(id); if(e) e.style.fill = col; };
-    const setStroke = (id, col, width) => {
+    const setWire = (id, color, style) => {
         const e = svg.getElementById(id);
-        if(e) { e.style.stroke = col; if(width) e.style.strokeWidth = width; }
+        if(e) {
+            e.style.stroke = color;
+            e.style.strokeWidth = (style === 'active') ? "3" : "2";
+            e.style.strokeDasharray = (style === 'active') ? "none" : "5,5";
+        }
     };
 
-    // --- TEXT UPDATES ---
-    if (data.pc_hex) {
-        setText('txt-pc-if', data.pc_hex.if);
-        setText('txt-pc-id', data.pc_hex.id);
-        setText('txt-pc-ex', data.pc_hex.ex);
-        setText('txt-pc-mem', data.pc_hex.mem);
-        setText('txt-pc-wb', data.pc_hex.wb);
-    }
+    // Text Updates
     if (data.asm) {
-        setText('txt-asm-if', data.asm.if);
-        setText('txt-asm-id', data.asm.id);
-        setText('txt-asm-ex', data.asm.ex);
-        setText('txt-asm-mem', data.asm.mem);
-        setText('txt-asm-wb', data.asm.wb);
+        ['if','id','ex','mem','wb'].forEach(s => setText(`txt-asm-${s}`, data.asm[s]));
+        ['if','id','ex','mem','wb'].forEach(s => setText(`txt-pc-${s}`, data.pc_hex[s]));
     }
 
-    // --- OPERANDS (The Fix!) ---
-    // We use the ID stage info to look up the values in our Register Array
-    if (data.id_info && regs) {
-        // Note: Operands are displayed in EX stage usually, but they come from ID decoding
-        const valA = regs[data.id_info.rs1];
-        const valB = regs[data.id_info.rs2];
+    // EX Operands (Blue Text)
+    if (data.ex_info && regs) {
+        const valA = regs[data.ex_info.rs1];
+        const valB = regs[data.ex_info.rs2];
         setText('txt-op-a', `A: 0x${valA.toString(16)}`);
         setText('txt-op-b', `B: 0x${valB.toString(16)}`);
-    }
-
-    if (data.ex) {
         setText('txt-alu-ex', `Res: 0x${Number(data.ex.alu_result).toString(16)}`);
     }
 
-    // --- WB WIRE ACTIVATION (The Fix!) ---
-    // You need to add id="wire-wb-back" to the line in SVG connecting WB to RegFile
-    // If it doesn't exist, we skip.
-    const wbWire = svg.getElementById('wire-wb-back');
+    // MEM Stage (Always Active - No "Jump" Logic)
+    const memBox = svg.getElementById('stage-mem');
+    if(memBox) memBox.style.opacity = "1.0";
 
+    // Display Memory Activity if 'we' is high, otherwise show Addr
+    if (data.mem.we) setText('txt-mem-status', `Wr: 0x${Number(data.mem.wdata).toString(16)}`);
+    else setText('txt-mem-status', `Rd Addr: 0x${Number(data.mem.addr).toString(16)}`);
+
+    // Wire Animation (WB -> RegFile)
     if (data.wb && data.wb.we && data.wb.rd !== 0) {
-        // Active Writeback
         setText('txt-wb-reg', `x${data.wb.rd} = 0x${data.wb.wdata.toString(16)}`);
-        // Color the text Green
         setFill('txt-wb-reg', '#4ec9b0');
-
-        // Color the Wire Green
-        if(wbWire) {
-             wbWire.style.stroke = "#4ec9b0";
-             wbWire.style.strokeWidth = "3";
-             wbWire.style.strokeDasharray = "none"; // Solid line
-        }
+        setWire('wire-wb-back', '#4ec9b0', 'active');
     } else {
         setText('txt-wb-reg', "--");
-        if(wbWire) {
-             wbWire.style.stroke = "#444";
-             wbWire.style.strokeWidth = "2";
-             wbWire.style.strokeDasharray = "5,5"; // Dashed for idle
-        }
+        setFill('txt-wb-reg', '#666');
+        setWire('wire-wb-back', '#444', 'idle');
     }
 
-    // --- HAZARDS ---
-    const stallColor = "#770000";
-    ['if','id','ex','mem','wb'].forEach(s => setFill(`stage-${s}`, '#252526')); // Reset
-
-    if (data.hazard) {
-        if (data.hazard.if_stall) setFill('stage-if', stallColor);
-        if (data.hazard.id_stall) setFill('stage-id', stallColor);
-    }
+    // Hazards
+    ['if','id'].forEach(s => setFill(`stage-${s}`, '#252526'));
+    if (data.hazard && data.hazard.if_stall) setFill('stage-if', '#770000');
+    if (data.hazard && data.hazard.id_stall) setFill('stage-id', '#770000');
 }

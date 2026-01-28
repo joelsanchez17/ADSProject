@@ -1,16 +1,21 @@
-<svg width="900" height="300" viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg">
+<svg width="900" height="350" viewBox="0 0 900 350" xmlns="http://www.w3.org/2000/svg">
     <defs>
         <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-            <path d="M0,0 L0,6 L9,3 z" fill="#444" />
+            <path d="M0,0 L0,6 L9,3 z" fill="#555" />
         </marker>
     </defs>
 
-    <rect width="900" height="300" fill="#1e1e1e"/>
+    <rect width="900" height="350" fill="#1e1e1e"/>
 
-    <path id="fwd-mem-id" d="M 550 150 L 550 250 L 250 250 L 250 150" fill="none" stroke="#333" stroke-width="3" stroke-dasharray="5,5"/>
-    <path id="fwd-wb-id" d="M 700 150 L 700 270 L 250 270 L 250 150" fill="none" stroke="#333" stroke-width="3" stroke-dasharray="5,5"/>
-    <path id="wire-wb-back" d="M 710 160 L 710 280 L 140 280 L 140 160"
-          fill="none" stroke="#444" stroke-width="2" stroke-dasharray="5,5"/>
+    <g id="group-regfile" transform="translate(190, 180)">
+        <rect id="regfile-box" width="140" height="60" rx="4" fill="#2d2d30" stroke="#007acc" stroke-width="2"/>
+        <text x="70" y="25" text-anchor="middle" font-weight="bold" fill="#007acc" font-family="sans-serif">Register File</text>
+        <text x="70" y="45" text-anchor="middle" font-size="10" fill="#888">x0 - x31</text>
+    </g>
+
+    <path id="wire-wb-back" d="M 710 160 L 710 300 L 260 300 L 260 240"
+          fill="none" stroke="#444" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrow)"/>
+
     <g id="group-if" transform="translate(50, 50)">
         <rect id="stage-if" width="120" height="110" rx="4" fill="#252526" stroke="#555" stroke-width="2"/>
         <text x="60" y="20" text-anchor="middle" font-weight="bold" fill="#ddd">IF</text>
@@ -62,6 +67,4 @@
     <line x1="320" y1="105" x2="350" y2="105" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
     <line x1="470" y1="105" x2="500" y2="105" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
     <line x1="620" y1="105" x2="650" y2="105" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
-
-
 </svg>

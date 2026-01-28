@@ -8,14 +8,7 @@ from live_debug.decoder import decode_rv32i
 
 bridge = ChiselBridge()
 
-# Global Debug State
-debug_state = {
-    "cursor": -1,
-    "history": [] # Each item will have: { raw_data, enriched_data, registers }
-}
-
-# Initial Registers (All Zero)
-initial_regs = [0] * 32
+debug_state = { "cursor": -1, "history": [] }
 
 sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
 app = FastAPI()
@@ -35,13 +28,9 @@ def extract_registers(instr_int):
     }
 
 def process_snapshot(raw_data):
-    """
-    1. Enriches data (ASM, Hex)
-    2. Calculates Register File state based on history
-    """
     data = copy.deepcopy(raw_data)
 
-    # --- 1. Basic Enrichment ---
+    # 1. Decode Instructions for ALL stages (No skipping)
     data['asm'] = {}
     data['pc_hex'] = {}
     for stage in ['if', 'id', 'ex', 'mem', 'wb']:
@@ -50,29 +39,29 @@ def process_snapshot(raw_data):
         pval = data.get('pc', {}).get(stage, 0)
         data['pc_hex'][stage] = f"0x{pval:08x}"
 
-    # Extract Register Indices
+    # 2. Extract Register Indices (Directly from current instruction)
     id_instr = data.get('instr', {}).get('id', 0)
+    ex_instr = data.get('instr', {}).get('ex', 0)
     data['id_info'] = extract_registers(id_instr)
+    data['ex_info'] = extract_registers(ex_instr)
 
-    # --- 2. Shadow Register File Logic ---
-    # Get previous registers
+    # 3. Register File State (Accumulator)
+    # We still need to remember the values because hardware only sends updates,
+    # but we DO NOT buffer/delay the 'we' signal anymore.
+    prev_regs = [0] * 32
     if debug_state["history"]:
         prev_regs = debug_state["history"][-1]["registers"][:]
-    else:
-        prev_regs = [0] * 32
 
-    # Apply Writeback
+    # Apply Writeback DIRECTLY from current cycle signals
     wb = data.get("wb", {})
     we = wb.get("we")
     rd = wb.get("rd")
     wdata = wb.get("wdata")
 
-    # Create new register state
     current_regs = prev_regs[:]
     if we and rd != 0:
         current_regs[rd] = wdata
 
-    # Attach to snapshot
     return {
         "raw": raw_data,
         "enriched": data,
@@ -90,15 +79,10 @@ def add_to_history(raw_snap):
 async def connect(sid, environ):
     if not bridge.sock:
         bridge.connect()
-        # Initial Reset/Step to sync
         if not debug_state["history"]:
-            raw = bridge.step(0)
-            add_to_history(raw)
-
-    # Send current cursor
+            add_to_history(bridge.step(0))
     if debug_state["history"]:
-        curr = debug_state["history"][debug_state["cursor"]]
-        await sio.emit('update', curr)
+        await sio.emit('update', debug_state["history"][debug_state["cursor"]])
 
 @sio.event
 async def command(sid, data):
@@ -106,31 +90,23 @@ async def command(sid, data):
     response = None
 
     if action == 'step':
-        # If looking at history, just move forward
         if debug_state["cursor"] < len(debug_state["history"]) - 1:
             debug_state["cursor"] += 1
             response = debug_state["history"][debug_state["cursor"]]
         else:
-            # Step hardware
-            raw = bridge.step(1)
-            response = add_to_history(raw)
+            response = add_to_history(bridge.step(1))
 
     elif action == 'back':
         if debug_state["cursor"] > 0:
             debug_state["cursor"] -= 1
             response = debug_state["history"][debug_state["cursor"]]
 
-    elif action == 'run':
-        # Simple run: 5 steps
-        for _ in range(5):
-            raw = bridge.step(1)
-            response = add_to_history(raw)
-
     elif action == 'reset':
         bridge.reset()
         debug_state["history"] = []
-        raw = bridge.step(0)
-        response = add_to_history(raw)
+        response = add_to_history(bridge.step(0))
 
-    if response:
-        await sio.emit('update', response)
+    elif action == 'run':
+        for _ in range(5): response = add_to_history(bridge.step(1))
+
+    if response: await sio.emit('update', response)

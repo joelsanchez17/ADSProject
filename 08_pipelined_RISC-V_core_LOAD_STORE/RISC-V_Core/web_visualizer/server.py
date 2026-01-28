@@ -3,48 +3,63 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from .bridge import ChiselBridge
+from live_debug.decoder import decode_rv32i  # <--- REUSE YOUR EXISTING DECODER
 
-# 1. Initialize Chisel Bridge
 bridge = ChiselBridge()
 
-# 2. Setup Web Server
 sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="web_visualizer/static"), name="static")
 socket_app = socketio.ASGIApp(sio, app)
 
-# 3. Serve the HTML Page
 @app.get("/")
 async def read_index():
     return FileResponse('web_visualizer/templates/index.html')
 
-# 4. WebSocket Event Handlers
+def enrich_data(data):
+    """
+    Takes raw numbers from Chisel and adds readable strings (ASM, Hex)
+    so the Javascript doesn't have to do hard math.
+    """
+    if not data: return {}
+
+    # 1. Decode Instructions for every stage
+    # structure is data['instr']['if'], etc.
+    instrs = data.get('instr', {})
+    data['asm'] = {}
+    for stage in ['if', 'id', 'ex', 'mem', 'wb']:
+        val = instrs.get(stage, 0)
+        data['asm'][stage] = decode_rv32i(val)
+
+    # 2. Format PC as Hex strings
+    pcs = data.get('pc', {})
+    data['pc_hex'] = {}
+    for stage in ['if', 'id', 'ex', 'mem', 'wb']:
+        val = pcs.get(stage, 0)
+        data['pc_hex'][stage] = f"0x{val:08x}"
+
+    return data
+
 @sio.event
 async def connect(sid, environ):
-    print(f"👤 Browser Connected: {sid}")
-    # Initialize connection to hardware if needed
     if not bridge.sock:
         bridge.connect()
-        # Get initial state
-        bridge.step(0) # Just to populate history if empty, or use bridge.receive_snapshot()
-
-    # Send current state to new browser tab
-    await sio.emit('update', bridge.get_latest(), to=sid)
+        bridge.step(0)
+    # Send enriched data
+    raw = bridge.get_latest()
+    await sio.emit('update', enrich_data(raw), to=sid)
 
 @sio.event
 async def command(sid, data):
-    """Handle buttons clicked in the browser."""
     action = data.get('action')
-
-    response = {}
+    raw = {}
 
     if action == 'step':
-        response = bridge.step(1)
+        raw = bridge.step(1)
     elif action == 'reset':
-        response = bridge.reset()
+        raw = bridge.reset()
     elif action == 'run':
-        # Run 5 steps for demo
-        response = bridge.step(5)
+        raw = bridge.step(5)
 
-    # Broadcast new state to ALL connected browsers
-    await sio.emit('update', response)
+    # Send enriched data
+    await sio.emit('update', enrich_data(raw))

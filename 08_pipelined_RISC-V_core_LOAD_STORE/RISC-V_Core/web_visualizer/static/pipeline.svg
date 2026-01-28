@@ -1,35 +1,61 @@
-<svg width="800" height="200" viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg">
-    <rect width="800" height="200" fill="#f0f0f0"/>
+<svg width="900" height="300" viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L9,3 z" fill="#333" />
+        </marker>
+    </defs>
 
-    <g id="group-if">
-        <rect id="stage-if" x="50" y="50" width="100" height="100" fill="#ddd" stroke="black" stroke-width="2"/>
-        <text x="100" y="105" text-anchor="middle" font-family="sans-serif" font-weight="bold">IF</text>
-        <text id="text-pc-if" x="100" y="130" text-anchor="middle" font-family="monospace" font-size="12">PC: --</text>
+    <rect width="900" height="300" fill="#f4f4f4"/>
+
+    <path id="fwd-ex-id" d="M 400 150 L 400 230 L 250 230 L 250 150" fill="none" stroke="#ddd" stroke-width="3" stroke-dasharray="5,5"/>
+    <path id="fwd-mem-id" d="M 550 150 L 550 250 L 250 250 L 250 150" fill="none" stroke="#ddd" stroke-width="3" stroke-dasharray="5,5"/>
+    <path id="fwd-wb-id" d="M 700 150 L 700 270 L 250 270 L 250 150" fill="none" stroke="#ddd" stroke-width="3" stroke-dasharray="5,5"/>
+
+    <g id="group-if" transform="translate(50, 50)">
+        <rect id="stage-if" width="120" height="100" rx="5" fill="white" stroke="#333" stroke-width="2"/>
+        <text x="60" y="20" text-anchor="middle" font-weight="bold">IF</text>
+        <text id="txt-pc-if" x="60" y="45" text-anchor="middle" font-family="monospace" font-size="12">PC: 0x00</text>
+        <text id="txt-asm-if" x="60" y="70" text-anchor="middle" font-family="monospace" font-size="10" fill="#0066cc">nop</text>
     </g>
 
-    <g id="group-id">
-        <rect id="stage-id" x="200" y="50" width="100" height="100" fill="#ddd" stroke="black" stroke-width="2"/>
-        <text x="250" y="105" text-anchor="middle" font-family="sans-serif" font-weight="bold">ID</text>
+    <g id="group-id" transform="translate(200, 50)">
+        <rect id="stage-id" width="120" height="100" rx="5" fill="white" stroke="#333" stroke-width="2"/>
+        <text x="60" y="20" text-anchor="middle" font-weight="bold">ID</text>
+        <text id="txt-asm-id" x="60" y="40" text-anchor="middle" font-family="monospace" font-size="10" fill="#0066cc">nop</text>
+        <line x1="10" y1="50" x2="110" y2="50" stroke="#eee" />
+        <text id="txt-rs1-id" x="10" y="65" font-family="monospace" font-size="10">rs1: --</text>
+        <text id="txt-rs2-id" x="10" y="80" font-family="monospace" font-size="10">rs2: --</text>
+        <text id="txt-rd-id" x="10" y="95" font-family="monospace" font-size="10">-> rd: --</text>
     </g>
 
-    <g id="group-ex">
-        <rect id="stage-ex" x="350" y="50" width="100" height="100" fill="#ddd" stroke="black" stroke-width="2"/>
-        <text x="400" y="105" text-anchor="middle" font-family="sans-serif" font-weight="bold">EX</text>
+    <g id="group-ex" transform="translate(350, 50)">
+        <rect id="stage-ex" width="120" height="100" rx="5" fill="white" stroke="#333" stroke-width="2"/>
+        <text x="60" y="20" text-anchor="middle" font-weight="bold">EX</text>
+        <text id="txt-asm-ex" x="60" y="40" text-anchor="middle" font-family="monospace" font-size="10" fill="#0066cc">nop</text>
+        <line x1="10" y1="50" x2="110" y2="50" stroke="#eee" />
+        <text id="txt-alu-ex" x="60" y="75" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold">Res: 0x0</text>
     </g>
 
-    <g id="group-mem">
-        <rect id="stage-mem" x="500" y="50" width="100" height="100" fill="#ddd" stroke="black" stroke-width="2"/>
-        <text x="550" y="105" text-anchor="middle" font-family="sans-serif" font-weight="bold">MEM</text>
+    <g id="group-mem" transform="translate(500, 50)">
+        <rect id="stage-mem" width="120" height="100" rx="5" fill="white" stroke="#333" stroke-width="2"/>
+        <text x="60" y="20" text-anchor="middle" font-weight="bold">MEM</text>
+        <text id="txt-asm-mem" x="60" y="40" text-anchor="middle" font-family="monospace" font-size="10" fill="#0066cc">nop</text>
+        <line x1="10" y1="50" x2="110" y2="50" stroke="#eee" />
+        <text id="txt-mem-addr" x="10" y="70" font-family="monospace" font-size="10">Addr: --</text>
+        <text id="txt-mem-data" x="10" y="90" font-family="monospace" font-size="10">Data: --</text>
     </g>
 
-    <g id="group-wb">
-        <rect id="stage-wb" x="650" y="50" width="100" height="100" fill="#ddd" stroke="black" stroke-width="2"/>
-        <text x="700" y="105" text-anchor="middle" font-family="sans-serif" font-weight="bold">WB</text>
+    <g id="group-wb" transform="translate(650, 50)">
+        <rect id="stage-wb" width="120" height="100" rx="5" fill="white" stroke="#333" stroke-width="2"/>
+        <text x="60" y="20" text-anchor="middle" font-weight="bold">WB</text>
+        <text id="txt-asm-wb" x="60" y="40" text-anchor="middle" font-family="monospace" font-size="10" fill="#0066cc">nop</text>
+        <line x1="10" y1="50" x2="110" y2="50" stroke="#eee" />
+        <text id="txt-wb-reg" x="60" y="70" text-anchor="middle" font-family="monospace" font-size="12" fill="#28a745">x0 = 0x0</text>
     </g>
 
-    <line x1="150" y1="100" x2="200" y2="100" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
-    <line x1="300" y1="100" x2="350" y2="100" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
-    <line x1="450" y1="100" x2="500" y2="100" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
-    <line x1="600" y1="100" x2="650" y2="100" stroke="black" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="170" y1="100" x2="200" y2="100" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="320" y1="100" x2="350" y2="100" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="470" y1="100" x2="500" y2="100" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="620" y1="100" x2="650" y2="100" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
 
 </svg>

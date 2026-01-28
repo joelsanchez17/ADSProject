@@ -1,61 +1,67 @@
 <svg width="900" height="300" viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg">
     <defs>
         <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-            <path d="M0,0 L0,6 L9,3 z" fill="#333" />
+            <path d="M0,0 L0,6 L9,3 z" fill="#444" />
         </marker>
     </defs>
 
-    <rect width="900" height="300" fill="#f4f4f4"/>
+    <rect width="900" height="300" fill="#1e1e1e"/>
 
-    <path id="fwd-ex-id" d="M 400 150 L 400 230 L 250 230 L 250 150" fill="none" stroke="#ddd" stroke-width="3" stroke-dasharray="5,5"/>
-    <path id="fwd-mem-id" d="M 550 150 L 550 250 L 250 250 L 250 150" fill="none" stroke="#ddd" stroke-width="3" stroke-dasharray="5,5"/>
-    <path id="fwd-wb-id" d="M 700 150 L 700 270 L 250 270 L 250 150" fill="none" stroke="#ddd" stroke-width="3" stroke-dasharray="5,5"/>
-
+    <path id="fwd-mem-id" d="M 550 150 L 550 250 L 250 250 L 250 150" fill="none" stroke="#333" stroke-width="3" stroke-dasharray="5,5"/>
+    <path id="fwd-wb-id" d="M 700 150 L 700 270 L 250 270 L 250 150" fill="none" stroke="#333" stroke-width="3" stroke-dasharray="5,5"/>
+    <path id="wire-wb-back" d="M 710 160 L 710 280 L 140 280 L 140 160"
+          fill="none" stroke="#444" stroke-width="2" stroke-dasharray="5,5"/>
     <g id="group-if" transform="translate(50, 50)">
-        <rect id="stage-if" width="120" height="100" rx="5" fill="white" stroke="#333" stroke-width="2"/>
-        <text x="60" y="20" text-anchor="middle" font-weight="bold">IF</text>
-        <text id="txt-pc-if" x="60" y="45" text-anchor="middle" font-family="monospace" font-size="12">PC: 0x00</text>
-        <text id="txt-asm-if" x="60" y="70" text-anchor="middle" font-family="monospace" font-size="10" fill="#0066cc">nop</text>
+        <rect id="stage-if" width="120" height="110" rx="4" fill="#252526" stroke="#555" stroke-width="2"/>
+        <text x="60" y="20" text-anchor="middle" font-weight="bold" fill="#ddd">IF</text>
+        <text id="txt-pc-if" x="60" y="45" text-anchor="middle" font-family="monospace" font-size="11" fill="#bbb">PC: --</text>
+        <text id="txt-asm-if" x="60" y="75" text-anchor="middle" font-family="monospace" font-size="11" fill="#4ec9b0">nop</text>
     </g>
 
     <g id="group-id" transform="translate(200, 50)">
-        <rect id="stage-id" width="120" height="100" rx="5" fill="white" stroke="#333" stroke-width="2"/>
-        <text x="60" y="20" text-anchor="middle" font-weight="bold">ID</text>
-        <text id="txt-asm-id" x="60" y="40" text-anchor="middle" font-family="monospace" font-size="10" fill="#0066cc">nop</text>
-        <line x1="10" y1="50" x2="110" y2="50" stroke="#eee" />
-        <text id="txt-rs1-id" x="10" y="65" font-family="monospace" font-size="10">rs1: --</text>
-        <text id="txt-rs2-id" x="10" y="80" font-family="monospace" font-size="10">rs2: --</text>
-        <text id="txt-rd-id" x="10" y="95" font-family="monospace" font-size="10">-> rd: --</text>
+        <rect id="stage-id" width="120" height="110" rx="4" fill="#252526" stroke="#555" stroke-width="2"/>
+        <text x="60" y="20" text-anchor="middle" font-weight="bold" fill="#ddd">ID</text>
+        <text id="txt-pc-id" x="60" y="35" text-anchor="middle" font-family="monospace" font-size="10" fill="#666">x00</text>
+        <text id="txt-asm-id" x="60" y="55" text-anchor="middle" font-family="monospace" font-size="11" fill="#4ec9b0">nop</text>
+        <line x1="10" y1="65" x2="110" y2="65" stroke="#444" />
+        <text id="txt-rs1-id" x="10" y="80" font-family="monospace" font-size="10" fill="#ccc">rs1: --</text>
+        <text id="txt-rs2-id" x="10" y="92" font-family="monospace" font-size="10" fill="#ccc">rs2: --</text>
+        <text id="txt-rd-id" x="10" y="104" font-family="monospace" font-size="10" fill="#ccc">-> rd: --</text>
     </g>
 
     <g id="group-ex" transform="translate(350, 50)">
-        <rect id="stage-ex" width="120" height="100" rx="5" fill="white" stroke="#333" stroke-width="2"/>
-        <text x="60" y="20" text-anchor="middle" font-weight="bold">EX</text>
-        <text id="txt-asm-ex" x="60" y="40" text-anchor="middle" font-family="monospace" font-size="10" fill="#0066cc">nop</text>
-        <line x1="10" y1="50" x2="110" y2="50" stroke="#eee" />
-        <text id="txt-alu-ex" x="60" y="75" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold">Res: 0x0</text>
+        <rect id="stage-ex" width="120" height="110" rx="4" fill="#252526" stroke="#555" stroke-width="2"/>
+        <text x="60" y="20" text-anchor="middle" font-weight="bold" fill="#ddd">EX</text>
+        <text id="txt-pc-ex" x="60" y="35" text-anchor="middle" font-family="monospace" font-size="10" fill="#666">x00</text>
+        <text id="txt-asm-ex" x="60" y="55" text-anchor="middle" font-family="monospace" font-size="11" fill="#4ec9b0">nop</text>
+        <line x1="10" y1="65" x2="110" y2="65" stroke="#444" />
+        <text id="txt-op-a" x="10" y="80" font-family="monospace" font-size="10" fill="#aaa">A: --</text>
+        <text id="txt-op-b" x="10" y="92" font-family="monospace" font-size="10" fill="#aaa">B: --</text>
+        <text id="txt-alu-ex" x="60" y="105" text-anchor="middle" font-family="monospace" font-size="11" font-weight="bold" fill="#fff">Res: 0x0</text>
     </g>
 
     <g id="group-mem" transform="translate(500, 50)">
-        <rect id="stage-mem" width="120" height="100" rx="5" fill="white" stroke="#333" stroke-width="2"/>
-        <text x="60" y="20" text-anchor="middle" font-weight="bold">MEM</text>
-        <text id="txt-asm-mem" x="60" y="40" text-anchor="middle" font-family="monospace" font-size="10" fill="#0066cc">nop</text>
-        <line x1="10" y1="50" x2="110" y2="50" stroke="#eee" />
-        <text id="txt-mem-addr" x="10" y="70" font-family="monospace" font-size="10">Addr: --</text>
-        <text id="txt-mem-data" x="10" y="90" font-family="monospace" font-size="10">Data: --</text>
+        <rect id="stage-mem" width="120" height="110" rx="4" fill="#252526" stroke="#555" stroke-width="2"/>
+        <text x="60" y="20" text-anchor="middle" font-weight="bold" fill="#ddd">MEM</text>
+        <text id="txt-pc-mem" x="60" y="35" text-anchor="middle" font-family="monospace" font-size="10" fill="#666">x00</text>
+        <text id="txt-asm-mem" x="60" y="55" text-anchor="middle" font-family="monospace" font-size="11" fill="#4ec9b0">nop</text>
+        <line x1="10" y1="65" x2="110" y2="65" stroke="#444" />
+        <text id="txt-mem-status" x="60" y="90" text-anchor="middle" font-family="monospace" font-size="11" fill="#888">Idle</text>
     </g>
 
     <g id="group-wb" transform="translate(650, 50)">
-        <rect id="stage-wb" width="120" height="100" rx="5" fill="white" stroke="#333" stroke-width="2"/>
-        <text x="60" y="20" text-anchor="middle" font-weight="bold">WB</text>
-        <text id="txt-asm-wb" x="60" y="40" text-anchor="middle" font-family="monospace" font-size="10" fill="#0066cc">nop</text>
-        <line x1="10" y1="50" x2="110" y2="50" stroke="#eee" />
-        <text id="txt-wb-reg" x="60" y="70" text-anchor="middle" font-family="monospace" font-size="12" fill="#28a745">x0 = 0x0</text>
+        <rect id="stage-wb" width="120" height="110" rx="4" fill="#252526" stroke="#555" stroke-width="2"/>
+        <text x="60" y="20" text-anchor="middle" font-weight="bold" fill="#ddd">WB</text>
+        <text id="txt-pc-wb" x="60" y="35" text-anchor="middle" font-family="monospace" font-size="10" fill="#666">x00</text>
+        <text id="txt-asm-wb" x="60" y="55" text-anchor="middle" font-family="monospace" font-size="11" fill="#4ec9b0">nop</text>
+        <line x1="10" y1="65" x2="110" y2="65" stroke="#444" />
+        <text id="txt-wb-reg" x="60" y="90" text-anchor="middle" font-family="monospace" font-size="12" fill="#4ec9b0">x0 = 0x0</text>
     </g>
 
-    <line x1="170" y1="100" x2="200" y2="100" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
-    <line x1="320" y1="100" x2="350" y2="100" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
-    <line x1="470" y1="100" x2="500" y2="100" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
-    <line x1="620" y1="100" x2="650" y2="100" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="170" y1="105" x2="200" y2="105" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="320" y1="105" x2="350" y2="105" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="470" y1="105" x2="500" y2="105" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="620" y1="105" x2="650" y2="105" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+
 
 </svg>

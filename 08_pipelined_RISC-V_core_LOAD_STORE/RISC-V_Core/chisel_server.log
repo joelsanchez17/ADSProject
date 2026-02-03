@@ -2,15 +2,6 @@
 [info] loading project definition from /import/lab/users/sanchez/Desktop/ADSProject/08_pipelined_RISC-V_core_LOAD_STORE/RISC-V_Core/project
 [info] loading settings for project risc-v_core from build.sbt...
 [info] set current project to risc-v_core (in build file:/import/lab/users/sanchez/Desktop/ADSProject/08_pipelined_RISC-V_core_LOAD_STORE/RISC-V_Core/)
-[info] compiling 3 Scala sources to /import/lab/users/sanchez/Desktop/ADSProject/08_pipelined_RISC-V_core_LOAD_STORE/RISC-V_Core/target/scala-2.12/classes ...
-[info] done compiling
-[info] compiling 2 Scala sources to /import/lab/users/sanchez/Desktop/ADSProject/08_pipelined_RISC-V_core_LOAD_STORE/RISC-V_Core/target/scala-2.12/test-classes ...
-[error] /import/lab/users/sanchez/Desktop/ADSProject/08_pipelined_RISC-V_core_LOAD_STORE/RISC-V_Core/src/test/scala/LivePipelineTest.scala:130:31: not found: value peek
-[error]                 "alu_op_a": ${peek(dut.io.dbg.ex_alu_op_a)},
-[error]                               ^
-[error] /import/lab/users/sanchez/Desktop/ADSProject/08_pipelined_RISC-V_core_LOAD_STORE/RISC-V_Core/src/test/scala/LivePipelineTest.scala:131:31: not found: value peek
-[error]                 "alu_op_b": ${peek(dut.io.dbg.ex_alu_op_b)},
-[error]                               ^
-[error] two errors found
-[error] (Test / compileIncremental) Compilation failed
-[error] Total time: 10 s, completed Feb 3, 2026, 9:33:52 AM
+
+🟦 [CHISEL] Waiting for Python on port 8888...
+🟩 [CHISEL] Connected! Starting Loop...

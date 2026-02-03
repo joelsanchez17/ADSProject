@@ -13,7 +13,10 @@ debug_state = { "cursor": -1, "history": [] }
 sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="web_visualizer/static"), name="static")
+
+# --- THIS IS THE MISSING LINE CAUSING YOUR ERROR ---
 socket_app = socketio.ASGIApp(sio, app)
+# ---------------------------------------------------
 
 @app.get("/")
 async def read_index():
@@ -27,6 +30,17 @@ def extract_registers(instr_int):
         "rd":  (instr_int >> 7)  & 0x1F
     }
 
+def safe_int(val):
+    if val is None: return 0
+    if isinstance(val, int): return val
+    if isinstance(val, str):
+        val = val.strip()
+        if val.startswith("0x"): return int(val, 16)
+        if val.startswith("b"): return int(val, 2)
+        try: return int(val)
+        except: return 0
+    return 0
+
 def process_snapshot(raw_data):
     data = copy.deepcopy(raw_data)
 
@@ -38,24 +52,23 @@ def process_snapshot(raw_data):
         data['asm'][stage] = decode_rv32i(safe_int(raw_instr))
         data['pc_hex'][stage] = f"0x{safe_int(data.get('pc', {}).get(stage, 0)):08x}"
 
-    # 2. Registers: Read directly from hardware dump
+    # 2. Hardware Register File (Direct from JSON)
     reg_map = data.get("regs", {})
-    # If reg_map is empty (older testbench), fall back to list of zeros
     regs_list = [0] * 32
     if isinstance(reg_map, dict):
         for k, v in reg_map.items():
-            # key is "x0", "x1"...
             idx = int(k.replace("x", ""))
             if 0 <= idx < 32:
                 regs_list[idx] = safe_int(v)
 
-    # 3. EX Stage: Use Hardware Signals (The Fix!)
-    # We ensure these keys exist so Client can use them blindly
+    # 3. EX Stage: Use Hardware Signals
     if 'ex' not in data: data['ex'] = {}
-
-    # Read the values we added to LivePipelineTest.scala
     data['ex']['val_a'] = safe_int(data['ex'].get('alu_op_a', 0))
     data['ex']['val_b'] = safe_int(data['ex'].get('alu_op_b', 0))
+
+    # 4. ID Info
+    id_instr = data.get('instr', {}).get('id', 0)
+    data['id_info'] = extract_registers(id_instr)
 
     return {
         "raw": raw_data,

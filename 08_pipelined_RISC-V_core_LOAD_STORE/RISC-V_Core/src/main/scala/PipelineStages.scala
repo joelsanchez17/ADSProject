@@ -104,11 +104,16 @@ class EX extends Module {
         val PCSrc     = Output(UInt(1.W))
         val PC_JB     = Output(UInt(32.W))
         val flush     = Output(UInt(1.W))
+        val aluInputA = Output(UInt(32.W))
+        val aluInputB = Output(UInt(32.W))
     })
 
     val aluOpA = Mux((io.ALUSrcA === aluOpAPCMux.PC), io.PC, io.operandA)
     val aluOpB = Mux((io.ALUSrcB === aluOpBImmMux.imme), io.imme, Mux((io.ALUSrcB === aluOpBImmMux.forwardMuxB), io.operandB, 4.U))
     val ALUOp      = io.ALUOp
+
+    io.aluInputA := aluOpA
+    io.aluInputB := aluOpB
 
     val alu = Module (new ALU)
     alu.io.ALUOp := io.ALUOp

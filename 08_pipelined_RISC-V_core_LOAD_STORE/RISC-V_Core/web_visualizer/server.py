@@ -30,42 +30,37 @@ def extract_registers(instr_int):
 def process_snapshot(raw_data):
     data = copy.deepcopy(raw_data)
 
-    # 1. Decode Instructions for ALL stages (No skipping)
+    # 1. Decode Instructions (Just for text display)
     data['asm'] = {}
     data['pc_hex'] = {}
     for stage in ['if', 'id', 'ex', 'mem', 'wb']:
-        val = data.get('instr', {}).get(stage, 0)
-        data['asm'][stage] = decode_rv32i(val)
-        pval = data.get('pc', {}).get(stage, 0)
-        data['pc_hex'][stage] = f"0x{pval:08x}"
+        raw_instr = data.get('instr', {}).get(stage, 0)
+        data['asm'][stage] = decode_rv32i(safe_int(raw_instr))
+        data['pc_hex'][stage] = f"0x{safe_int(data.get('pc', {}).get(stage, 0)):08x}"
 
-    # 2. Extract Register Indices (Directly from current instruction)
-    id_instr = data.get('instr', {}).get('id', 0)
-    ex_instr = data.get('instr', {}).get('ex', 0)
-    data['id_info'] = extract_registers(id_instr)
-    data['ex_info'] = extract_registers(ex_instr)
+    # 2. Registers: Read directly from hardware dump
+    reg_map = data.get("regs", {})
+    # If reg_map is empty (older testbench), fall back to list of zeros
+    regs_list = [0] * 32
+    if isinstance(reg_map, dict):
+        for k, v in reg_map.items():
+            # key is "x0", "x1"...
+            idx = int(k.replace("x", ""))
+            if 0 <= idx < 32:
+                regs_list[idx] = safe_int(v)
 
-    # 3. Register File State (Accumulator)
-    # We still need to remember the values because hardware only sends updates,
-    # but we DO NOT buffer/delay the 'we' signal anymore.
-    prev_regs = [0] * 32
-    if debug_state["history"]:
-        prev_regs = debug_state["history"][-1]["registers"][:]
+    # 3. EX Stage: Use Hardware Signals (The Fix!)
+    # We ensure these keys exist so Client can use them blindly
+    if 'ex' not in data: data['ex'] = {}
 
-    # Apply Writeback DIRECTLY from current cycle signals
-    wb = data.get("wb", {})
-    we = wb.get("we")
-    rd = wb.get("rd")
-    wdata = wb.get("wdata")
-
-    current_regs = prev_regs[:]
-    if we and rd != 0:
-        current_regs[rd] = wdata
+    # Read the values we added to LivePipelineTest.scala
+    data['ex']['val_a'] = safe_int(data['ex'].get('alu_op_a', 0))
+    data['ex']['val_b'] = safe_int(data['ex'].get('alu_op_b', 0))
 
     return {
         "raw": raw_data,
         "enriched": data,
-        "registers": current_regs
+        "registers": regs_list
     }
 
 def add_to_history(raw_snap):

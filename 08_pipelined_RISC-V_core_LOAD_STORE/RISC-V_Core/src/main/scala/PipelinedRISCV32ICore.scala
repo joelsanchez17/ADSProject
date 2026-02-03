@@ -40,6 +40,8 @@ class PipelinedRV32I(BinaryFile: String) extends Module {
       val fwd_b_sel = Output(UInt(8.W))
 
       val ex_alu_result = Output(UInt(32.W))
+      val ex_alu_op_a   = Output(UInt(32.W))
+      val ex_alu_op_b   = Output(UInt(32.W))
       val ex_pc_src     = Output(UInt(1.W))
       val ex_pc_jb      = Output(UInt(32.W))
       val ex_rd         = Output(UInt(5.W))
@@ -102,6 +104,8 @@ class PipelinedRV32I(BinaryFile: String) extends Module {
   io.dbg.fwd_b_sel := core.io.dbg.fwd_b_sel
 
   io.dbg.ex_alu_result := core.io.dbg.ex_alu_result
+  io.dbg.ex_alu_op_a   := core.io.dbg.ex_alu_op_a
+  io.dbg.ex_alu_op_b   := core.io.dbg.ex_alu_op_b
   io.dbg.ex_pc_src     := core.io.dbg.ex_pc_src
   io.dbg.ex_pc_jb      := core.io.dbg.ex_pc_jb
   io.dbg.ex_rd         := core.io.dbg.ex_rd

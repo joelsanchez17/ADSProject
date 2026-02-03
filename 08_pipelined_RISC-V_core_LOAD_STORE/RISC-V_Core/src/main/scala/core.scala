@@ -50,6 +50,8 @@ class PipelinedRV32Icore extends Module {
 
             // EX stage summary
             val ex_alu_result = Output(UInt(32.W))
+            val ex_alu_op_a   = Output(UInt(32.W))
+            val ex_alu_op_b   = Output(UInt(32.W))
             val ex_pc_src     = Output(UInt(1.W))
             val ex_pc_jb      = Output(UInt(32.W))
             val ex_rd         = Output(UInt(5.W))
@@ -234,7 +236,10 @@ class PipelinedRV32Icore extends Module {
     io.dbg.fwd_a_sel := ForwardingUnit_inst.io.aluOpA_ctrl.asUInt
     io.dbg.fwd_b_sel := ForwardingUnit_inst.io.aluOpB_ctrl.asUInt
 
+
     io.dbg.ex_alu_result := EXBarrier.io.outAluResult
+    io.dbg.ex_alu_op_a   := EX.io.aluInputA
+    io.dbg.ex_alu_op_b   := EX.io.aluInputB
     io.dbg.ex_pc_src     := EXBarrier.io.outPCSrc
     io.dbg.ex_pc_jb      := EXBarrier.io.outPC_JB
     io.dbg.ex_rd         := EXBarrier.io.outRD

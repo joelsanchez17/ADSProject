@@ -127,6 +127,8 @@ class LivePipelineTest extends AnyFlatSpec with ChiselScalatestTester {
 
               "ex": {
                 "alu_result": ${b(dut.io.dbg.ex_alu_result)},
+                "alu_op_a": ${peek(dut.io.dbg.ex_alu_op_a)},
+                "alu_op_b": ${peek(dut.io.dbg.ex_alu_op_b)},
                 "pc_src": ${b(dut.io.dbg.ex_pc_src)},
                 "pc_jb": ${b(dut.io.dbg.ex_pc_jb)},
                 "rd": ${b(dut.io.dbg.ex_rd)},

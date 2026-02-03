@@ -207,25 +207,25 @@ class PipelinedRV32Icore extends Module {
     // -----------------------------
     // Debug bus assignments
     // -----------------------------
-    io.dbg.if_pc   := IFBarrier.io.outPC
-    io.dbg.if_inst := IFBarrier.io.outInstr
+    io.dbg.if_pc   := IFBarrier.io.inPC
+    io.dbg.if_inst := IFBarrier.io.inInstr
 
-    io.dbg.id_pc   := IDBarrier.io.outPC
-    io.dbg.id_inst := IDBarrier.io.outInstr
+    io.dbg.id_pc   := IDBarrier.io.inPC
+    io.dbg.id_inst := IDBarrier.io.inInstr
 
-    io.dbg.ex_pc   := EXBarrier.io.outPC
-    io.dbg.ex_inst := EXBarrier.io.outInstr
+    io.dbg.ex_pc   := EXBarrier.io.inPC
+    io.dbg.ex_inst := EXBarrier.io.inInstr
 
-    io.dbg.mem_pc   := MEMBarrier.io.outPC
-    io.dbg.mem_inst := MEMBarrier.io.outInstr
+    io.dbg.mem_pc   := MEMBarrier.io.inPC
+    io.dbg.mem_inst := MEMBarrier.io.inInstr
 
-    io.dbg.wb_pc   := WBBarrier.io.outPC
-    io.dbg.wb_inst := WBBarrier.io.outInstr
+    io.dbg.wb_pc   := WBBarrier.io.inPC
+    io.dbg.wb_inst := WBBarrier.io.inInstr
 
     // Register identifiers (from ID barrier)
-    io.dbg.id_rs1 := IDBarrier.io.outRS1
-    io.dbg.id_rs2 := IDBarrier.io.outRS2
-    io.dbg.id_rd  := IDBarrier.io.outRD
+    io.dbg.id_rs1 := IDBarrier.io.inRS1
+    io.dbg.id_rs2 := IDBarrier.io.inRS2
+    io.dbg.id_rd  := IDBarrier.io.inRD
     io.dbg.id_we  := IDBarrier.io.outWrEn
 
     io.dbg.pc_write := HazardDetectionUnit_inst.io.pcWrite
@@ -237,7 +237,7 @@ class PipelinedRV32Icore extends Module {
     io.dbg.fwd_b_sel := ForwardingUnit_inst.io.aluOpB_ctrl.asUInt
 
 
-    io.dbg.ex_alu_result := EXBarrier.io.outAluResult
+    io.dbg.ex_alu_result := EX.io.aluResult
     io.dbg.ex_alu_op_a   := EX.io.aluInputA
     io.dbg.ex_alu_op_b   := EX.io.aluInputB
     io.dbg.ex_pc_src     := EXBarrier.io.outPCSrc

@@ -115,9 +115,9 @@ function updateSVG(data, regs) {
     // 3. EX STAGE: Show Actual Operands (from Hardware Wires)
     // This now uses the val_a/val_b passed from the Testbench -> Server
     if (data.ex) {
-        setText('txt-op-a', `A: 0x${Number(data.ex.val_a).toString(16)}`);
-        setText('txt-op-b', `B: 0x${Number(data.ex.val_b).toString(16)}`);
-        setText('txt-alu-ex', `Res: 0x${Number(data.ex.alu_result).toString(16)}`);
+        setText('txt-op-a', `OperandA: 0x${Number(data.ex.val_a).toString(16)}`);
+        setText('txt-op-b', `OperandB: 0x${Number(data.ex.val_b).toString(16)}`);
+        setText('txt-alu-ex', `AluResult: 0x${Number(data.ex.alu_result).toString(16)}`);
     }
 
     // 4. MEM STAGE

@@ -28,20 +28,20 @@ class RegFile extends Module {
     val gpRegVal = Output(UInt(32.W))
 })
 
-  val RegFile_inst = Reg(Vec(32, UInt(32.W)))
-  for(i <- 0 until 32 ) { dontTouch(RegFile_inst(i)) }
-  RegFile_inst(0) := 0.U // hard-wired zero for x0
+  val regs = Reg(Vec(32, UInt(32.W)))
+  for(i <- 0 until 32 ) { dontTouch(regs(i)) }
+  regs(0) := 0.U
 
   when(io.req_3.wr_en){
     when(io.req_3.addr =/= 0.U){
-      RegFile_inst(io.req_3.addr) := io.req_3.data
+      regs(io.req_3.addr) := io.req_3.data
     }
   }
 
-  io.resp_1.data := Mux((io.req_1.addr === 0.U), 0.U, (Mux((io.req_1.addr === io.req_3.addr), io.req_3.data, RegFile_inst(io.req_1.addr))))
-  io.resp_2.data := Mux((io.req_2.addr === 0.U), 0.U, (Mux((io.req_2.addr === io.req_3.addr), io.req_3.data, RegFile_inst(io.req_2.addr))))
+  io.resp_1.data := Mux((io.req_1.addr === 0.U), 0.U, (Mux((io.req_1.addr === io.req_3.addr), io.req_3.data, regs(io.req_1.addr))))
+  io.resp_2.data := Mux((io.req_2.addr === 0.U), 0.U, (Mux((io.req_2.addr === io.req_3.addr), io.req_3.data, regs(io.req_2.addr))))
 
-  io.gpRegVal := RegFile_inst(3) // gp (x3) reg is contains the riscv-tests pass fail status
+  io.gpRegVal := regs(3)// gp (x3) reg is contains the riscv-tests pass fail status
 
 }
 

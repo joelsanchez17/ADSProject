@@ -22,6 +22,7 @@ class LivePipelineTest extends AnyFlatSpec with ChiselScalatestTester {
         def safePeek(signal: => Data): BigInt = {
           try signal.peek().litValue
           catch { case _: Throwable => BigInt(0) }
+          //signal.peek().litValue
         }
         def b(x: => Data): BigInt = safePeek(x)
 
@@ -61,7 +62,7 @@ class LivePipelineTest extends AnyFlatSpec with ChiselScalatestTester {
             var regState = "{"
             for (i <- 0 until 32) {
               // Access internal signal: dut -> core -> RegFile_inst -> regfile
-              val rVal = b(dut.core.RegFile_inst.RegFile_inst(i))
+              val rVal = b(dut.core.RegFile_inst.regs(i))
               regState += s""""x$i": $rVal"""
               if (i < 31) regState += ", "
             }

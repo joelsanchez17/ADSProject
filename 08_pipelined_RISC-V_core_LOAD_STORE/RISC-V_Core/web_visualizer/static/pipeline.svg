@@ -1,29 +1,40 @@
-<svg width="900" height="350" viewBox="0 0 900 350" xmlns="http://www.w3.org/2000/svg">
+<svg width="900" height="420" viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg">
     <defs>
         <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
             <path d="M0,0 L0,6 L9,3 z" fill="#555" />
         </marker>
     </defs>
 
-    <rect width="900" height="350" fill="#1e1e1e"/>
+    <rect width="900" height="420" fill="#1e1e1e"/>
 
-    <g id="group-regfile" transform="translate(190, 180)">
-        <rect id="regfile-box" width="140" height="60" rx="4" fill="#2d2d30" stroke="#007acc" stroke-width="2"/>
-        <text x="70" y="25" text-anchor="middle" font-weight="bold" fill="#007acc" font-family="sans-serif">Register File</text>
-        <text x="70" y="45" text-anchor="middle" font-size="10" fill="#888">x0 - x31</text>
-    </g>
+    <rect id="box-fwd-unit" x="350" y="40" width="100" height="50" rx="5" ry="5"
+          fill="#333" stroke="#fff" stroke-width="2"/>
+    <text x="400" y="70" fill="white" font-family="monospace" font-size="12" text-anchor="middle" font-weight="bold">FWD UNIT</text>
 
-    <path id="wire-wb-back" d="M 710 160 L 710 300 L 260 300 L 260 240"
-          fill="none" stroke="#444" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrow)"/>
+    <path id="wire-id-fwd" d="M 260 140 L 260 65 L 350 65"
+          fill="none" stroke="#666" stroke-width="2"/>
 
-    <g id="group-if" transform="translate(50, 50)">
+    <path id="wire-mem-fwd" d="M 560 140 L 560 65 L 450 65"
+          fill="none" stroke="#666" stroke-width="2" stroke-dasharray="4,4"/>
+
+    <path id="wire-wb-fwd" d="M 710 140 L 710 20 L 400 20 L 400 40"
+          fill="none" stroke="#666" stroke-width="2" stroke-dasharray="4,4"/>
+
+    <path id="wire-fwd-a" d="M 380 90 L 380 140" fill="none" stroke="#666" stroke-width="2"/>
+    <text x="375" y="120" fill="#aaa" font-size="10" font-family="monospace" text-anchor="end">FwdA</text>
+
+    <path id="wire-fwd-b" d="M 420 90 L 420 140" fill="none" stroke="#666" stroke-width="2"/>
+    <text x="425" y="120" fill="#aaa" font-size="10" font-family="monospace" text-anchor="start">FwdB</text>
+
+
+    <g id="group-if" transform="translate(50, 140)">
         <rect id="stage-if" width="120" height="110" rx="4" fill="#252526" stroke="#555" stroke-width="2"/>
         <text x="60" y="20" text-anchor="middle" font-weight="bold" fill="#ddd">IF</text>
         <text id="txt-pc-if" x="60" y="45" text-anchor="middle" font-family="monospace" font-size="11" fill="#bbb">PC: --</text>
         <text id="txt-asm-if" x="60" y="75" text-anchor="middle" font-family="monospace" font-size="11" fill="#4ec9b0">nop</text>
     </g>
 
-    <g id="group-id" transform="translate(200, 50)">
+    <g id="group-id" transform="translate(200, 140)">
         <rect id="stage-id" width="120" height="110" rx="4" fill="#252526" stroke="#555" stroke-width="2"/>
         <text x="60" y="20" text-anchor="middle" font-weight="bold" fill="#ddd">ID</text>
         <text id="txt-pc-id" x="60" y="35" text-anchor="middle" font-family="monospace" font-size="10" fill="#666">x00</text>
@@ -34,7 +45,7 @@
         <text id="txt-rd-id" x="10" y="104" font-family="monospace" font-size="10" fill="#ccc">-> rd: --</text>
     </g>
 
-    <g id="group-ex" transform="translate(350, 50)">
+    <g id="group-ex" transform="translate(350, 140)">
         <rect id="stage-ex" width="120" height="110" rx="4" fill="#252526" stroke="#555" stroke-width="2"/>
         <text x="60" y="20" text-anchor="middle" font-weight="bold" fill="#ddd">EX</text>
         <text id="txt-pc-ex" x="60" y="35" text-anchor="middle" font-family="monospace" font-size="10" fill="#666">x00</text>
@@ -45,7 +56,7 @@
         <text id="txt-alu-ex" x="60" y="105" text-anchor="middle" font-family="monospace" font-size="11" font-weight="bold" fill="#fff">Res: 0x0</text>
     </g>
 
-    <g id="group-mem" transform="translate(500, 50)">
+    <g id="group-mem" transform="translate(500, 140)">
         <rect id="stage-mem" width="120" height="110" rx="4" fill="#252526" stroke="#555" stroke-width="2"/>
         <text x="60" y="20" text-anchor="middle" font-weight="bold" fill="#ddd">MEM</text>
         <text id="txt-pc-mem" x="60" y="35" text-anchor="middle" font-family="monospace" font-size="10" fill="#666">x00</text>
@@ -54,7 +65,7 @@
         <text id="txt-mem-status" x="60" y="90" text-anchor="middle" font-family="monospace" font-size="11" fill="#888">Idle</text>
     </g>
 
-    <g id="group-wb" transform="translate(650, 50)">
+    <g id="group-wb" transform="translate(650, 140)">
         <rect id="stage-wb" width="120" height="110" rx="4" fill="#252526" stroke="#555" stroke-width="2"/>
         <text x="60" y="20" text-anchor="middle" font-weight="bold" fill="#ddd">WB</text>
         <text id="txt-pc-wb" x="60" y="35" text-anchor="middle" font-family="monospace" font-size="10" fill="#666">x00</text>
@@ -63,8 +74,18 @@
         <text id="txt-wb-reg" x="60" y="90" text-anchor="middle" font-family="monospace" font-size="12" fill="#4ec9b0">x0 = 0x0</text>
     </g>
 
-    <line x1="170" y1="105" x2="200" y2="105" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
-    <line x1="320" y1="105" x2="350" y2="105" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
-    <line x1="470" y1="105" x2="500" y2="105" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
-    <line x1="620" y1="105" x2="650" y2="105" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="170" y1="195" x2="200" y2="195" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="320" y1="195" x2="350" y2="195" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="470" y1="195" x2="500" y2="195" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="620" y1="195" x2="650" y2="195" stroke="#555" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <g id="group-regfile" transform="translate(190, 290)">
+        <rect id="regfile-box" width="140" height="60" rx="4" fill="#2d2d30" stroke="#007acc" stroke-width="2"/>
+        <text x="70" y="25" text-anchor="middle" font-weight="bold" fill="#007acc" font-family="sans-serif">Register File</text>
+        <text x="70" y="45" text-anchor="middle" font-size="10" fill="#888">x0 - x31</text>
+    </g>
+
+    <path id="wire-wb-back" d="M 710 250 L 710 380 L 260 380 L 260 350"
+          fill="none" stroke="#444" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrow)"/>
+
 </svg>

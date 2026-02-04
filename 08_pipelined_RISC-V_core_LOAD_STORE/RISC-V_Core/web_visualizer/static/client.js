@@ -98,6 +98,48 @@ function updateSVG(data, regs) {
             e.style.strokeDasharray = dash;
         }
     };
+    // ==========================================
+        // NEW: FORWARDING UNIT ANIMATION
+        // ==========================================
+
+        // 1. Reset everything to dim first
+        const idleColor = '#444';
+        const activeColor = '#007acc'; // Blue for MEM forwarding
+        const wbColor = '#4ec9b0';     // Teal for WB forwarding
+
+        setWire('wire-mem-fwd', idleColor, '2', '4,4'); // Dashed = idle
+        setWire('wire-wb-fwd',  idleColor, '2', '4,4');
+        setWire('wire-fwd-a',   idleColor, '2', 'none');
+        setWire('wire-fwd-b',   idleColor, '2', 'none');
+
+        // 2. Animate Forward A (Mux A)
+        if (data.fwd) {
+            if (data.fwd.a_sel === 1) {
+                // 1 = Forward from MEM (Recall: MEM hazard)
+                setWire('wire-mem-fwd', activeColor, '4', 'none'); // Solid line
+                setWire('wire-fwd-a',   activeColor, '4', 'none');
+            }
+            else if (data.fwd.a_sel === 2) {
+                // 2 = Forward from WB (Recall: WB hazard)
+                setWire('wire-wb-fwd', wbColor, '4', 'none');
+                setWire('wire-fwd-a',  wbColor, '4', 'none');
+            }
+        }
+
+        // 3. Animate Forward B (Mux B)
+        if (data.fwd) {
+            if (data.fwd.b_sel === 1) {
+                // 1 = Forward from MEM
+                setWire('wire-mem-fwd', activeColor, '4', 'none');
+                setWire('wire-fwd-b',   activeColor, '4', 'none');
+            }
+            else if (data.fwd.b_sel === 2) {
+                // 2 = Forward from WB
+                setWire('wire-wb-fwd', wbColor, '4', 'none');
+                setWire('wire-fwd-b',  wbColor, '4', 'none');
+            }
+        }
+
 
     // 1. Text & PC Updates
     if (data.asm) {

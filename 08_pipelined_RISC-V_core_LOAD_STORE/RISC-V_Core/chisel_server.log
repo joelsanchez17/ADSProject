@@ -2,8 +2,6 @@
 [info] loading project definition from /import/lab/users/sanchez/Desktop/ADSProject/08_pipelined_RISC-V_core_LOAD_STORE/RISC-V_Core/project
 [info] loading settings for project risc-v_core from build.sbt...
 [info] set current project to risc-v_core (in build file:/import/lab/users/sanchez/Desktop/ADSProject/08_pipelined_RISC-V_core_LOAD_STORE/RISC-V_Core/)
-[info] compiling 1 Scala source to /import/lab/users/sanchez/Desktop/ADSProject/08_pipelined_RISC-V_core_LOAD_STORE/RISC-V_Core/target/scala-2.12/test-classes ...
-[info] done compiling
 
 🟦 [CHISEL] Waiting for Python on port 8888...
 🟩 [CHISEL] Connected! Starting Loop...
@@ -19,3 +17,11 @@ Cycle: 8 | x1: 0 | OpA: 0
 Cycle: 9 | x1: 0 | OpA: 0
 Cycle: 10 | x1: 0 | OpA: 15
 Cycle: 11 | x1: 0 | OpA: 0
+Cycle: 12 | x1: 0 | OpA: 0
+Cycle: 13 | x1: 0 | OpA: 1
+Cycle: 14 | x1: 0 | OpA: 0
+Cycle: 15 | x1: 0 | OpA: 48
+Cycle: 16 | x1: 0 | OpA: 0
+Cycle: 17 | x1: 0 | OpA: 0
+Cycle: 18 | x1: 0 | OpA: 0
+Cycle: 19 | x1: 0 | OpA: 0

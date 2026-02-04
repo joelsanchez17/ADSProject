@@ -140,6 +140,50 @@ function updateSVG(data, regs) {
             }
         }
 
+    // ==========================================
+        // 8. CONTROL HAZARDS (Branch/Jump & Flush)
+        // ==========================================
+
+        // A. FLUSH VISUALIZATION
+        // If flush is active, IF and ID stages contain garbage/bubbles.
+        if (data.hazard && data.hazard.flush === 1) {
+            // Turn IF and ID stages RED
+            setFill('stage-if', '#590000'); // Dark Red
+            setFill('stage-id', '#590000');
+
+            // Optional: Update text to clarify they are being flushed
+            setText('txt-asm-if', '(FLUSHED)');
+            setText('txt-asm-id', '(FLUSHED)');
+        }
+
+        // B. BRANCH/JUMP WIRE ANIMATION
+        // Check if PC Source is taken (1 = Taken/Jump, 0 = Next PC)
+        if (data.ex && data.ex.pc_src === 1) {
+
+            // 1. Identify if it is a Branch or Jump based on opcode string
+            // We use the 'asm' text from the EX stage to guess.
+            const asm = data.asm && data.asm.ex ? data.asm.ex.toLowerCase() : "";
+            let type = "REDIRECT";
+            if (asm.startsWith('b')) type = "BRANCH"; // beq, bne, etc.
+            if (asm.startsWith('j')) type = "JUMP";   // jal, jalr
+
+            // 2. Light up the wire (Orange)
+            setWire('wire-branch', '#ff5500', '4', 'none');
+
+            // 3. Update Text Label at the bottom
+            const targetAddr = Number(data.ex.pc_jb).toString(16);
+            setText('txt-branch-target', `⚡ ${type} TAKEN: 0x${targetAddr}`);
+
+            // Color the text
+            const txt = svg.getElementById('txt-branch-target');
+            if(txt) txt.style.fill = '#ff5500';
+
+        } else {
+            // Normal Operation
+            setWire('wire-branch', '#333', '2', '5,5');
+            setText('txt-branch-target', ``);
+        }
+
 
     // 1. Text & PC Updates
     if (data.asm) {

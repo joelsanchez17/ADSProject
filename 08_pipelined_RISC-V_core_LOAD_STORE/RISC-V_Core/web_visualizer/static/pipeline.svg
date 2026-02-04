@@ -13,19 +13,14 @@
 
     <path id="wire-id-fwd" d="M 260 140 L 260 65 L 350 65"
           fill="none" stroke="#666" stroke-width="2"/>
-
     <path id="wire-mem-fwd" d="M 560 140 L 560 65 L 450 65"
           fill="none" stroke="#666" stroke-width="2" stroke-dasharray="4,4"/>
-
     <path id="wire-wb-fwd" d="M 710 140 L 710 20 L 400 20 L 400 40"
           fill="none" stroke="#666" stroke-width="2" stroke-dasharray="4,4"/>
-
     <path id="wire-fwd-a" d="M 380 90 L 380 140" fill="none" stroke="#666" stroke-width="2"/>
     <text x="375" y="120" fill="#aaa" font-size="10" font-family="monospace" text-anchor="end">FwdA</text>
-
     <path id="wire-fwd-b" d="M 420 90 L 420 140" fill="none" stroke="#666" stroke-width="2"/>
     <text x="425" y="120" fill="#aaa" font-size="10" font-family="monospace" text-anchor="start">FwdB</text>
-
 
     <g id="group-if" transform="translate(50, 140)">
         <rect id="stage-if" width="120" height="110" rx="4" fill="#252526" stroke="#555" stroke-width="2"/>
@@ -85,7 +80,13 @@
         <text x="70" y="45" text-anchor="middle" font-size="10" fill="#888">x0 - x31</text>
     </g>
 
-    <path id="wire-wb-back" d="M 710 250 L 710 380 L 260 380 L 260 350"
+    <path id="wire-wb-back" d="M 710 250 L 710 390 L 260 390 L 260 350"
           fill="none" stroke="#444" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrow)"/>
+
+    <path id="wire-branch" d="M 410 250 L 410 405 L 115 405 L 115 250"
+          fill="none" stroke="#444" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrow)"/>
+
+    <text id="txt-branch-target" x="220" y="400" text-anchor="middle"
+          font-family="monospace" font-size="11" fill="#555" font-weight="bold"></text>
 
 </svg>

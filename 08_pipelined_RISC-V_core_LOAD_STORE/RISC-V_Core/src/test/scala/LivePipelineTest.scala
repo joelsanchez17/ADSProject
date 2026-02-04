@@ -68,6 +68,12 @@ class LivePipelineTest extends AnyFlatSpec with ChiselScalatestTester {
             }
             regState += "}"
 
+            // 🔴 DEBUG TOOL: Print x1 directly to the terminal
+            val debug_x1 = b(dut.core.RegFile_inst.regs(1))
+            val debug_opA = b(dut.io.dbg.ex_alu_op_a)
+            println(s"Cycle: $cycle | x1: $debug_x1 | OpA: $debug_opA")
+            // -----------------------------------------------------
+
             // 2. BUILD JSON
             val jsonState =
               s"""{

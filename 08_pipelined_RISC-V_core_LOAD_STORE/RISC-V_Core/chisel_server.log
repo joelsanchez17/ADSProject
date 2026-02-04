@@ -7,3 +7,15 @@
 
 🟦 [CHISEL] Waiting for Python on port 8888...
 🟩 [CHISEL] Connected! Starting Loop...
+Cycle: 0 | x1: 0 | OpA: 0
+Cycle: 1 | x1: 0 | OpA: 0
+Cycle: 2 | x1: 0 | OpA: 0
+Cycle: 3 | x1: 0 | OpA: 0
+Cycle: 4 | x1: 0 | OpA: 0
+Cycle: 5 | x1: 0 | OpA: 10
+Cycle: 6 | x1: 0 | OpA: 15
+Cycle: 7 | x1: 0 | OpA: 0
+Cycle: 8 | x1: 0 | OpA: 0
+Cycle: 9 | x1: 0 | OpA: 0
+Cycle: 10 | x1: 0 | OpA: 15
+Cycle: 11 | x1: 0 | OpA: 0

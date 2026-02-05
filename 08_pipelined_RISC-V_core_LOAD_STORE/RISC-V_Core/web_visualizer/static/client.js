@@ -186,17 +186,21 @@ function updateSVG(data, regs) {
 
 
     // 1. Text & PC Updates
-    if (data.asm) {
-        ['if','id','ex','mem','wb'].forEach(s => setText(`txt-asm-${s}`, data.asm[s]));
-        ['if','id','ex','mem','wb'].forEach(s => setText(`txt-pc-${s}`, data.pc_hex[s]));
-    }
+        if (data.asm) {
+            // Update Assembly Text (e.g., "addi x1, x0, 10")
+            ['if','id','ex','mem','wb'].forEach(s => setText(`txt-asm-${s}`, data.asm[s]));
 
-    // 2. ID STAGE: Show Register Indices (from Hardware)
-    if (data.id) {
-        setText('txt-rs1-id', `rs1: x${Number(data.id.rs1)}`);
-        setText('txt-rs2-id', `rs2: x${Number(data.id.rs2)}`);
-        setText('txt-rd-id',  `-> rd: x${Number(data.id.rd)}`);
-    }
+            // Update PC Text (e.g., "0x00000004")
+            ['if','id','ex','mem','wb'].forEach(s => setText(`txt-pc-${s}`, data.pc_hex[s]));
+
+            // NEW: Update Hex Instruction Text (e.g., "0x00a00093")
+            // We read the raw instruction value from data.instr[s] and format it
+            ['if','id','ex','mem','wb'].forEach(s => {
+                const rawInstr = Number(data.instr[s]); // Get integer value
+                const hexStr = "0x" + rawInstr.toString(16).padStart(8, '0'); // Format to 8-digit Hex
+                setText(`txt-hex-${s}`, hexStr);
+            });
+        }
 
     // 3. EX STAGE: Show Actual Operands (from Hardware Wires)
     // This now uses the val_a/val_b passed from the Testbench -> Server

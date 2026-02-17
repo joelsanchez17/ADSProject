@@ -1,3 +1,41 @@
-*.log
-chisel_server.log
+# --- Python ---
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# --- Chisel / Scala / Java (Hardware Dev) ---
+target/
+test_run_dir/
+generated/
+*.class
+*.log
+*.pid
+*.hsts
+
+# --- VS Code / Editors (Personal Settings) ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# --- Specific to your Project ---
+*.log

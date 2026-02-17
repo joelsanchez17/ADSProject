@@ -323,7 +323,82 @@ function updateSVG(data, regs) {
     ['if','id'].forEach(s => setFill(`stage-${s}`, '#252526'));
     if (data.hazard && data.hazard.if_stall) setFill('stage-if', '#770000');
     if (data.hazard && data.hazard.id_stall) setFill('stage-id', '#770000');
+
+    // ==========================================
+        // 9. INTERACTIVE DATAPATH (Active Stages)
+        // ==========================================
+
+        // Define the default "Idle" and "Active" colors
+        const colIdle   = '#333';      // Dim/Gray
+        const colActive = '#007acc';   // Bright Blue (Active Stage)
+        const colMem    = '#d65d0e';   // Orange (Memory Access)
+        const colWB     = '#4ec9b0';   // Teal (Writeback)
+
+        // A. MEMORY STAGE VISUALIZATION
+        // Check the instruction currently inside the MEM stage
+        if (data.instr && data.instr.mem) {
+            const ctrl = getControlSignals(Number(data.instr.mem).toString(16));
+            const box = svg.getElementById('stage-mem');
+
+            if (box) {
+                if (ctrl.usesMem) {
+                    // Instruction is Load or Store -> Highlight MEM Box
+                    box.style.stroke = colMem;
+                    box.style.strokeWidth = '3';
+                    box.style.opacity = '1.0';
+                } else {
+                    // Instruction is Add/Sub -> Dim MEM Box (Pass-through)
+                    box.style.stroke = colIdle;
+                    box.style.strokeWidth = '1';
+                    box.style.opacity = '0.4'; // Make it semi-transparent
+                }
+            }
+        }
+
+        // B. WRITEBACK STAGE VISUALIZATION
+        // Check the instruction currently inside the WB stage
+        if (data.instr && data.instr.wb) {
+            const ctrl = getControlSignals(Number(data.instr.wb).toString(16));
+            const box = svg.getElementById('stage-wb');
+
+            if (box) {
+                if (ctrl.usesWB) {
+                    // Instruction writes to register -> Highlight WB Box
+                    box.style.stroke = colWB;
+                    box.style.strokeWidth = '3';
+                    box.style.opacity = '1.0';
+                } else {
+                    // Store or Branch -> Dim WB Box
+                    box.style.stroke = colIdle;
+                    box.style.strokeWidth = '1';
+                    box.style.opacity = '0.4';
+                }
+            }
+        }
 }
+
+// --- 5. HELPER: INSTRUCTION CONTROL SIGNALS ---
+// Returns an object defining which stages this instruction uses
+function getControlSignals(hexStr) {
+    const inst = parseInt(hexStr, 16);
+    if (inst === 0 || isNaN(inst)) return { type: 'NOP', usesMem: false, usesWB: false };
+
+    const opcode = inst & 0x7F;
+
+    // Load (e.g., lw): Uses MEM reading + Writeback
+    if (opcode === 0x03) return { type: 'LOAD', usesMem: true, usesWB: true };
+
+    // Store (e.g., sw): Uses MEM writing, NO Writeback
+    if (opcode === 0x23) return { type: 'STORE', usesMem: true, usesWB: false };
+
+    // Branch (e.g., beq): Ends at Execute, NO Mem, NO Writeback
+    if (opcode === 0x63) return { type: 'BRANCH', usesMem: false, usesWB: false };
+
+    // Arithmetic (R-Type, I-Type, U-Type): Skips MEM, Uses Writeback
+    // (Opcode 0x33=R, 0x13=I, 0x37=LUI, 0x17=AUIPC, 0x6F=JAL, 0x67=JALR)
+    return { type: 'ALU', usesMem: false, usesWB: true };
+}
+
 
 // --- 4. HELPER: RISC-V DISASSEMBLER ---
 function disassemble(hexStr) {

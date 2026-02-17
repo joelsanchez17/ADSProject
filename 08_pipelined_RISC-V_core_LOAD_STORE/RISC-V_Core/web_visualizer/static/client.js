@@ -17,7 +17,10 @@ document.addEventListener('keydown', (e) => {
     if (e.key === "ArrowLeft")  sendCommand('back');
 });
 
-function sendCommand(action) { socket.emit('command', { action: action }); }
+function sendCommand(action, val=null) {
+    if (val) socket.emit('command', { action: action, value: val });
+    else socket.emit('command', { action: action });
+}
 
 // --- 3. MAIN UPDATE LOOP ---
 socket.on('update', (packet) => {

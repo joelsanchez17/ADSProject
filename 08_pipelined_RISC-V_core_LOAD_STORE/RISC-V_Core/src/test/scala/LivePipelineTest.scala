@@ -54,23 +54,24 @@ class LivePipelineTest extends AnyFlatSpec with ChiselScalatestTester {
             case _          => false
           }
         }
-        // 1. READ THE BINARY FILE (ROM) ONCE AT STARTUP
-        // This assumes your binary is 4-byte aligned
-        val romPath = Paths.get("src/test/programs/BinaryFile")
-        val romBytes = Files.readAllBytes(romPath)
+        // 1. READ THE TEXT HEX FILE (ROM)
 
-        // Convert bytes to a JSON list of hex strings ["0x00000013", ...]
+        val romPath = "src/test/programs/BinaryFile"
+        val source = scala.io.Source.fromFile(romPath)
+        val lines = try source.getLines().toList finally source.close()
+
+        // Convert the Hex Strings into a JSON array
         var romJson = "["
-        for (i <- 0 until romBytes.length by 4) {
-          // Combine 4 bytes into one 32-bit int (Little Endian for RISC-V)
-          val b0 = romBytes(i).toInt & 0xFF
-          val b1 = if (i+1 < romBytes.length) romBytes(i+1).toInt & 0xFF else 0
-          val b2 = if (i+2 < romBytes.length) romBytes(i+2).toInt & 0xFF else 0
-          val b3 = if (i+3 < romBytes.length) romBytes(i+3).toInt & 0xFF else 0
-          val instrVal = (b3 << 24) | (b2 << 16) | (b1 << 8) | b0
-
-          romJson += f""""0x$instrVal%08x""""
-          if (i + 4 < romBytes.length) romJson += ", "
+        var first = true
+        for (line <- lines) {
+          // Remove comments or whitespace
+          val cleanLine = line.split("//")(0).trim
+          if (cleanLine.nonEmpty) {
+            if (!first) romJson += ", "
+            // Prepend 0x so JSON treats it as a string or number correctly
+            romJson += f""""0x$cleanLine""""
+            first = false
+          }
         }
         romJson += "]"
 

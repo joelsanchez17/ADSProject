@@ -30,15 +30,23 @@ class ChiselBridge:
         self.sock.sendall((cmd.strip() + "\n").encode())
 
     def receive_snapshot(self):
-        """Read one JSON line from Chisel."""
+        """Read one JSON line from Chisel and log it."""
         if not self.f: return None
         try:
             line = self.f.readline()
             if not line: return None
+
+            # --- DEBUG LOGGING ---
+            # Appends every packet to a file so we can inspect it later
+            with open("chisel_debug.log", "a") as log_file:
+                log_file.write(f"RAW: {line.strip()}\n")
+            # ---------------------
+
             data = json.loads(line)
-            self.history.append(data) # Keep a history buffer
+            self.history.append(data)
             return data
         except json.JSONDecodeError:
+            print("❌ JSON Decode Error")
             return None
 
     def step(self, steps=1):

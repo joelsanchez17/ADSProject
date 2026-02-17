@@ -319,3 +319,64 @@ function updateSVG(data, regs) {
     if (data.hazard && data.hazard.if_stall) setFill('stage-if', '#770000');
     if (data.hazard && data.hazard.id_stall) setFill('stage-id', '#770000');
 }
+
+// --- 4. HELPER: RISC-V DISASSEMBLER ---
+function disassemble(hexStr) {
+    const inst = parseInt(hexStr, 16);
+    if (inst === 0 || isNaN(inst)) return "nop";
+
+    const opcode = inst & 0x7F;
+    const rd = (inst >> 7) & 0x1F;
+    const funct3 = (inst >> 12) & 0x7;
+    const rs1 = (inst >> 15) & 0x1F;
+    const rs2 = (inst >> 20) & 0x1F;
+    const funct7 = (inst >> 25) & 0x7F;
+
+    const regName = (r) => "x" + r;
+
+    // R-Type (ADD, SUB, XOR, OR, AND, SLT)
+    if (opcode === 0x33) {
+        let op = "unknown";
+        if (funct3 === 0x0) op = (funct7 === 0x20) ? "sub" : "add";
+        else if (funct3 === 0x4) op = "xor";
+        else if (funct3 === 0x6) op = "or";
+        else if (funct3 === 0x7) op = "and";
+        else if (funct3 === 0x1) op = "sll";
+        else if (funct3 === 0x5) op = (funct7 === 0x20) ? "sra" : "srl";
+
+        return `${op} ${regName(rd)}, ${regName(rs1)}, ${regName(rs2)}`;
+    }
+
+    // I-Type (ADDI, ANDI, ORI, XORI, LW)
+    if (opcode === 0x13) { // OP-IMM
+        let op = "addi";
+        if (funct3 === 0x4) op = "xori";
+        if (funct3 === 0x6) op = "ori";
+        if (funct3 === 0x7) op = "andi";
+        const imm = (inst >> 20); // Signed immediate (simplified)
+        // Correct sign extension for 12-bit immediate
+        const simm = (imm & 0x800) ? (imm | 0xFFFFF000) : imm;
+        return `${op} ${regName(rd)}, ${regName(rs1)}, ${simm}`;
+    }
+    if (opcode === 0x03) { // LOAD
+        return `lw ${regName(rd)}, offset(${regName(rs1)})`;
+    }
+
+    // S-Type (SW)
+    if (opcode === 0x23) {
+        return `sw ${regName(rs2)}, offset(${regName(rs1)})`;
+    }
+
+    // B-Type (BEQ, BNE)
+    if (opcode === 0x63) {
+        let op = (funct3 === 0x0) ? "beq" : "bne";
+        return `${op} ${regName(rs1)}, ${regName(rs2)}, target`;
+    }
+
+    // U-Type (LUI, AUIPC) or J-Type (JAL)
+    if (opcode === 0x37) return `lui ${regName(rd)}, imm`;
+    if (opcode === 0x17) return `auipc ${regName(rd)}, imm`;
+    if (opcode === 0x6F) return `jal ${regName(rd)}, target`;
+
+    return "unknown";
+}

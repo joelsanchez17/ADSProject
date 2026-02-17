@@ -108,10 +108,15 @@ function updateInstList(data) {
             row.style.borderBottom = "1px solid #333";
             row.style.padding = "2px 5px";
             row.style.cursor = "pointer";
+            row.style.fontFamily = "monospace"; // Ensure alignment
 
+            // NEW LAYOUT: PC | HEX | ASM
             row.innerHTML = `
-                <span style="color:#666; font-size:10px; margin-right:8px; width:60px; display:inline-block;">${pcHex}</span>
-                <span style="color:#4ec9b0; font-family:monospace;">${asm}</span>
+                <span style="color:#666; font-size:10px; margin-right:10px; width:60px; display:inline-block;">${pcHex}</span>
+
+                <span style="color:#4caf50; font-size:11px; margin-right:15px; width:70px; display:inline-block;">${hex}</span>
+
+                <span style="color:#4ec9b0; font-size:12px;">${asm}</span>
             `;
             list.appendChild(row);
         });

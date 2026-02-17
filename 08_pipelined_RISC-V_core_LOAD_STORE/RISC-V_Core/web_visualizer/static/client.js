@@ -47,7 +47,7 @@ socket.on('update', (packet) => {
 
         valDiv.innerText = "0x" + newVal.toString(16);
 
-        // Clear previous highlights
+        // Reset colors
         box.style.backgroundColor = "#252526";
         box.style.border = "1px solid #3e3e42";
 
@@ -60,7 +60,8 @@ socket.on('update', (packet) => {
         }
     }
 
-    // B. Highlight Writeback (RED) - Requested Feature
+    // B. Highlight Writeback (RED)
+    // Occurs in WB stage
     if (data.wb && data.wb.we && data.wb.rd !== 0) {
         const box = document.getElementById(`reg-box-${data.wb.rd}`);
         if (box) {
@@ -72,24 +73,23 @@ socket.on('update', (packet) => {
         document.getElementById('wb-info').innerText = "Idle";
     }
 
-    // C. Highlight Read Registers (BLUE) - Smart Logic
-    if (data.id && data.instr && data.instr.id) {
-        // Use helper to know WHICH registers are actually used by this instruction
-        const usage = getRegisterUsage(data.instr.id);
-
-        const rs1 = Number(data.id.rs1);
-        const rs2 = Number(data.id.rs2);
+    // C. Highlight Read Registers (BLUE) - CHANGED TO EX STAGE
+    // We now look at the instruction in the EX stage, not ID.
+    if (data.instr && data.instr.ex) {
+        // Extract indices directly from the EX instruction
+        const info = decodeRegisters(data.instr.ex);
+        const usage = getRegisterUsage(data.instr.ex);
 
         // Only highlight if the instruction actually USES that register
-        if (usage.usesRs1 && rs1 !== 0) {
-            const box = document.getElementById(`reg-box-${rs1}`);
+        if (usage.usesRs1 && info.rs1 !== 0) {
+            const box = document.getElementById(`reg-box-${info.rs1}`);
             if(box) {
                 box.style.borderColor = "#007acc"; // BLUE
                 box.style.backgroundColor = "rgba(0, 122, 204, 0.2)";
             }
         }
-        if (usage.usesRs2 && rs2 !== 0) {
-            const box = document.getElementById(`reg-box-${rs2}`);
+        if (usage.usesRs2 && info.rs2 !== 0) {
+            const box = document.getElementById(`reg-box-${info.rs2}`);
             if(box) {
                 box.style.borderColor = "#007acc"; // BLUE
                 box.style.backgroundColor = "rgba(0, 122, 204, 0.2)";
@@ -254,7 +254,7 @@ function updateSVG(data) {
     // 7. ACTIVE DATAPATH STROKES
     const colIdle = '#333';
     const colEx   = '#C71585';
-    const colMem  = '#d65d0e';
+    const colMem  = '#d65d0e'; // Default MEM Color (Orange)
     const colWB   = '#d32f2f'; // RED for WB Stage box
 
     const setStageStroke = (id, active, color) => {
@@ -270,7 +270,15 @@ function updateSVG(data) {
 
     if (data.instr) {
         if(data.instr.ex) setStageStroke('stage-ex', getControlSignals(data.instr.ex).usesEx, colEx);
-        if(data.instr.mem) setStageStroke('stage-mem', getControlSignals(data.instr.mem).usesMem, colMem);
+
+        // MEM STAGE: Check if Store or Load
+        if(data.instr.mem) {
+            const ctrl = getControlSignals(data.instr.mem);
+            // CHANGED: If it's a STORE, use RED (#d32f2f). If LOAD, use Orange (#d65d0e).
+            const memColor = (ctrl.type === 'STORE') ? '#d32f2f' : colMem;
+            setStageStroke('stage-mem', ctrl.usesMem, memColor);
+        }
+
         if(data.instr.wb) setStageStroke('stage-wb', getControlSignals(data.instr.wb).usesWB, colWB);
     }
 
@@ -300,7 +308,17 @@ function updateSVG(data) {
 
 // --- 6. HELPERS ---
 
-// NEW: Determine which registers are actually used by the instruction
+// NEW: Extract register indices from raw instruction hex
+function decodeRegisters(hexStr) {
+    const inst = Number(hexStr);
+    return {
+        rs1: (inst >> 15) & 0x1F,
+        rs2: (inst >> 20) & 0x1F,
+        rd:  (inst >> 7)  & 0x1F
+    };
+}
+
+// Determine which registers are actually used by the instruction
 function getRegisterUsage(hexStr) {
     const inst = Number(hexStr);
     const opcode = inst & 0x7F;

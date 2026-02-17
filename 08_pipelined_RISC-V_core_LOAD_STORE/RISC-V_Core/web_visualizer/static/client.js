@@ -192,18 +192,37 @@ function updateSVG(data, regs) {
 
             // Update PC Text (e.g., "0x00000004")
             ['if','id','ex','mem','wb'].forEach(s => setText(`txt-pc-${s}`, data.pc_hex[s]));
+        }
 
-            // NEW: Update Hex Instruction Text (e.g., "0x00a00093")
-            // We read the raw instruction value from data.instr[s] and format it
+        // NEW: Update Hex Instruction Text (e.g., "0x00a00093")
+        // This requires Step 1 (Python) to be fixed first!
+        if (data.instr) {
             ['if','id','ex','mem','wb'].forEach(s => {
-                const rawInstr = Number(data.instr[s]); // Get integer value
-                const hexStr = "0x" + rawInstr.toString(16).padStart(8, '0'); // Format to 8-digit Hex
+                const rawVal = Number(data.instr[s]);
+                // Format to 8-digit Hex string
+                const hexStr = "0x" + rawVal.toString(16).padStart(8, '0');
                 setText(`txt-hex-${s}`, hexStr);
             });
         }
 
+    // 2. ID STAGE: Update Decode Fields (rs1, rs2, rd)
+
+        if (data.id_info) {
+            const rs1 = data.id_info.rs1;
+            const rs2 = data.id_info.rs2;
+            const rd  = data.id_info.rd;
+
+            setText('txt-rs1-id', `rs1: x${rs1}`);
+            setText('txt-rs2-id', `rs2: x${rs2}`);
+            setText('txt-rd-id', `->rd: x${rd}`);
+
+            // Optional: Dim text if register is 0 (unused)
+            setFill('txt-rs1-id', rs1 === 0 ? '#555' : '#ccc');
+            setFill('txt-rs2-id', rs2 === 0 ? '#555' : '#ccc');
+            setFill('txt-rd-id',  rd  === 0 ? '#555' : '#ccc');
+        }
     // 3. EX STAGE: Show Actual Operands (from Hardware Wires)
-    // This now uses the val_a/val_b passed from the Testbench -> Server
+   
     if (data.ex) {
         setText('txt-op-a', `OperandA: 0x${Number(data.ex.val_a).toString(16)}`);
         setText('txt-op-b', `OperandB: 0x${Number(data.ex.val_b).toString(16)}`);

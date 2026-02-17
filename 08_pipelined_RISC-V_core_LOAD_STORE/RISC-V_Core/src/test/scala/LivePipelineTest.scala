@@ -6,6 +6,7 @@ import PipelinedRV32I._
 import org.scalatest.flatspec.AnyFlatSpec
 import java.net._
 import java.io._
+import java.nio.file.{Files, Paths}
 
 class LivePipelineTest extends AnyFlatSpec with ChiselScalatestTester {
   behavior of "PipelinedRV32I"
@@ -53,6 +54,26 @@ class LivePipelineTest extends AnyFlatSpec with ChiselScalatestTester {
             case _          => false
           }
         }
+        // 1. READ THE BINARY FILE (ROM) ONCE AT STARTUP
+        // This assumes your binary is 4-byte aligned
+        val romPath = Paths.get("src/test/programs/BinaryFile")
+        val romBytes = Files.readAllBytes(romPath)
+
+        // Convert bytes to a JSON list of hex strings ["0x00000013", ...]
+        var romJson = "["
+        for (i <- 0 until romBytes.length by 4) {
+          // Combine 4 bytes into one 32-bit int (Little Endian for RISC-V)
+          val b0 = romBytes(i).toInt & 0xFF
+          val b1 = if (i+1 < romBytes.length) romBytes(i+1).toInt & 0xFF else 0
+          val b2 = if (i+2 < romBytes.length) romBytes(i+2).toInt & 0xFF else 0
+          val b3 = if (i+3 < romBytes.length) romBytes(i+3).toInt & 0xFF else 0
+          val instrVal = (b3 << 24) | (b2 << 16) | (b1 << 8) | b0
+
+          romJson += f""""0x$instrVal%08x""""
+          if (i + 4 < romBytes.length) romJson += ", "
+        }
+        romJson += "]"
+
 
         try {
           while (running) {
@@ -78,6 +99,7 @@ class LivePipelineTest extends AnyFlatSpec with ChiselScalatestTester {
             val jsonState =
               s"""{
               "cycle": $cycle,
+              "rom": ${if (cycle == 0) romJson else "[]"},
               "coreDone": ${b(dut.io.coreDone)},
               "gpRegVal": ${b(dut.io.gpRegVal)},
               "result": ${b(dut.io.result)},

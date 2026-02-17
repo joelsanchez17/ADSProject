@@ -23,9 +23,10 @@
         <button onclick="sendCommand('run', 100)">+100 »</button>
     </div>
 
-    
+
 
     <div class="status-badge">Cycle: <span id="cycle-display">0</span></div>
+
 </div>
 
 <div class="main-container">
@@ -49,8 +50,17 @@
 
         <div class="panel-header">Writeback Details</div>
         <div class="panel-content" id="wb-info">--</div>
+
+
+        <div class="panel">
+            <h3>Instruction Memory (ROM)</h3>
+            <div id="inst-list" style="height: 200px; overflow-y: auto; background: #1e1e1e; border: 1px solid #444; padding: 5px; font-family: monospace; font-size: 12px;">
+                <div style="color: #666; padding: 10px;">Waiting for ROM data...</div>
+            </div>
+        </div>
     </div>
 </div>
+
 
 </body>
 </html>

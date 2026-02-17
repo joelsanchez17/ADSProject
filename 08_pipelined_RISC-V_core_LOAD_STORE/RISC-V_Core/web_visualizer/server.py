@@ -87,34 +87,50 @@ def add_to_history(raw_snap):
 async def connect(sid, environ):
     if not bridge.sock:
         bridge.connect()
+        # FIX: Explicitly read the FIRST snapshot (Cycle 0) from the buffer
+        # 'step(0)' in bridge.py does nothing, so we use receive_snapshot() directly.
         if not debug_state["history"]:
-            add_to_history(bridge.step(0))
+            initial_data = bridge.receive_snapshot()
+            add_to_history(initial_data)
+
+    # Send the latest state to the web client
     if debug_state["history"]:
         await sio.emit('update', debug_state["history"][debug_state["cursor"]])
 
 @sio.event
 async def command(sid, data):
     action = data.get('action')
+    val = int(data.get('value', 1)) # Default to 1 if not specified
     response = None
 
     if action == 'step':
-        if debug_state["cursor"] < len(debug_state["history"]) - 1:
-            debug_state["cursor"] += 1
+        # Step Forward logic (existing)
+        target = debug_state["cursor"] + 1
+        if target < len(debug_state["history"]):
+            debug_state["cursor"] = target
             response = debug_state["history"][debug_state["cursor"]]
         else:
             response = add_to_history(bridge.step(1))
 
+    elif action == 'run':
+        # Fast Forward logic
+        for _ in range(val):
+            if debug_state["cursor"] < len(debug_state["history"]) - 1:
+                debug_state["cursor"] += 1
+                response = debug_state["history"][debug_state["cursor"]]
+            else:
+                response = add_to_history(bridge.step(1))
+
     elif action == 'back':
-        if debug_state["cursor"] > 0:
-            debug_state["cursor"] -= 1
-            response = debug_state["history"][debug_state["cursor"]]
+        # Fast Backward logic (NEW)
+        # Move cursor back by 'val' amount, clamping at 0
+        new_cursor = max(0, debug_state["cursor"] - val)
+        debug_state["cursor"] = new_cursor
+        response = debug_state["history"][debug_state["cursor"]]
 
     elif action == 'reset':
         bridge.reset()
         debug_state["history"] = []
         response = add_to_history(bridge.step(0))
-
-    elif action == 'run':
-        for _ in range(5): response = add_to_history(bridge.step(1))
 
     if response: await sio.emit('update', response)

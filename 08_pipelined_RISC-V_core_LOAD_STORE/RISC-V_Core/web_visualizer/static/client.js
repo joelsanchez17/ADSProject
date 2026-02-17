@@ -26,6 +26,7 @@ function sendCommand(action, val=null) {
 socket.on('update', (packet) => {
     const data = packet.enriched;
     const regs = packet.registers;
+    updateInstList(packet.enriched);
     document.getElementById('cycle-display').innerText = data.cycle || 0;
 
     console.log("DEBUG DATA:", {
@@ -83,6 +84,61 @@ function updateHazardPanel(data) {
         hazList.innerHTML = '<div style="color:#666; padding:5px;">No Active Hazards</div>';
     } else {
         hazList.innerHTML = hazards.map(h => `<div style="padding:5px; border-bottom:1px solid #444; font-weight:bold; color: #ffcc00;">${h}</div>`).join('');
+    }
+}
+
+let isRomLoaded = false;
+
+function updateInstList(data) {
+    const list = document.getElementById('inst-list');
+
+    // 1. Build the list ONLY ONCE (when data.rom arrives)
+    if (data.rom && !isRomLoaded) {
+        list.innerHTML = ""; // Clear "Waiting..." text
+        data.rom.forEach((hex, index) => {
+            const pcVal = index * 4; // Assuming 4-byte instructions
+            const pcHex = "0x" + pcVal.toString(16).padStart(8, '0');
+
+            // Use our existing disassemble function!
+            const asm = disassemble(hex);
+
+            const row = document.createElement('div');
+            row.id = `rom-addr-${pcHex}`; // Give it an ID to find it later
+            row.className = "rom-row";
+            row.style.borderBottom = "1px solid #333";
+            row.style.padding = "2px 5px";
+            row.style.cursor = "pointer";
+
+            row.innerHTML = `
+                <span style="color:#666; font-size:10px; margin-right:8px; width:60px; display:inline-block;">${pcHex}</span>
+                <span style="color:#4ec9b0; font-family:monospace;">${asm}</span>
+            `;
+            list.appendChild(row);
+        });
+        isRomLoaded = true; // Don't rebuild next cycle
+    }
+
+    // 2. Highlight Current PC (Fetch Stage or ID Stage)
+    // First, remove old highlights
+    const oldActive = list.querySelector('.active-row');
+    if (oldActive) {
+        oldActive.style.background = "transparent";
+        oldActive.classList.remove('active-row');
+    }
+
+    // Get current ID Stage PC
+    if (data.pc_hex && data.pc_hex.id) {
+        // Normalizing the PC string (remove '0x' if needed)
+        const currentPC = data.pc_hex.id.toLowerCase();
+
+        const activeRow = document.getElementById(`rom-addr-${currentPC}`);
+        if (activeRow) {
+            activeRow.style.background = "#264f78"; // Highlight Blue
+            activeRow.classList.add('active-row');
+
+            // Auto-scroll to keep it visible
+            activeRow.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
     }
 }
 

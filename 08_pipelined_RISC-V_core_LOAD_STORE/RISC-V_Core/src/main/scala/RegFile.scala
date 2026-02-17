@@ -26,11 +26,14 @@ class RegFile extends Module {
     val resp_2 = new regFileReadResp
     val req_3  = new regFileWriteReq
     val gpRegVal = Output(UInt(32.W))
+    val debug_regs = Output(Vec(32, UInt(32.W)))
 })
 
   val regs = Reg(Vec(32, UInt(32.W)))
   for(i <- 0 until 32 ) { dontTouch(regs(i)) }
   regs(0) := 0.U
+
+  io.debug_regs := regs
 
   when(io.req_3.wr_en){
     when(io.req_3.addr =/= 0.U){

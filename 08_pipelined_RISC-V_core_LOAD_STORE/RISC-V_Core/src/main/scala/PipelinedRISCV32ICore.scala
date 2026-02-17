@@ -63,6 +63,7 @@ class PipelinedRV32I(BinaryFile: String) extends Module {
       val wb_we        = Output(UInt(1.W))
       val wb_wdata     = Output(UInt(32.W))
       val wb_check_res = Output(UInt(32.W))
+      val regs         = Output(Vec(32, UInt(32.W)))
     }
   })
 
@@ -74,6 +75,7 @@ class PipelinedRV32I(BinaryFile: String) extends Module {
   io.result   := core.io.check_res
   io.coreDone := core.io.coreDone
   io.gpRegVal := core.io.gpRegVal
+
 
   core.io.imem.instr := IMem(core.io.imem.PC >> 2.U)
   core.io.dmem <> DMem.io
@@ -127,6 +129,7 @@ class PipelinedRV32I(BinaryFile: String) extends Module {
   io.dbg.wb_we        := core.io.dbg.wb_we
   io.dbg.wb_wdata     := core.io.dbg.wb_wdata
   io.dbg.wb_check_res := core.io.dbg.wb_check_res
+  io.dbg.regs         := core.io.dbg.regs
 }
 
 class DMEM (DEPTH: Int = 4096) extends Module {

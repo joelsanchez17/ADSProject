@@ -75,6 +75,7 @@ class PipelinedRV32Icore extends Module {
             val wb_we        = Output(UInt(1.W))
             val wb_wdata     = Output(UInt(32.W))
             val wb_check_res = Output(UInt(32.W))
+            val regs         = Output(Vec(32, UInt(32.W)))
         }
     })
 
@@ -265,6 +266,7 @@ class PipelinedRV32Icore extends Module {
     io.check_res := WBBarrier.io.outCheckRes
     io.coreDone  := HazardDetectionUnit_inst.io.coreDone
     io.gpRegVal  := RegFile_inst.io.gpRegVal
+    io.dbg.regs := RegFile_inst.io.debug_regs
 }
 
 

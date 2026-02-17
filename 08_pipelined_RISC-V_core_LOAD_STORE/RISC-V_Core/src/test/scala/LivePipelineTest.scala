@@ -84,14 +84,14 @@ class LivePipelineTest extends AnyFlatSpec with ChiselScalatestTester {
             var regState = "{"
             for (i <- 0 until 32) {
               // Access internal signal: dut -> core -> RegFile_inst -> regfile
-              val rVal = b(dut.core.RegFile_inst.regs(i))
+              val rVal = b(dut.io.dbg.regs(i))
               regState += s""""x$i": $rVal"""
               if (i < 31) regState += ", "
             }
             regState += "}"
 
             // 🔴 DEBUG TOOL: Print x1 directly to the terminal
-            val debug_x1 = b(dut.core.RegFile_inst.regs(1))
+            val debug_x1 = b(dut.io.dbg.regs(1))
             val debug_opA = b(dut.io.dbg.ex_alu_op_a)
             println(s"Cycle: $cycle | x1: $debug_x1 | OpA: $debug_opA")
             // -----------------------------------------------------

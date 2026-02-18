@@ -17,13 +17,14 @@ document.addEventListener('keydown', (e) => {
     if (e.key === "ArrowLeft")  sendCommand('back');
 });
 
-// --- TOGGLE LISTENERS ---
+// --- NEW: Toggle Listeners (Instant Update) ---
 ['chk-fwd', 'chk-haz', 'chk-path', 'chk-reg'].forEach(id => {
-    const el = document.getElementById(id);
-    if(el) el.addEventListener('change', () => { if (lastPacket) updateSVG(lastPacket.enriched); });
+    document.getElementById(id).addEventListener('change', () => {
+        if (lastPacket) updateSVG(lastPacket.enriched);
+    });
 });
 
-let lastPacket = null;
+let lastPacket = null; // Store data for redraws
 
 function sendCommand(action, val=null) {
     if (val) socket.emit('command', { action: action, value: val });
@@ -38,7 +39,7 @@ socket.on('update', (packet) => {
 
     document.getElementById('cycle-display').innerText = data.cycle || 0;
 
-    // A. Reset Register Grid Styles
+    // A. Update Register Grid
     for(let i=0; i<32; i++) {
         const box = document.getElementById(`reg-box-${i}`);
         const valDiv = document.getElementById(`reg-val-${i}`);
@@ -46,58 +47,23 @@ socket.on('update', (packet) => {
         const newVal = regs[i];
 
         valDiv.innerText = "0x" + newVal.toString(16);
-
-        // Reset colors
-        box.style.backgroundColor = "#252526";
-        box.style.border = "1px solid #3e3e42";
-
-        // Flash on value change
         if (newVal !== oldVal) {
-            box.animate([
-                { backgroundColor: '#555' },
-                { backgroundColor: '#252526' }
-            ], { duration: 300 });
+            box.style.background = "#555";
+            setTimeout(() => box.style.background = "#2d2d30", 300);
         }
+        // Remove old highlights
+        box.classList.remove('active-read', 'active-write');
     }
 
-    // B. Highlight Writeback (RED)
-    // Occurs in WB stage
-    if (data.wb && data.wb.we && data.wb.rd !== 0) {
-        const box = document.getElementById(`reg-box-${data.wb.rd}`);
-        if (box) {
-            box.style.borderColor = "#d32f2f"; // RED BORDER
-            box.style.backgroundColor = "rgba(211, 47, 47, 0.2)"; // RED TINT
-        }
-        document.getElementById('wb-info').innerText = `x${data.wb.rd} = 0x${data.wb.wdata.toString(16)}`;
-    } else {
-        document.getElementById('wb-info').innerText = "Idle";
+    // B. Highlight Read Registers (Blue)
+    if (data.id_info) {
+        const rs1 = data.id_info.rs1;
+        const rs2 = data.id_info.rs2;
+        if (rs1 !== 0) document.getElementById(`reg-box-${rs1}`)?.classList.add('active-read');
+        if (rs2 !== 0) document.getElementById(`reg-box-${rs2}`)?.classList.add('active-read');
     }
 
-    // C. Highlight Read Registers (BLUE) - CHANGED TO EX STAGE
-    // We now look at the instruction in the EX stage, not ID.
-    if (data.instr && data.instr.ex) {
-        // Extract indices directly from the EX instruction
-        const info = decodeRegisters(data.instr.ex);
-        const usage = getRegisterUsage(data.instr.ex);
-
-        // Only highlight if the instruction actually USES that register
-        if (usage.usesRs1 && info.rs1 !== 0) {
-            const box = document.getElementById(`reg-box-${info.rs1}`);
-            if(box) {
-                box.style.borderColor = "#007acc"; // BLUE
-                box.style.backgroundColor = "rgba(0, 122, 204, 0.2)";
-            }
-        }
-        if (usage.usesRs2 && info.rs2 !== 0) {
-            const box = document.getElementById(`reg-box-${info.rs2}`);
-            if(box) {
-                box.style.borderColor = "#007acc"; // BLUE
-                box.style.backgroundColor = "rgba(0, 122, 204, 0.2)";
-            }
-        }
-    }
-
-    // D. Update Panels
+    // C. Update Lists & Visuals
     updateInstList(packet.enriched);
     updateHazardPanel(data);
     updateSVG(data);
@@ -128,22 +94,16 @@ function updateHazardPanel(data) {
     }
 }
 
-// --- 5. VISUALIZATION UPDATER ---
+// --- 5. VISUALIZATION UPDATER (With Toggles) ---
 function updateSVG(data) {
-    const svgObj = document.getElementById('pipeline-svg');
-    if (!svgObj.contentDocument) return;
-    const svg = svgObj.contentDocument;
+    const svg = document.getElementById('pipeline-svg').contentDocument;
+    if (!svg) return;
 
-    // Read Toggles
-    const chkFwd  = document.getElementById('chk-fwd');
-    const chkHaz  = document.getElementById('chk-haz');
-    const chkPath = document.getElementById('chk-path');
-    const chkReg  = document.getElementById('chk-reg');
-
-    const showFwd  = chkFwd ? chkFwd.checked : true;
-    const showHaz  = chkHaz ? chkHaz.checked : true;
-    const showPath = chkPath ? chkPath.checked : true;
-    const showReg  = chkReg ? chkReg.checked : true;
+    // Read Toggle States
+    const showFwd  = document.getElementById('chk-fwd').checked;
+    const showHaz  = document.getElementById('chk-haz').checked;
+    const showPath = document.getElementById('chk-path').checked;
+    const showReg  = document.getElementById('chk-reg').checked;
 
     const setText = (id, val) => { const el = svg.getElementById(id); if (el) el.textContent = val; };
     const setFill = (id, color) => { const el = svg.getElementById(id); if (el) el.style.fill = color; };
@@ -156,14 +116,14 @@ function updateSVG(data) {
         }
     };
 
-    // 1. HAZARD COLORS
-    ['if','id'].forEach(s => setFill(`stage-${s}`, '#252526'));
+    // 1. HAZARD COLORS (Controlled by 'showHaz')
+    ['if','id'].forEach(s => setFill(`stage-${s}`, '#252526')); // Default Dark
     if (showHaz && data.hazard) {
-        if (data.hazard.if_stall || data.hazard.flush) setFill('stage-if', '#590000');
+        if (data.hazard.if_stall || data.hazard.flush) setFill('stage-if', '#590000'); // Red
         if (data.hazard.id_stall || data.hazard.flush) setFill('stage-id', '#590000');
     }
 
-    // 2. BRANCH WIRE
+    // 2. BRANCH/JUMP WIRE (Grouped with Datapath)
     if (showPath && data.ex && data.ex.pc_src === 1) {
         setWire('wire-branch', '#ff5500', '4', 'none');
         const target = Number(data.ex.pc_jb).toString(16);
@@ -175,7 +135,7 @@ function updateSVG(data) {
         setText('txt-branch-target', ``);
     }
 
-    // 3. TEXT & HEX UPDATES
+    // 3. TEXT & HEX UPDATES (Always Active)
     if (data.asm) {
         ['if','id','ex','mem','wb'].forEach(s => setText(`txt-asm-${s}`, data.asm[s]));
         ['if','id','ex','mem','wb'].forEach(s => setText(`txt-pc-${s}`, data.pc_hex[s]));
@@ -204,23 +164,26 @@ function updateSVG(data) {
         else setText('txt-mem-status', `Load: 0x${Number(data.mem.addr).toString(16)}`);
     }
 
-    // 5. WB WIRE & TEXT (RED for Write)
+    // 5. WB WIRE & TEXT (Controlled by 'showReg')
     if (showReg && data.wb && data.wb.we && data.wb.rd !== 0) {
         setText('txt-wb-reg', `x${data.wb.rd} = 0x${data.wb.wdata.toString(16)}`);
-        setFill('txt-wb-reg', '#d32f2f'); // RED TEXT
-        setWire('wire-wb-back', '#d32f2f', '3', 'none'); // RED WIRE
+        setFill('txt-wb-reg', '#4ec9b0');
+        setWire('wire-wb-back', '#4ec9b0', '3', 'none');
+        document.getElementById('wb-info').innerText = `x${data.wb.rd} = 0x${data.wb.wdata.toString(16)}`;
     } else {
         setText('txt-wb-reg', "--");
         setFill('txt-wb-reg', '#666');
         setWire('wire-wb-back', '#444', '2', '5,5');
+        document.getElementById('wb-info').innerText = "Idle";
     }
 
-    // 6. FORWARDING WIRES
+    // 6. FORWARDING WIRES (Controlled by 'showFwd')
     const wireMemFwd = svg.getElementById('wire-mem-fwd');
     const wireWbFwd  = svg.getElementById('wire-wb-fwd');
     const txtFwd     = svg.getElementById('txt-fwd-status');
     const boxFwd     = svg.getElementById('box-fwd-unit');
 
+    // Default Idle State
     if(wireMemFwd) { wireMemFwd.style.stroke = '#666'; wireMemFwd.style.strokeWidth='2'; wireMemFwd.style.strokeDasharray='4,4'; }
     if(wireWbFwd)  { wireWbFwd.style.stroke = '#666'; wireWbFwd.style.strokeWidth='2'; wireWbFwd.style.strokeDasharray='4,4'; }
     if(txtFwd)     { txtFwd.textContent = "FWD UNIT"; txtFwd.style.fill = "white"; txtFwd.style.fontWeight = "normal"; }
@@ -251,11 +214,11 @@ function updateSVG(data) {
         }
     }
 
-    // 7. ACTIVE DATAPATH STROKES
+    // 7. INTERACTIVE DATAPATH (Controlled by 'showPath')
     const colIdle = '#333';
     const colEx   = '#C71585';
-    const colMem  = '#d65d0e'; // Default MEM Color (Orange)
-    const colWB   = '#d32f2f'; // RED for WB Stage box
+    const colMem  = '#d65d0e';
+    const colWB   = '#4ec9b0';
 
     const setStageStroke = (id, active, color) => {
         const box = svg.getElementById(id);
@@ -263,6 +226,7 @@ function updateSVG(data) {
             const effectiveActive = showPath && active;
             box.style.stroke = effectiveActive ? color : colIdle;
             box.style.strokeWidth = effectiveActive ? '3' : '1';
+            // Force opacity 1.0 if stalled so Red Fill shows through!
             const isStalled = showHaz && ((id === 'stage-if' && data.hazard.if_stall) || (id === 'stage-id' && data.hazard.id_stall));
             box.style.opacity = (effectiveActive || isStalled) ? '1.0' : '0.4';
         }
@@ -270,26 +234,18 @@ function updateSVG(data) {
 
     if (data.instr) {
         if(data.instr.ex) setStageStroke('stage-ex', getControlSignals(data.instr.ex).usesEx, colEx);
-
-        // MEM STAGE: Check if Store or Load
-        if(data.instr.mem) {
-            const ctrl = getControlSignals(data.instr.mem);
-            // CHANGED: If it's a STORE, use RED (#d32f2f). If LOAD, use Orange (#d65d0e).
-            const memColor = (ctrl.type === 'STORE') ? '#d32f2f' : colMem;
-            setStageStroke('stage-mem', ctrl.usesMem, memColor);
-        }
-
+        if(data.instr.mem) setStageStroke('stage-mem', getControlSignals(data.instr.mem).usesMem, colMem);
         if(data.instr.wb) setStageStroke('stage-wb', getControlSignals(data.instr.wb).usesWB, colWB);
     }
 
-    // 8. REGISTER FILE BOX ANIMATION (RED)
+    // 8. REGISTER FILE ANIMATION (Controlled by 'showReg')
     const rfBox = svg.getElementById('regfile-box');
     const rfTitle = svg.getElementById('txt-rf-title');
     const rfStatus = svg.getElementById('txt-rf-status');
 
     if (showReg && data.wb && data.wb.we && data.wb.rd !== 0) {
-        if (rfBox) { rfBox.style.stroke = '#d32f2f'; rfBox.style.strokeWidth = '3'; } // RED
-        if (rfTitle) rfTitle.style.fill = '#d32f2f';
+        if (rfBox) { rfBox.style.stroke = '#4ec9b0'; rfBox.style.strokeWidth = '3'; }
+        if (rfTitle) rfTitle.style.fill = '#4ec9b0';
         if (rfStatus) {
             rfStatus.textContent = `Writing 0x${Number(data.wb.wdata).toString(16)} → x${data.wb.rd}`;
             rfStatus.style.fill = '#fff';
@@ -306,42 +262,12 @@ function updateSVG(data) {
     }
 }
 
-// --- 6. HELPERS ---
-
-// NEW: Extract register indices from raw instruction hex
-function decodeRegisters(hexStr) {
-    const inst = Number(hexStr);
-    return {
-        rs1: (inst >> 15) & 0x1F,
-        rs2: (inst >> 20) & 0x1F,
-        rd:  (inst >> 7)  & 0x1F
-    };
-}
-
-// Determine which registers are actually used by the instruction
-function getRegisterUsage(hexStr) {
-    const inst = Number(hexStr);
-    const opcode = inst & 0x7F;
-    let useRs1 = false;
-    let useRs2 = false;
-
-    // R-Type (0x33), Branch (0x63), Store (0x23) -> Use RS1 & RS2
-    if (opcode === 0x33 || opcode === 0x63 || opcode === 0x23) {
-        useRs1 = true; useRs2 = true;
-    }
-    // I-Type (0x13), Load (0x03), JALR (0x67) -> Use RS1 only
-    else if (opcode === 0x13 || opcode === 0x03 || opcode === 0x67) {
-        useRs1 = true; useRs2 = false;
-    }
-    // LUI (0x37), AUIPC (0x17), JAL (0x6F) -> Use NONE
-    else {
-        useRs1 = false; useRs2 = false;
-    }
-    return { usesRs1: useRs1, usesRs2: useRs2 };
-}
-
+// --- 6. INSTRUCTION LIST & HELPERS ---
+let isRomLoaded = false;
 function updateInstList(data) {
     const list = document.getElementById('inst-list');
+
+    // FIX: Only build if we actually have data (prevents clearing list on empty updates)
     if (data.rom && data.rom.length > 0 && !isRomLoaded) {
         list.innerHTML = "";
         data.rom.forEach((hex, index) => {

@@ -5,6 +5,12 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from .bridge import ChiselBridge
 from live_debug.decoder import decode_rv32i
+import os
+import shutil
+import uuid
+from pydantic import BaseModel
+
+
 
 bridge = ChiselBridge()
 
@@ -21,6 +27,46 @@ socket_app = socketio.ASGIApp(sio, app)
 @app.get("/")
 async def read_index():
     return FileResponse('web_visualizer/templates/index.html')
+
+
+class CompileRequest(BaseModel):
+    scala_code: str
+    asm_code: str
+
+@app.post("/compile")
+async def compile_code(req: CompileRequest):
+    # 1. Generate a unique session ID
+    session_id = f"sess_{uuid.uuid4().hex[:8]}"
+
+    # 2. Path Magic
+    # base_dir is the 'web_visualizer' folder
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    # project_root is the 'RISC-V_Core' folder (one level up)
+    project_root = os.path.abspath(os.path.join(base_dir, ".."))
+
+    template_dir = os.path.join(project_root, "infrastructure_template")
+    session_dir = os.path.join(project_root, "temp_sessions", session_id)
+
+    try:
+        # 3. Copy the template to the new session folder
+        shutil.copytree(template_dir, session_dir)
+
+        # 4. Write the Scala code
+        scala_path = os.path.join(session_dir, "src", "main", "scala", "student_hw.scala")
+        os.makedirs(os.path.dirname(scala_path), exist_ok=True)
+        with open(scala_path, "w") as f:
+            f.write(req.scala_code)
+
+        # 5. Write the Assembly code
+        asm_path = os.path.join(session_dir, "test_prog.s")
+        with open(asm_path, "w") as f:
+            f.write(req.asm_code)
+
+        return {"status": "success", "message": f"Workspace built for {session_id}"}
+
+    except Exception as e:
+        return {"status": "error", "message": f"File Error: {str(e)}"}
+
 
 def extract_registers(instr_int):
     if not instr_int: return {"rs1":0, "rs2":0, "rd":0}

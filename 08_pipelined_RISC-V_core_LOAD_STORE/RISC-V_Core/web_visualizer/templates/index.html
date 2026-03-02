@@ -75,7 +75,7 @@
         <div id="monaco-container"></div>
 
         <div class="compile-bar">
-            <button class="btn-compile" onclick="mockCompile()">▶ Compile & Simulate</button>
+            <button class="btn-compile" onclick="compileCode()">▶ Compile & Simulate</button>
         </div>
     </div>
 
@@ -103,14 +103,14 @@
 
 <script>
     let editor;
+    let currentLang = 'scala';
 
-    // Default Code Snippets
+    // Store the actual code for both files
     const codes = {
-        scala: `package student_code\nimport chisel3._\n\nclass HazardUnit extends Module {\n  // Write your Chisel logic here\n  val io = IO(new Bundle {\n    val rs1_addr = Input(UInt(5.W))\n    val stall = Output(Bool())\n  })\n  \n  io.stall := false.B\n}`,
+        scala: `package student_code\nimport chisel3._\n\nclass HazardUnit extends Module {\n  val io = IO(new Bundle {\n    val rs1_addr = Input(UInt(5.W))\n    val stall = Output(Bool())\n  })\n  io.stall := false.B\n}`,
         asm: `# Write your RISC-V Assembly here\naddi x1, x0, 5\naddi x2, x0, 10\nadd x3, x1, x2`
     };
 
-    // Initialize Monaco
     require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
     require(['vs/editor/editor.main'], function() {
         editor = monaco.editor.create(document.getElementById('monaco-container'), {
@@ -120,32 +120,51 @@
             automaticLayout: true,
             minimap: { enabled: false }
         });
+
+        // Whenever the user types, save it to our codes dictionary
+        editor.onDidChangeModelContent(() => {
+            codes[currentLang] = editor.getValue();
+        });
     });
 
-    // Tab Switcher Logic
     function switchTab(lang) {
+        currentLang = lang;
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         event.target.classList.add('active');
 
-        const languageMap = { 'scala': 'scala', 'asm': 'ini' }; // 'ini' works well for basic assembly highlighting
+        const languageMap = { 'scala': 'scala', 'asm': 'ini' };
         monaco.editor.setModelLanguage(editor.getModel(), languageMap[lang]);
         editor.setValue(codes[lang]);
     }
 
-    // Mock Compile Button Logic
-    function mockCompile() {
+    // REAL COMPILE FUNCTION
+    async function compileCode() {
         const consoleOut = document.getElementById('console-output');
-        consoleOut.innerHTML = "<span style='color: #38bdf8;'>[info] Starting SBT Compilation...</span>\n";
+        consoleOut.innerHTML = "<span style='color: #38bdf8;'>[info] Submitting code to server...</span>\n";
 
-        // Grab code from editor to prove we have it!
-        const studentCode = editor.getValue();
-        consoleOut.innerHTML += `<span style='color: #888;'>Captured ${studentCode.split('\\n').length} lines of code. Sending to server...</span>\n`;
+        try {
+            // Send the code via POST request to FastAPI
+            const response = await fetch('/compile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    scala_code: codes.scala,
+                    asm_code: codes.asm
+                })
+            });
 
-        // Simulate a 2 second build delay
-        setTimeout(() => {
-            consoleOut.innerHTML += "<span class='log-success'>[success] Total time: 2 s, completed successfully</span>\n";
-            consoleOut.innerHTML += "<span>Simulation live on TCP port 9042. Connecting WebSocket...</span>";
-        }, 2000);
+            const data = await response.json();
+
+            if (data.status === "success") {
+                consoleOut.innerHTML += `<span class='log-success'>[success] ${data.message}</span>\n`;
+                consoleOut.innerHTML += "<span style='color: #888;'>Ready for Stage 3 (Subprocess Compilation)...</span>\n";
+            } else {
+                consoleOut.innerHTML += `<span class='log-error'>[error] ${data.message}</span>\n`;
+            }
+
+        } catch (error) {
+            consoleOut.innerHTML += `<span class='log-error'>[error] Network connection failed. Is the Python server running?</span>\n`;
+        }
     }
 </script>
 

@@ -14,9 +14,9 @@ sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="web_visualizer/static"), name="static")
 
-# --- THIS IS THE MISSING LINE CAUSING YOUR ERROR ---
+
 socket_app = socketio.ASGIApp(sio, app)
-# ---------------------------------------------------
+
 
 @app.get("/")
 async def read_index():

@@ -53,7 +53,7 @@ async def compile_code(req: CompileRequest):
 
     try:
         shutil.copytree(template_dir, session_dir)
-        scala_dir = os.path.join(session_dir, "src", "main", "scala", "core_tile")
+        scala_dir = os.path.join(session_dir, "src", "main", "scala")
 
         os.makedirs(scala_dir, exist_ok=True)
 

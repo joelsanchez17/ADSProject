@@ -27,7 +27,21 @@ document.addEventListener('keydown', (e) => {
 let lastPacket = null; // Store data for redraws
 
 // NEW: Global variable to hold the student's current session ID
-let currentSessionId = null;
+function sendCommand(action, val=null) {
+    // Explicitly use the global window object!
+    if (!window.currentSessionId) {
+        console.warn("Cannot send command: No active session. Compile first!");
+        return;
+    }
+
+    const payload = {
+        action: action,
+        session_id: window.currentSessionId
+    };
+    if (val) payload.value = val;
+
+    socket.emit('command', payload);
+}
 
 function sendCommand(action, val=null) {
     if (!currentSessionId) {

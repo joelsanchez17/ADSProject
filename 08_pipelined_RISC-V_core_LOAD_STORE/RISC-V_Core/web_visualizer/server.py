@@ -9,10 +9,10 @@ import os
 import shutil
 import uuid
 import subprocess
+import socket
+import asyncio  # <--- ADD THIS LINE HERE
 from pydantic import BaseModel
 from typing import Dict
-from pydantic import BaseModel
-import socket
 
 
 active_bridges = {}  # Stores bridges mapped by Session ID
@@ -53,8 +53,8 @@ async def compile_code(req: CompileRequest):
 
     try:
         shutil.copytree(template_dir, session_dir)
-        scala_dir = os.path.join(session_dir, "src", "main", "scala")
-
+        # 1. SAVE INTO CORE_TILE
+        scala_dir = os.path.join(session_dir, "src", "main", "scala", "core_tile")
         os.makedirs(scala_dir, exist_ok=True)
 
         for filename, content in req.scala_files.items():
@@ -68,62 +68,63 @@ async def compile_code(req: CompileRequest):
         env = os.environ.copy()
         env["CHISEL_PORT"] = str(student_port)
 
-        # 1. USE POPEN TO RUN SBT IN THE BACKGROUND
-        process = subprocess.Popen(
-            ["sbt", "--batch", "testOnly *LivePipelineTest"],
-            cwd=session_dir,
-            env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
-            universal_newlines=True
+        # 1. RUN SBT ASYNCHRONOUSLY
+        process = await asyncio.create_subprocess_exec(
+            "sbt", "--batch", "testOnly *LivePipelineTest",
+            cwd=session_dir, env=env, stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT
         )
 
-        # 2. READ THE LOGS LIVE
-        log_output = ""
-        is_ready = False
+        compilation_failed = False
+        chisel_ready = asyncio.Event()
 
-        while True:
-            line = process.stdout.readline()
-            if not line:
-                break # Process ended unexpectedly
+        # 2. BACKGROUND TASK TO PREVENT PIPE DEADLOCK
+        async def read_logs():
+            nonlocal compilation_failed
+            while True:
+                line_bytes = await process.stdout.readline()
+                if not line_bytes:
+                    break
 
-            log_output += line
-            print(line, end="", flush=True) # Print to your VM terminal so you can watch it!
+                line = line_bytes.decode('utf-8', errors='replace')
+                print(line, end="", flush=True) # Send to local terminal
 
-            # Did compilation fail?
-            if "Failed tests:" in line or "sbt.TestsFailedException" in line:
-                break
+                # Send to web browser INSTANTLY without blocking the loop
+                asyncio.create_task(sio.emit('build_log', {'line': line.replace(session_dir, "[WORKSPACE]")}))
 
-            # Did compilation succeed and Chisel is waiting for us?
-            if "Waiting for Python on port" in line:
-                is_ready = True
-                break
+                if "Failed tests:" in line or "Compilation failed" in line:
+                    compilation_failed = True
+                    chisel_ready.set()
+                if "Waiting for Python on port" in line:
+                    chisel_ready.set()
 
-        clean_logs = log_output.replace(session_dir, "[WORKSPACE]")
+        # Start the log reader in the background forever
+        asyncio.create_task(read_logs())
 
-        # 3. IF READY, CONNECT THE BRIDGE IMMEDIATELY!
-        if is_ready:
-            bridge = ChiselBridge(port=student_port)
-            bridge.connect()
-            initial_raw = bridge.receive_snapshot() # Get Cycle 0
-            initial_proc = process_snapshot(initial_raw) if initial_raw else None
+        # 3. WAIT FOR CHISEL TO BE READY
+        await chisel_ready.wait()
 
-            active_sessions[session_id] = {
-                "process": process, # Save the SBT process so we can kill it later
-                "bridge": bridge,
-                "history": [initial_proc] if initial_proc else [],
-                "cursor": 0
-            }
-            return {"status": "success", "message": "Compilation successful!", "logs": clean_logs, "session_id": session_id}
-        else:
-            # It failed or got stuck, kill it
+        if compilation_failed:
             process.terminate()
-            return {"status": "error", "message": "Chisel Compilation Failed.", "logs": clean_logs}
+            return {"status": "error", "message": "Chisel Compilation Failed. Check the logs."}
+
+        # 4. IF READY, CONNECT THE BRIDGE SAFELY
+        bridge = ChiselBridge(port=student_port)
+        bridge.connect()
+        initial_raw = bridge.receive_snapshot() # Get Cycle 0
+        initial_proc = process_snapshot(initial_raw) if initial_raw else None
+
+        active_sessions[session_id] = {
+            "process": process,
+            "bridge": bridge,
+            "history": [initial_proc] if initial_proc else [],
+            "cursor": 0
+        }
+
+        return {"status": "success", "message": "Simulation Started!", "session_id": session_id}
 
     except Exception as e:
-        return {"status": "error", "message": f"Server Error: {str(e)}", "logs": ""}
+        return {"status": "error", "message": f"Server Error: {str(e)}"}
 
 
 # --- HELPER FUNCTIONS ---
@@ -179,9 +180,12 @@ async def connect(sid, environ):
 
 @sio.event
 async def command(sid, data):
+    print(f"⚡ [WEBSOCKET] Received command from browser: {data}") # ADD THIS
+
     session_id = data.get('session_id')
     if not session_id or session_id not in active_sessions:
-        return # Ignore commands from unconnected users
+        print(f"❌ [WEBSOCKET] ERROR: Session {session_id} not found!") # ADD THIS
+        return
 
     sess = active_sessions[session_id]
     bridge = sess["bridge"]

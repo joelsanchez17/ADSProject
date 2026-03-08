@@ -68,9 +68,9 @@
 
     <div class="editor-panel">
         <div class="editor-tabs">
-            <button class="tab active" onclick="switchTab('HazardUnit.scala')">HazardUnit.scala</button>
-            <button class="tab" onclick="switchTab('ALU.scala')">ALU.scala</button>
-            <button class="tab" onclick="switchTab('test_prog.s')">test_prog.s</button>
+            <button id="tab-haz" class="tab active" onclick="switchTab('HazardDetection.scala')">HazardDetection.scala</button>
+            <button id="tab-alu" class="tab" onclick="switchTab('ALU.scala')">ALU.scala</button>
+            <button id="tab-asm" class="tab" onclick="switchTab('test_prog.s')">test_prog.s</button>
         </div>
 
         <div id="monaco-container"></div>
@@ -97,7 +97,7 @@
 
         <div class="console-panel">
             <div class="console-header">Terminal Output</div>
-            <div id="console-output">Welcome to SonicRV Cloud IDE.<br>Ready to compile...</div>
+            <div id="console-output">Welcome to ADSI Cloud IDE.<br>Ready to compile...</div>
         </div>
     </div>
 </div>
@@ -106,11 +106,10 @@
     let editor;
     let currentFile = 'HazardDetection.scala';
 
-    // THE COMPLETE SCALA CODES EXACTLY AS YOU UPLOADED THEM
     const codes = {
-        'HazardDetection.scala': `package PipelinedRV32I\n\nimport chisel3._\nimport chisel3.experimental.ChiselEnum\nimport chisel3.util._\n\nclass HazardDetectionUnit extends Module {\n    val io = IO(new Bundle {\n        val instr = Input(UInt(32.W))\n        val ex_RD = Input(UInt(32.W))\n        val ex_memRd = Input(memRdOpT())\n        val id_stall = Output(UInt(1.W))\n        val if_stall = Output(UInt(1.W))\n        val pcWrite = Output(UInt(1.W))\n        val coreDone = Output(UInt(1.W)) \n    })\n\n    val (opcode, opcode_cast) = opcodeT.safe(io.instr(6,0))\n\n    val id_rs1 = io.instr(19,15)\n    val id_rs2 = io.instr(24,20)\n\n    val check_rs1 = Wire(UInt(1.W))\n    when((opcode === opcodeT.R_type) || (opcode === opcodeT.I_type) || (opcode === opcodeT.S_type) || (opcode === opcodeT.B_type) || (opcode === opcodeT.L_type) || (opcode === opcodeT.JR_type)){check_rs1 := 1.U}\n    .otherwise{check_rs1 := 0.U}\n    \n    val check_rs2 = Wire(UInt(1.W))\n    when((opcode === opcodeT.R_type) || (opcode === opcodeT.S_type) || (opcode === opcodeT.B_type)){check_rs2 := 1.U}\n    .otherwise{check_rs2 := 0.U}\n\n    when((io.ex_memRd =/= memRdOpT.IDLE) && ((io.ex_RD === id_rs1 && check_rs1 === 1.U) || (io.ex_RD === id_rs2 && check_rs2 === 1.U))){\n        io.id_stall := 1.U\n        io.if_stall := 1.U\n        io.pcWrite  := 0.U\n    }.otherwise{\n        io.id_stall := 0.U\n        io.if_stall := 0.U\n        io.pcWrite  := 1.U\n    }\n    \n    // COMPILER FIX: Hardcoded to 0 to bypass missing unImp enum\n    io.coreDone := 0.U\n}`,
+        'HazardDetection.scala': `package core_tile\n\nimport chisel3._\nimport chisel3.experimental.ChiselEnum\nimport chisel3.util._\nimport chisel3.util.experimental.loadMemoryFromFile\n\nclass HazardDetectionUnit extends  Module {\n    val io = IO(new Bundle {\n        val instr = Input(UInt(32.W))\n        val ex_RD = Input(UInt(32.W))\n        val ex_memRd = Input(memRdOpT())\n        val id_stall = Output(UInt(1.W))\n        val if_stall = Output(UInt(1.W))\n        val pcWrite = Output(UInt(1.W))\n        val coreDone = Output(UInt(1.W)) \n    })\n\n    val (opcode, opcode_cast) = opcodeT.safe(io.instr(6,0))\n\n    val id_rs1 = io.instr(19,15)\n    val id_rs2 = io.instr(24,20)\n\n    val check_rs1 = Wire(UInt(1.W))\n    when((opcode === opcodeT.R_type) || (opcode === opcodeT.I_type) || (opcode === opcodeT.S_type) || (opcode === opcodeT.B_type) || (opcode === opcodeT.L_type) || (opcode === opcodeT.JR_type)){check_rs1 := 1.U}\n    .otherwise{check_rs1 := 0.U}\n    \n    val check_rs2 = Wire(UInt(1.W))\n    when((opcode === opcodeT.R_type) || (opcode === opcodeT.S_type) || (opcode === opcodeT.B_type)){check_rs2 := 1.U}\n    .otherwise{check_rs2 := 0.U}\n\n    when((io.ex_memRd =/= memRdOpT.IDLE) && ((io.ex_RD === id_rs1 && check_rs1 === 1.U) || (io.ex_RD === id_rs2 && check_rs2 === 1.U))){\n        io.id_stall := 1.U\n        io.if_stall := 1.U\n        io.pcWrite  := 0.U\n    }.otherwise{\n        io.id_stall := 0.U\n        io.if_stall := 0.U\n        io.pcWrite  := 1.U\n    }\n    \n    // I commented this out because your template threw an error on 'unImp'\n    // when(opcode === opcodeT.unImp){ io.coreDone := 1.U }.otherwise{ io.coreDone := 0.U }\n    io.coreDone := 0.U\n}`,
 
-        'ALU.scala': `package PipelinedRV32I\n\nimport chisel3._\nimport chisel3.experimental.ChiselEnum\nimport chisel3.util._\n\nimport ALUOpT._\nimport aluOpAMux._\nimport aluOpBMux._\n\nclass ALU extends Module {\n    val io = IO(new Bundle {\n        val ALUOp = Input(ALUOpT())\n        val operandA = Input(UInt(32.W))\n        val operandB = Input(UInt(32.W))\n        val aluResult = Output(UInt(32.W))\n    })\n\n    when(io.ALUOp === isADD)       {io.aluResult := io.operandA + io.operandB}\n    .elsewhen(io.ALUOp === isSUB)  {io.aluResult := io.operandA - io.operandB}\n    .elsewhen(io.ALUOp === isXOR)  {io.aluResult := io.operandA ^ io.operandB}\n    .elsewhen(io.ALUOp === isOR)   {io.aluResult := io.operandA | io.operandB}\n    .elsewhen(io.ALUOp === isAND)   {io.aluResult := io.operandA & io.operandB}\n    .elsewhen(io.ALUOp === isSLL)  {io.aluResult := io.operandA << io.operandB(4, 0)}\n    .elsewhen(io.ALUOp === isSRL)   {io.aluResult := io.operandA >> io.operandB(4, 0)}\n    .elsewhen(io.ALUOp === isSRA)  {io.aluResult := (io.operandA.asSInt >> io.operandB(4, 0)).asUInt} \n    .elsewhen(io.ALUOp === isSLT)  {io.aluResult := (io.operandA.asSInt < io.operandB.asSInt).asUInt} \n    .elsewhen(io.ALUOp === isSLTU) {io.aluResult := (io.operandA < io.operandB).asUInt} \n    .otherwise                     {io.aluResult := io.operandA}\n}`,
+        'ALU.scala': `package core_tile\n\nimport chisel3._\nimport chisel3.experimental.ChiselEnum\nimport chisel3.util._\nimport chisel3.util.experimental.loadMemoryFromFile\n\nimport ALUOpT._\nimport aluOpAMux._\nimport aluOpBMux._\n\nclass ALU extends Module {\n    val io = IO(new Bundle {\n        val ALUOp = Input(ALUOpT())\n        val operandA = Input(UInt(32.W))\n        val operandB = Input(UInt(32.W))\n        val aluResult = Output(UInt(32.W))\n    })\n\n    when(io.ALUOp === isADD)       {io.aluResult := io.operandA + io.operandB}\n    .elsewhen(io.ALUOp === isSUB)  {io.aluResult := io.operandA - io.operandB}\n    .elsewhen(io.ALUOp === isXOR)  {io.aluResult := io.operandA ^ io.operandB}\n    .elsewhen(io.ALUOp === isOR)   {io.aluResult := io.operandA | io.operandB}\n    .elsewhen(io.ALUOp === isAND)   {io.aluResult := io.operandA & io.operandB}\n    .elsewhen(io.ALUOp === isSLL)  {io.aluResult := io.operandA << io.operandB(4, 0)}\n    .elsewhen(io.ALUOp === isSRL)   {io.aluResult := io.operandA >> io.operandB(4, 0)}\n    .elsewhen(io.ALUOp === isSRA)  {io.aluResult := (io.operandA.asSInt >> io.operandB(4, 0)).asUInt} \n    .elsewhen(io.ALUOp === isSLT)  {io.aluResult := (io.operandA.asSInt < io.operandB.asSInt).asUInt} \n    .elsewhen(io.ALUOp === isSLTU) {io.aluResult := (io.operandA < io.operandB).asUInt} \n    .otherwise                     {io.aluResult := io.operandA}\n}`,
 
         'test_prog.s': `# Write your RISC-V Assembly here\naddi x1, x0, 5\naddi x2, x0, 10\nadd x3, x1, x2`
     };
@@ -131,10 +130,9 @@
     });
 
     function switchTab(filename) {
-        if (!editor) return; // SAFETY FIX: Do nothing if Monaco hasn't loaded yet!
-
+        if (!editor) return; // Safety check if clicked too early
         currentFile = filename;
-        // Update tab UI
+
         document.getElementById('tab-haz').classList.remove('active');
         document.getElementById('tab-alu').classList.remove('active');
         document.getElementById('tab-asm').classList.remove('active');
@@ -148,10 +146,16 @@
         editor.setValue(codes[filename]);
     }
 
+    // --- LIVE STREAMING LISTENER ---
+    socket.on('build_log', (data) => {
+        const consoleOut = document.getElementById('console-output');
+        consoleOut.innerHTML += `<span style="color: #ccc;">${data.line}</span><br>`;
+        consoleOut.scrollTop = consoleOut.scrollHeight; // Auto-scroll to bottom
+    });
+
     async function compileCode() {
         const consoleOut = document.getElementById('console-output');
-        consoleOut.innerHTML = "<span style='color: #38bdf8;'>[info] Submitting code to server...</span>\n";
-        consoleOut.innerHTML += "<span style='color: #888;'>[info] Booting JVM and running SBT. This may take 10-20 seconds...</span>\n";
+        consoleOut.innerHTML = "<span style='color: #38bdf8;'>[info] Submitting code to server...</span><br>";
 
         try {
             const scalaFiles = {};
@@ -169,25 +173,18 @@
             });
 
             const data = await response.json();
-            consoleOut.innerHTML = `<span style="color: #ccc;">${data.logs}</span>\n`;
 
             if (data.status === "success") {
-                consoleOut.innerHTML += `\n<span class='log-success'>[success] ${data.message}</span>\n`;
-
-                // === THE JS ERROR FIX ===
-                // Attaching it to 'window' guarantees the variable is globally accessible by client.js!
+                consoleOut.innerHTML += `<br><span class='log-success'>[success] ${data.message}</span><br>`;
                 window.currentSessionId = data.session_id;
-
-                // Now send the init command to start the pipeline simulation
                 sendCommand('init');
-
             } else {
-                consoleOut.innerHTML += `\n<span class='log-error'>[error] ${data.message}</span>\n`;
+                consoleOut.innerHTML += `<br><span class='log-error'>[error] ${data.message}</span><br>`;
             }
 
         } catch (error) {
-            console.error("JAVASCRIPT ERROR: ", error);
-            consoleOut.innerHTML += `\n<span class='log-error'>[error] JS Error: ${error.message}</span>\n`;
+            console.error(error);
+            consoleOut.innerHTML += `<br><span class='log-error'>[error] JS Error: ${error.message}</span><br>`;
         }
     }
 </script>

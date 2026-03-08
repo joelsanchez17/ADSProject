@@ -37,5 +37,6 @@ generated/
 *.swo
 .DS_Store
 
-# --- Specific to your Project ---
-*.log
+# --- Specific for visualizer ---
+*.log 
+temp_sessions/

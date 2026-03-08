@@ -12,102 +12,124 @@ import subprocess
 from pydantic import BaseModel
 from typing import Dict
 from pydantic import BaseModel
+import socket
 
 
-
-bridge = ChiselBridge()
+active_bridges = {}  # Stores bridges mapped by Session ID
 
 debug_state = { "cursor": -1, "history": [] }
 
 sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
 app = FastAPI()
+
+
 app.mount("/static", StaticFiles(directory="web_visualizer/static"), name="static")
 
 
+active_sessions = {}  # Maps session_id -> {"bridge": obj, "history": [], "cursor": 0}
+
 socket_app = socketio.ASGIApp(sio, app)
 
+def find_free_port():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(('', 0))
+        return s.getsockname()[1]
 
 @app.get("/")
 async def read_index():
     return FileResponse('web_visualizer/templates/index.html')
 
-
 class CompileRequest(BaseModel):
-    scala_files: Dict[str, str]  # A dictionary of filename -> code
+    scala_files: Dict[str, str]
     asm_code: str
 
 @app.post("/compile")
 async def compile_code(req: CompileRequest):
     session_id = f"sess_{uuid.uuid4().hex[:8]}"
-
     base_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.abspath(os.path.join(base_dir, ".."))
-
     template_dir = os.path.join(project_root, "infrastructure_template")
     session_dir = os.path.join(project_root, "temp_sessions", session_id)
 
     try:
-        # 1. Copy Template
         shutil.copytree(template_dir, session_dir)
+        scala_dir = os.path.join(session_dir, "src", "main", "scala", "core_tile")
 
-        # 2. Write ALL the skeleton Scala files the student edited
-        scala_dir = os.path.join(session_dir, "src", "main", "scala", "student_code")
         os.makedirs(scala_dir, exist_ok=True)
 
         for filename, content in req.scala_files.items():
-            file_path = os.path.join(scala_dir, filename)
-            with open(file_path, "w") as f:
+            with open(os.path.join(scala_dir, filename), "w") as f:
                 f.write(content)
 
-        # 3. Write Assembly code
-        asm_path = os.path.join(session_dir, "test_prog.s")
-        with open(asm_path, "w") as f:
+        with open(os.path.join(session_dir, "test_prog.s"), "w") as f:
             f.write(req.asm_code)
 
-        # ==========================================
-        # STAGE 3: THE COMPILER (SUBPROCESS)
-        # ==========================================
-        # Run SBT inside the temporary session folder
-        process = subprocess.run(
-            ["sbt", "testOnly *LivePipelineTest"],
+        student_port = find_free_port()
+        env = os.environ.copy()
+        env["CHISEL_PORT"] = str(student_port)
+
+        # 1. USE POPEN TO RUN SBT IN THE BACKGROUND
+        process = subprocess.Popen(
+            ["sbt", "--batch", "testOnly *LivePipelineTest"],
             cwd=session_dir,
-            capture_output=True,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             text=True,
-            timeout=120  # Wait max 2 minutes for compilation
+            bufsize=1,
+            universal_newlines=True
         )
 
-        # Capture the terminal output
-        raw_logs = process.stdout + "\n" + process.stderr
+        # 2. READ THE LOGS LIVE
+        log_output = ""
+        is_ready = False
 
-        # Clean up the logs so students don't see the ugly server paths
-        clean_logs = raw_logs.replace(session_dir, "[YOUR_WORKSPACE]")
+        while True:
+            line = process.stdout.readline()
+            if not line:
+                break # Process ended unexpectedly
 
-        if process.returncode == 0:
-            return {
-                "status": "success",
-                "message": "Compilation successful!",
-                "logs": clean_logs
+            log_output += line
+            print(line, end="", flush=True) # Print to your VM terminal so you can watch it!
+
+            # Did compilation fail?
+            if "Failed tests:" in line or "sbt.TestsFailedException" in line:
+                break
+
+            # Did compilation succeed and Chisel is waiting for us?
+            if "Waiting for Python on port" in line:
+                is_ready = True
+                break
+
+        clean_logs = log_output.replace(session_dir, "[WORKSPACE]")
+
+        # 3. IF READY, CONNECT THE BRIDGE IMMEDIATELY!
+        if is_ready:
+            bridge = ChiselBridge(port=student_port)
+            bridge.connect()
+            initial_raw = bridge.receive_snapshot() # Get Cycle 0
+            initial_proc = process_snapshot(initial_raw) if initial_raw else None
+
+            active_sessions[session_id] = {
+                "process": process, # Save the SBT process so we can kill it later
+                "bridge": bridge,
+                "history": [initial_proc] if initial_proc else [],
+                "cursor": 0
             }
+            return {"status": "success", "message": "Compilation successful!", "logs": clean_logs, "session_id": session_id}
         else:
-            return {
-                "status": "error",
-                "message": "Chisel Compilation Failed. Check the logs.",
-                "logs": clean_logs
-            }
+            # It failed or got stuck, kill it
+            process.terminate()
+            return {"status": "error", "message": "Chisel Compilation Failed.", "logs": clean_logs}
 
-    except subprocess.TimeoutExpired:
-        return {"status": "error", "message": "Compilation timed out.", "logs": "Error: SBT took longer than 120 seconds."}
     except Exception as e:
         return {"status": "error", "message": f"Server Error: {str(e)}", "logs": ""}
 
 
+# --- HELPER FUNCTIONS ---
 def extract_registers(instr_int):
     if not instr_int: return {"rs1":0, "rs2":0, "rd":0}
-    return {
-        "rs1": (instr_int >> 15) & 0x1F,
-        "rs2": (instr_int >> 20) & 0x1F,
-        "rd":  (instr_int >> 7)  & 0x1F
-    }
+    return {"rs1": (instr_int >> 15) & 0x1F, "rs2": (instr_int >> 20) & 0x1F, "rd": (instr_int >> 7) & 0x1F}
 
 def safe_int(val):
     if val is None: return 0
@@ -122,8 +144,6 @@ def safe_int(val):
 
 def process_snapshot(raw_data):
     data = copy.deepcopy(raw_data)
-
-    # 1. Decode Instructions (Just for text display)
     data['asm'] = {}
     data['pc_hex'] = {}
     for stage in ['if', 'id', 'ex', 'mem', 'wb']:
@@ -131,85 +151,71 @@ def process_snapshot(raw_data):
         data['asm'][stage] = decode_rv32i(safe_int(raw_instr))
         data['pc_hex'][stage] = f"0x{safe_int(data.get('pc', {}).get(stage, 0)):08x}"
 
-    # 2. Hardware Register File (Direct from JSON)
     reg_map = data.get("regs", {})
     regs_list = [0] * 32
     if isinstance(reg_map, dict):
         for k, v in reg_map.items():
             idx = int(k.replace("x", ""))
-            if 0 <= idx < 32:
-                regs_list[idx] = safe_int(v)
+            if 0 <= idx < 32: regs_list[idx] = safe_int(v)
 
-    # 3. EX Stage: Use Hardware Signals
     if 'ex' not in data: data['ex'] = {}
     data['ex']['val_a'] = safe_int(data['ex'].get('alu_op_a', 0))
     data['ex']['val_b'] = safe_int(data['ex'].get('alu_op_b', 0))
+    data['id_info'] = extract_registers(data.get('instr', {}).get('id', 0))
+    return {"raw": raw_data, "enriched": data, "registers": regs_list}
 
-    # 4. ID Info
-    id_instr = data.get('instr', {}).get('id', 0)
-    data['id_info'] = extract_registers(id_instr)
-
-    return {
-        "raw": raw_data,
-        "enriched": data,
-        "registers": regs_list
-    }
-
-def add_to_history(raw_snap):
+def add_to_history(session_id, raw_snap):
     if not raw_snap: return
     processed = process_snapshot(raw_snap)
-    debug_state["history"].append(processed)
-    debug_state["cursor"] = len(debug_state["history"]) - 1
+    sess = active_sessions[session_id]
+    sess["history"].append(processed)
+    sess["cursor"] = len(sess["history"]) - 1
     return processed
 
+# --- MULTI-USER SOCKET.IO EVENTS ---
 @sio.event
 async def connect(sid, environ):
-    if not bridge.sock:
-        bridge.connect()
-        # FIX: Explicitly read the FIRST snapshot (Cycle 0) from the buffer
-        # 'step(0)' in bridge.py does nothing, so we use receive_snapshot() directly.
-        if not debug_state["history"]:
-            initial_data = bridge.receive_snapshot()
-            add_to_history(initial_data)
-
-    # Send the latest state to the web client
-    if debug_state["history"]:
-        await sio.emit('update', debug_state["history"][debug_state["cursor"]])
+    pass # Do nothing! We wait until they compile to start hardware.
 
 @sio.event
 async def command(sid, data):
+    session_id = data.get('session_id')
+    if not session_id or session_id not in active_sessions:
+        return # Ignore commands from unconnected users
+
+    sess = active_sessions[session_id]
+    bridge = sess["bridge"]
     action = data.get('action')
-    val = int(data.get('value', 1)) # Default to 1 if not specified
+    val = int(data.get('value', 1))
     response = None
 
-    if action == 'step':
-        # Step Forward logic (existing)
-        target = debug_state["cursor"] + 1
-        if target < len(debug_state["history"]):
-            debug_state["cursor"] = target
-            response = debug_state["history"][debug_state["cursor"]]
+    if action == 'init': # Get cycle 0 right after compilation
+        if sess["history"]: response = sess["history"][0]
+
+    elif action == 'step':
+        target = sess["cursor"] + 1
+        if target < len(sess["history"]):
+            sess["cursor"] = target
+            response = sess["history"][sess["cursor"]]
         else:
-            response = add_to_history(bridge.step(1))
+            response = add_to_history(session_id, bridge.step(1))
 
     elif action == 'run':
-        # Fast Forward logic
         for _ in range(val):
-            if debug_state["cursor"] < len(debug_state["history"]) - 1:
-                debug_state["cursor"] += 1
-                response = debug_state["history"][debug_state["cursor"]]
+            if sess["cursor"] < len(sess["history"]) - 1:
+                sess["cursor"] += 1
+                response = sess["history"][sess["cursor"]]
             else:
-                response = add_to_history(bridge.step(1))
+                response = add_to_history(session_id, bridge.step(1))
 
     elif action == 'back':
-        # Fast Backward logic (NEW)
-        # Move cursor back by 'val' amount, clamping at 0
-        new_cursor = max(0, debug_state["cursor"] - val)
-        debug_state["cursor"] = new_cursor
-        response = debug_state["history"][debug_state["cursor"]]
+        sess["cursor"] = max(0, sess["cursor"] - val)
+        response = sess["history"][sess["cursor"]]
 
     elif action == 'reset':
         bridge.reset()
-        debug_state["history"] = []
-        response = add_to_history(bridge.step(0))
+        sess["history"] = []
+        response = add_to_history(session_id, bridge.step(0))
 
-    if response: await sio.emit('update', response)
+    if response:
+        await sio.emit('update', response)

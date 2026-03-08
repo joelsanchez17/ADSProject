@@ -26,9 +26,22 @@ document.addEventListener('keydown', (e) => {
 
 let lastPacket = null; // Store data for redraws
 
+// NEW: Global variable to hold the student's current session ID
+let currentSessionId = null;
+
 function sendCommand(action, val=null) {
-    if (val) socket.emit('command', { action: action, value: val });
-    else socket.emit('command', { action: action });
+    if (!currentSessionId) {
+        console.warn("Cannot send command: No active session. Compile first!");
+        return;
+    }
+
+    const payload = {
+        action: action,
+        session_id: currentSessionId
+    };
+    if (val) payload.value = val;
+
+    socket.emit('command', payload);
 }
 
 // --- 3. MAIN UPDATE LOOP ---

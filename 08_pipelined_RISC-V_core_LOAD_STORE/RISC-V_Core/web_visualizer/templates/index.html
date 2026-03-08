@@ -104,13 +104,13 @@
 
 <script>
     let editor;
-    let currentFile = 'HazardUnit.scala'; // Start on this file
+    let currentFile = 'HazardDetection.scala';
 
-    // Define the skeletons for the students!
+    // THE COMPLETE SCALA CODES EXACTLY AS YOU UPLOADED THEM
     const codes = {
-        'HazardUnit.scala': `package student_code\nimport chisel3._\n\nclass HazardUnit extends Module {\n  val io = IO(new Bundle {\n    val rs1_addr = Input(UInt(5.W))\n    val stall = Output(Bool())\n  })\n  \n  // TODO: Implement load-use stall logic\n  io.stall := false.B\n}`,
+        'HazardDetection.scala': `package core_tile\n\nimport chisel3._\nimport chisel3.experimental.ChiselEnum\nimport chisel3.util._\nimport chisel3.util.experimental.loadMemoryFromFile\n\nclass HazardDetectionUnit extends  Module {\n    val io = IO(new Bundle {\n        val instr = Input(UInt(32.W))\n        val ex_RD = Input(UInt(32.W))\n        val ex_memRd = Input(memRdOpT())\n        val id_stall = Output(UInt(1.W))\n        val if_stall = Output(UInt(1.W))\n        val pcWrite = Output(UInt(1.W))\n        val coreDone = Output(UInt(1.W)) // unImp instruction has occured \n    })\n\n    val (opcode, opcode_cast) = opcodeT.safe(io.instr(6,0))\n\n    val id_rs1 = io.instr(19,15)\n    val id_rs2 = io.instr(24,20)\n\n    val check_rs1 = Wire(UInt(1.W))\n    when((opcode === opcodeT.R_type) || (opcode === opcodeT.I_type) || (opcode === opcodeT.S_type) || (opcode === opcodeT.B_type) || (opcode === opcodeT.L_type) || (opcode === opcodeT.JR_type)){check_rs1 := 1.U}\n    .otherwise{check_rs1 := 0.U}\n    \n    val check_rs2 = Wire(UInt(1.W))\n    when((opcode === opcodeT.R_type) || (opcode === opcodeT.S_type) || (opcode === opcodeT.B_type)){check_rs2 := 1.U}\n    .otherwise{check_rs2 := 0.U}\n\n    when((io.ex_memRd =/= memRdOpT.IDLE) && ((io.ex_RD === id_rs1 && check_rs1 === 1.U) || (io.ex_RD === id_rs2 && check_rs2 === 1.U))){\n        io.id_stall := 1.U\n        io.if_stall := 1.U\n        io.pcWrite  := 0.U\n    }.otherwise{\n        io.id_stall := 0.U\n        io.if_stall := 0.U\n        io.pcWrite  := 1.U\n    }\n    \n    when(opcode === opcodeT.unImp){\n        io.coreDone := 1.U\n    }.otherwise{\n        io.coreDone := 0.U\n    }\n}`,
 
-        'ALU.scala': `package student_code\nimport chisel3._\n\nclass ALU extends Module {\n  val io = IO(new Bundle {\n    val a = Input(UInt(32.W))\n    val b = Input(UInt(32.W))\n    val result = Output(UInt(32.W))\n  })\n  \n  // TODO: Implement ALU operations\n  io.result := io.a + io.b\n}`,
+        'ALU.scala': `package core_tile\n\nimport chisel3._\nimport chisel3.experimental.ChiselEnum\nimport chisel3.util._\nimport chisel3.util.experimental.loadMemoryFromFile\n\nimport ALUOpT._\nimport aluOpAMux._\nimport aluOpBMux._\n\nclass ALU extends Module {\n    val io = IO(new Bundle {\n        val ALUOp = Input(ALUOpT())\n        val operandA = Input(UInt(32.W))\n        val operandB = Input(UInt(32.W))\n        val aluResult = Output(UInt(32.W))\n    })\n\n    when(io.ALUOp === isADD)       {io.aluResult := io.operandA + io.operandB}\n    .elsewhen(io.ALUOp === isSUB)  {io.aluResult := io.operandA - io.operandB}\n    .elsewhen(io.ALUOp === isXOR)  {io.aluResult := io.operandA ^ io.operandB}\n    .elsewhen(io.ALUOp === isOR)   {io.aluResult := io.operandA | io.operandB}\n    .elsewhen(io.ALUOp === isAND)   {io.aluResult := io.operandA & io.operandB}\n    .elsewhen(io.ALUOp === isSLL)  {io.aluResult := io.operandA << io.operandB(4, 0)}\n    .elsewhen(io.ALUOp === isSRL)   {io.aluResult := io.operandA >> io.operandB(4, 0)}\n    .elsewhen(io.ALUOp === isSRA)  {io.aluResult := (io.operandA.asSInt >> io.operandB(4, 0)).asUInt} \n    .elsewhen(io.ALUOp === isSLT)  {io.aluResult := (io.operandA.asSInt < io.operandB.asSInt).asUInt} \n    .elsewhen(io.ALUOp === isSLTU) {io.aluResult := (io.operandA < io.operandB).asUInt} \n    .otherwise                     {io.aluResult := io.operandA}\n}`,
 
         'test_prog.s': `# Write your RISC-V Assembly here\naddi x1, x0, 5\naddi x2, x0, 10\nadd x3, x1, x2`
     };
@@ -125,7 +125,6 @@
             minimap: { enabled: false }
         });
 
-        // Save typing to the correct file
         editor.onDidChangeModelContent(() => {
             codes[currentFile] = editor.getValue();
         });
@@ -133,8 +132,14 @@
 
     function switchTab(filename) {
         currentFile = filename;
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        event.target.classList.add('active');
+        // Update tab UI
+        document.getElementById('tab-haz').classList.remove('active');
+        document.getElementById('tab-alu').classList.remove('active');
+        document.getElementById('tab-asm').classList.remove('active');
+
+        if(filename === 'HazardDetection.scala') document.getElementById('tab-haz').classList.add('active');
+        if(filename === 'ALU.scala') document.getElementById('tab-alu').classList.add('active');
+        if(filename === 'test_prog.s') document.getElementById('tab-asm').classList.add('active');
 
         const lang = filename.endsWith('.s') ? 'ini' : 'scala';
         monaco.editor.setModelLanguage(editor.getModel(), lang);
@@ -147,7 +152,6 @@
         consoleOut.innerHTML += "<span style='color: #888;'>[info] Booting JVM and running SBT. This may take 10-20 seconds...</span>\n";
 
         try {
-            // Separate the Scala files from the Assembly file
             const scalaFiles = {};
             for (const [name, content] of Object.entries(codes)) {
                 if (name.endsWith('.scala')) scalaFiles[name] = content;
@@ -163,18 +167,25 @@
             });
 
             const data = await response.json();
-
-            // Print the terminal logs to the console!
             consoleOut.innerHTML = `<span style="color: #ccc;">${data.logs}</span>\n`;
 
             if (data.status === "success") {
                 consoleOut.innerHTML += `\n<span class='log-success'>[success] ${data.message}</span>\n`;
+
+                // === THE JS ERROR FIX ===
+                // Attaching it to 'window' guarantees the variable is globally accessible by client.js!
+                window.currentSessionId = data.session_id;
+
+                // Now send the init command to start the pipeline simulation
+                sendCommand('init');
+
             } else {
                 consoleOut.innerHTML += `\n<span class='log-error'>[error] ${data.message}</span>\n`;
             }
 
         } catch (error) {
-            consoleOut.innerHTML += `<span class='log-error'>[error] Network connection failed. Is the Python server running?</span>\n`;
+            console.error("JAVASCRIPT ERROR: ", error);
+            consoleOut.innerHTML += `\n<span class='log-error'>[error] JS Error: ${error.message}</span>\n`;
         }
     }
 </script>

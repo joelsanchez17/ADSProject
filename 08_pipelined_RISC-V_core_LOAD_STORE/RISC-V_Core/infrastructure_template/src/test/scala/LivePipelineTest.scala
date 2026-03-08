@@ -28,8 +28,15 @@ class LivePipelineTest extends AnyFlatSpec with ChiselScalatestTester {
         def b(x: => Data): BigInt = safePeek(x)
 
         // TCP server
-        val server = new ServerSocket(8888)
-        println("\n🟦 [CHISEL] Waiting for Python on port 8888...")
+        // Read the dynamic port injected by Python, default to 8888 if it fails
+        val portString = sys.env.getOrElse("CHISEL_PORT", "8888")
+        val portNumber = portString.toInt
+
+        // TCP server
+        val server = new java.net.ServerSocket(portNumber)
+        println(s"\n洶 [CHISEL] Waiting for Python on port $portNumber...")
+
+
         val client = server.accept()
         println("🟩 [CHISEL] Connected! Starting Loop...")
 

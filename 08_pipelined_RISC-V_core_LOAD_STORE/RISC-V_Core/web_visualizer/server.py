@@ -8,6 +8,9 @@ from live_debug.decoder import decode_rv32i
 import os
 import shutil
 import uuid
+import subprocess
+from pydantic import BaseModel
+from typing import Dict
 from pydantic import BaseModel
 
 
@@ -30,42 +33,72 @@ async def read_index():
 
 
 class CompileRequest(BaseModel):
-    scala_code: str
+    scala_files: Dict[str, str]  # A dictionary of filename -> code
     asm_code: str
 
 @app.post("/compile")
 async def compile_code(req: CompileRequest):
-    # 1. Generate a unique session ID
     session_id = f"sess_{uuid.uuid4().hex[:8]}"
 
-    # 2. Path Magic
-    # base_dir is the 'web_visualizer' folder
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    # project_root is the 'RISC-V_Core' folder (one level up)
     project_root = os.path.abspath(os.path.join(base_dir, ".."))
 
     template_dir = os.path.join(project_root, "infrastructure_template")
     session_dir = os.path.join(project_root, "temp_sessions", session_id)
 
     try:
-        # 3. Copy the template to the new session folder
+        # 1. Copy Template
         shutil.copytree(template_dir, session_dir)
 
-        # 4. Write the Scala code
-        scala_path = os.path.join(session_dir, "src", "main", "scala", "student_hw.scala")
-        os.makedirs(os.path.dirname(scala_path), exist_ok=True)
-        with open(scala_path, "w") as f:
-            f.write(req.scala_code)
+        # 2. Write ALL the skeleton Scala files the student edited
+        scala_dir = os.path.join(session_dir, "src", "main", "scala", "student_code")
+        os.makedirs(scala_dir, exist_ok=True)
 
-        # 5. Write the Assembly code
+        for filename, content in req.scala_files.items():
+            file_path = os.path.join(scala_dir, filename)
+            with open(file_path, "w") as f:
+                f.write(content)
+
+        # 3. Write Assembly code
         asm_path = os.path.join(session_dir, "test_prog.s")
         with open(asm_path, "w") as f:
             f.write(req.asm_code)
 
-        return {"status": "success", "message": f"Workspace built for {session_id}"}
+        # ==========================================
+        # STAGE 3: THE COMPILER (SUBPROCESS)
+        # ==========================================
+        # Run SBT inside the temporary session folder
+        process = subprocess.run(
+            ["sbt", "testOnly *LivePipelineTest"],
+            cwd=session_dir,
+            capture_output=True,
+            text=True,
+            timeout=120  # Wait max 2 minutes for compilation
+        )
 
+        # Capture the terminal output
+        raw_logs = process.stdout + "\n" + process.stderr
+
+        # Clean up the logs so students don't see the ugly server paths
+        clean_logs = raw_logs.replace(session_dir, "[YOUR_WORKSPACE]")
+
+        if process.returncode == 0:
+            return {
+                "status": "success",
+                "message": "Compilation successful!",
+                "logs": clean_logs
+            }
+        else:
+            return {
+                "status": "error",
+                "message": "Chisel Compilation Failed. Check the logs.",
+                "logs": clean_logs
+            }
+
+    except subprocess.TimeoutExpired:
+        return {"status": "error", "message": "Compilation timed out.", "logs": "Error: SBT took longer than 120 seconds."}
     except Exception as e:
-        return {"status": "error", "message": f"File Error: {str(e)}"}
+        return {"status": "error", "message": f"Server Error: {str(e)}", "logs": ""}
 
 
 def extract_registers(instr_int):

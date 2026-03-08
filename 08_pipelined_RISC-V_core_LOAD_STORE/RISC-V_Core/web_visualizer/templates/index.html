@@ -68,8 +68,9 @@
 
     <div class="editor-panel">
         <div class="editor-tabs">
-            <button class="tab active" onclick="switchTab('scala')">student_hw.scala</button>
-            <button class="tab" onclick="switchTab('asm')">test_prog.s</button>
+            <button class="tab active" onclick="switchTab('HazardUnit.scala')">HazardUnit.scala</button>
+            <button class="tab" onclick="switchTab('ALU.scala')">ALU.scala</button>
+            <button class="tab" onclick="switchTab('test_prog.s')">test_prog.s</button>
         </div>
 
         <div id="monaco-container"></div>
@@ -103,63 +104,73 @@
 
 <script>
     let editor;
-    let currentLang = 'scala';
+    let currentFile = 'HazardUnit.scala'; // Start on this file
 
-    // Store the actual code for both files
+    // Define the skeletons for the students!
     const codes = {
-        scala: `package student_code\nimport chisel3._\n\nclass HazardUnit extends Module {\n  val io = IO(new Bundle {\n    val rs1_addr = Input(UInt(5.W))\n    val stall = Output(Bool())\n  })\n  io.stall := false.B\n}`,
-        asm: `# Write your RISC-V Assembly here\naddi x1, x0, 5\naddi x2, x0, 10\nadd x3, x1, x2`
+        'HazardUnit.scala': `package student_code\nimport chisel3._\n\nclass HazardUnit extends Module {\n  val io = IO(new Bundle {\n    val rs1_addr = Input(UInt(5.W))\n    val stall = Output(Bool())\n  })\n  \n  // TODO: Implement load-use stall logic\n  io.stall := false.B\n}`,
+
+        'ALU.scala': `package student_code\nimport chisel3._\n\nclass ALU extends Module {\n  val io = IO(new Bundle {\n    val a = Input(UInt(32.W))\n    val b = Input(UInt(32.W))\n    val result = Output(UInt(32.W))\n  })\n  \n  // TODO: Implement ALU operations\n  io.result := io.a + io.b\n}`,
+
+        'test_prog.s': `# Write your RISC-V Assembly here\naddi x1, x0, 5\naddi x2, x0, 10\nadd x3, x1, x2`
     };
 
     require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
     require(['vs/editor/editor.main'], function() {
         editor = monaco.editor.create(document.getElementById('monaco-container'), {
-            value: codes.scala,
+            value: codes[currentFile],
             language: 'scala',
             theme: 'vs-dark',
             automaticLayout: true,
             minimap: { enabled: false }
         });
 
-        // Whenever the user types, save it to our codes dictionary
+        // Save typing to the correct file
         editor.onDidChangeModelContent(() => {
-            codes[currentLang] = editor.getValue();
+            codes[currentFile] = editor.getValue();
         });
     });
 
-    function switchTab(lang) {
-        currentLang = lang;
+    function switchTab(filename) {
+        currentFile = filename;
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         event.target.classList.add('active');
 
-        const languageMap = { 'scala': 'scala', 'asm': 'ini' };
-        monaco.editor.setModelLanguage(editor.getModel(), languageMap[lang]);
-        editor.setValue(codes[lang]);
+        const lang = filename.endsWith('.s') ? 'ini' : 'scala';
+        monaco.editor.setModelLanguage(editor.getModel(), lang);
+        editor.setValue(codes[filename]);
     }
 
-    // REAL COMPILE FUNCTION
     async function compileCode() {
         const consoleOut = document.getElementById('console-output');
         consoleOut.innerHTML = "<span style='color: #38bdf8;'>[info] Submitting code to server...</span>\n";
+        consoleOut.innerHTML += "<span style='color: #888;'>[info] Booting JVM and running SBT. This may take 10-20 seconds...</span>\n";
 
         try {
-            // Send the code via POST request to FastAPI
+            // Separate the Scala files from the Assembly file
+            const scalaFiles = {};
+            for (const [name, content] of Object.entries(codes)) {
+                if (name.endsWith('.scala')) scalaFiles[name] = content;
+            }
+
             const response = await fetch('/compile', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    scala_code: codes.scala,
-                    asm_code: codes.asm
+                    scala_files: scalaFiles,
+                    asm_code: codes['test_prog.s']
                 })
             });
 
             const data = await response.json();
 
+            // Print the terminal logs to the console!
+            consoleOut.innerHTML = `<span style="color: #ccc;">${data.logs}</span>\n`;
+
             if (data.status === "success") {
-                consoleOut.innerHTML += `<span class='log-success'>[success] ${data.message}</span>\n`;
-                consoleOut.innerHTML += "<span style='color: #888;'>Ready for Stage 3 (Subprocess Compilation)...</span>\n";
+                consoleOut.innerHTML += `\n<span class='log-success'>[success] ${data.message}</span>\n`;
             } else {
-                consoleOut.innerHTML += `<span class='log-error'>[error] ${data.message}</span>\n`;
+                consoleOut.innerHTML += `\n<span class='log-error'>[error] ${data.message}</span>\n`;
             }
 
         } catch (error) {

@@ -146,15 +146,17 @@
         editor.setValue(codes[filename]);
     }
 
+
     // --- LIVE STREAMING LISTENER ---
     socket.on('build_log', (data) => {
         const consoleOut = document.getElementById('console-output');
-        consoleOut.innerHTML += `<span style="color: #ccc;">${data.line}</span><br>`;
-        consoleOut.scrollTop = consoleOut.scrollHeight; // Auto-scroll to bottom
+        consoleOut.innerHTML += `<span style="color: #ccc;">${data.line}</span>`;
+        consoleOut.scrollTop = consoleOut.scrollHeight; // Auto-scroll
     });
 
     async function compileCode() {
         const consoleOut = document.getElementById('console-output');
+        // Clear terminal before starting
         consoleOut.innerHTML = "<span style='color: #38bdf8;'>[info] Submitting code to server...</span><br>";
 
         try {
@@ -174,16 +176,17 @@
 
             const data = await response.json();
 
+            // Check if successful
             if (data.status === "success") {
                 consoleOut.innerHTML += `<br><span class='log-success'>[success] ${data.message}</span><br>`;
                 window.currentSessionId = data.session_id;
-                sendCommand('init');
+                sendCommand('init'); // Trigger the UI to grab Cycle 0
             } else {
                 consoleOut.innerHTML += `<br><span class='log-error'>[error] ${data.message}</span><br>`;
             }
 
         } catch (error) {
-            console.error(error);
+            console.error("JAVASCRIPT ERROR: ", error);
             consoleOut.innerHTML += `<br><span class='log-error'>[error] JS Error: ${error.message}</span><br>`;
         }
     }

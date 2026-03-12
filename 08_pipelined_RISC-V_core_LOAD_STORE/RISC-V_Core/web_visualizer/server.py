@@ -10,7 +10,7 @@ import shutil
 import uuid
 import subprocess
 import socket
-import asyncio  # <--- ADD THIS LINE HERE
+import asyncio
 from pydantic import BaseModel
 from typing import Dict
 
@@ -43,6 +43,7 @@ class CompileRequest(BaseModel):
     scala_files: Dict[str, str]
     asm_code: str
 
+
 @app.post("/compile")
 async def compile_code(req: CompileRequest):
     session_id = f"sess_{uuid.uuid4().hex[:8]}"
@@ -53,7 +54,6 @@ async def compile_code(req: CompileRequest):
 
     try:
         shutil.copytree(template_dir, session_dir)
-        # 1. SAVE INTO CORE_TILE
         scala_dir = os.path.join(session_dir, "src", "main", "scala", "core_tile")
         os.makedirs(scala_dir, exist_ok=True)
 
@@ -75,21 +75,22 @@ async def compile_code(req: CompileRequest):
             stderr=asyncio.subprocess.STDOUT
         )
 
+        log_output = ""
         compilation_failed = False
         chisel_ready = asyncio.Event()
 
-        # 2. BACKGROUND TASK TO PREVENT PIPE DEADLOCK
+        # 2. BACKGROUND TASK TO STREAM LOGS LIVE
         async def read_logs():
-            nonlocal compilation_failed
+            nonlocal compilation_failed, log_output
             while True:
                 line_bytes = await process.stdout.readline()
-                if not line_bytes:
-                    break
+                if not line_bytes: break
 
                 line = line_bytes.decode('utf-8', errors='replace')
-                print(line, end="", flush=True) # Send to local terminal
+                log_output += line
 
-                # Send to web browser INSTANTLY without blocking the loop
+                # Print to local terminal AND send to web socket instantly!
+                print(line, end="", flush=True)
                 asyncio.create_task(sio.emit('build_log', {'line': line.replace(session_dir, "[WORKSPACE]")}))
 
                 if "Failed tests:" in line or "Compilation failed" in line:
@@ -98,20 +99,19 @@ async def compile_code(req: CompileRequest):
                 if "Waiting for Python on port" in line:
                     chisel_ready.set()
 
-        # Start the log reader in the background forever
         asyncio.create_task(read_logs())
-
-        # 3. WAIT FOR CHISEL TO BE READY
-        await chisel_ready.wait()
+        await chisel_ready.wait() # Wait for Chisel to open the port
 
         if compilation_failed:
             process.terminate()
-            return {"status": "error", "message": "Chisel Compilation Failed. Check the logs."}
+            return {"status": "error", "message": "Chisel Compilation Failed.", "logs": log_output.replace(session_dir, "[WORKSPACE]")}
 
-        # 4. IF READY, CONNECT THE BRIDGE SAFELY
+        # 3. CONNECT TO HARDWARE & FORCE CYCLE 0
         bridge = ChiselBridge(port=student_port)
         bridge.connect()
-        initial_raw = bridge.receive_snapshot() # Get Cycle 0
+        bridge.reset() # <--- THIS FIXES THE BLANK UI! FORCES CYCLE 0 GENERATION
+
+        initial_raw = bridge.get_latest()
         initial_proc = process_snapshot(initial_raw) if initial_raw else None
 
         active_sessions[session_id] = {
@@ -121,10 +121,15 @@ async def compile_code(req: CompileRequest):
             "cursor": 0
         }
 
-        return {"status": "success", "message": "Simulation Started!", "session_id": session_id}
+        return {
+            "status": "success",
+            "message": "Simulation Started!",
+            "session_id": session_id,
+            "logs": log_output.replace(session_dir, "[WORKSPACE]") # Send full log backup
+        }
 
     except Exception as e:
-        return {"status": "error", "message": f"Server Error: {str(e)}"}
+        return {"status": "error", "message": f"Server Error: {str(e)}", "logs": ""}
 
 
 # --- HELPER FUNCTIONS ---

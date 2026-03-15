@@ -156,8 +156,10 @@
 
     async function compileCode() {
         const consoleOut = document.getElementById('console-output');
-        // Clear terminal before starting
-        consoleOut.innerHTML = "<span style='color: #38bdf8;'>[info] Submitting code to server...</span><br>";
+
+        // 1. Clear the terminal and set the font so it looks like a real terminal
+        consoleOut.style.whiteSpace = "pre-wrap";
+        consoleOut.innerHTML = "<span style='color: #38bdf8;'>[info] Submitting code to server...</span>\n";
 
         try {
             const scalaFiles = {};
@@ -176,18 +178,24 @@
 
             const data = await response.json();
 
-            // Check if successful
+            // 2. THE SNAPSHOT DUMP: If Python sent back the full logs, overwrite the terminal with them!
+            if (data.logs) {
+                consoleOut.innerHTML = `<span style="color: #d4d4d4;">${data.logs}</span>\n`;
+                consoleOut.scrollTop = consoleOut.scrollHeight;
+            }
+
+            // 3. Print the final success/error message
             if (data.status === "success") {
-                consoleOut.innerHTML += `<br><span class='log-success'>[success] ${data.message}</span><br>`;
+                consoleOut.innerHTML += `\n<span class='log-success'>[success] ${data.message}</span>\n`;
                 window.currentSessionId = data.session_id;
-                sendCommand('init'); // Trigger the UI to grab Cycle 0
+                sendCommand('init');
             } else {
-                consoleOut.innerHTML += `<br><span class='log-error'>[error] ${data.message}</span><br>`;
+                consoleOut.innerHTML += `\n<span class='log-error'>[error] ${data.message}</span>\n`;
             }
 
         } catch (error) {
             console.error("JAVASCRIPT ERROR: ", error);
-            consoleOut.innerHTML += `<br><span class='log-error'>[error] JS Error: ${error.message}</span><br>`;
+            consoleOut.innerHTML += `\n<span class='log-error'>[error] JS Error: ${error.message}</span>\n`;
         }
     }
 </script>

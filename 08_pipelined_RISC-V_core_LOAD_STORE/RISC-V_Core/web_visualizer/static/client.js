@@ -134,3 +134,14 @@ function updateRegisters(regs) {
         }
     }
 }
+
+// --- 7. LIVE TERMINAL LOGS ---
+socket.on('build_log', (data) => {
+    const consoleOut = document.getElementById('console-output');
+    if (consoleOut) {
+        // Append the incoming line from Chisel/SBT
+        consoleOut.innerHTML += `<span style="color: #d4d4d4;">${data.line}</span>`;
+        // Automatically scroll to the bottom so you can watch it compile!
+        consoleOut.scrollTop = consoleOut.scrollHeight;
+    }
+});

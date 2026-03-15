@@ -12,6 +12,7 @@ import subprocess
 import socket
 import asyncio
 from pydantic import BaseModel
+from typing import Dict, Optional
 from typing import Dict
 
 
@@ -43,7 +44,7 @@ async def read_index():
 class CompileRequest(BaseModel):
     scala_files: Dict[str, str]
     asm_code: str
-    session_id: str = None  # 🚨 NEW: Accept the session ID from the browser!
+    session_id: Optional[str] = None  # 🚨 NEW: Accept the session ID from the browser!
 
 @app.post("/compile")
 async def compile_code(req: CompileRequest):

@@ -126,6 +126,9 @@
             console.error("Could not load saved code.");
         }
     }
+    // Remember the session ID across page refreshes!
+    window.currentSessionId = localStorage.getItem('chisel_session_id') || null;
+
 
     require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
     require(['vs/editor/editor.main'], function() {
@@ -165,7 +168,9 @@
     function resetCode() {
         if(confirm("Are you sure? This will delete your code and restore the default skeleton.")) {
             localStorage.removeItem('chisel_ide_codes');
-            location.reload(); // Refresh the page to load the original const codes
+            // 🚨 NEW: Clear the old session ID so they get a fresh folder!
+            localStorage.removeItem('chisel_session_id');
+            location.reload();
         }
     }
 
@@ -189,16 +194,27 @@
                 if (name.endsWith('.scala')) scalaFiles[name] = content;
             }
 
+            // 1. Build the payload dynamically
+            const payload = {
+                scala_files: scalaFiles,
+                asm_code: codes['test_prog.s']
+            };
+
+            // 2. Only add the session_id if it is NOT null
+            if (window.currentSessionId) {
+                payload.session_id = window.currentSessionId;
+            }
+
             const response = await fetch('/compile', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    scala_files: scalaFiles,
-                    asm_code: codes['test_prog.s'],
-                    // --- NEW: Send session_id for lightning-fast backend folder reuse ---
-                    session_id: window.currentSessionId
-                })
+                body: JSON.stringify(payload) // Send the safe payload
             });
+
+            // Catch 422 errors or server crashes gracefully
+            if (!response.ok) {
+                throw new Error(`Server returned status: ${response.status}`);
+            }
 
             const data = await response.json();
 
@@ -211,7 +227,11 @@
             // 3. Print the final success/error message
             if (data.status === "success") {
                 consoleOut.innerHTML += `\n<span class='log-success'>[success] ${data.message}</span>\n`;
+
+                // 🚨 NEW: Save the ID to the window AND to the hard drive!
                 window.currentSessionId = data.session_id;
+                localStorage.setItem('chisel_session_id', data.session_id);
+
                 sendCommand('init');
             } else {
                 consoleOut.innerHTML += `\n<span class='log-error'>[error] ${data.message}</span>\n`;

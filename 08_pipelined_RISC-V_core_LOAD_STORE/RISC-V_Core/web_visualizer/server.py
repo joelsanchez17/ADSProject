@@ -39,24 +39,47 @@ def find_free_port():
 async def read_index():
     return FileResponse('web_visualizer/templates/index.html')
 
+# New from here
 class CompileRequest(BaseModel):
     scala_files: Dict[str, str]
     asm_code: str
-
+    session_id: str = None  # 🚨 NEW: Accept the session ID from the browser!
 
 @app.post("/compile")
 async def compile_code(req: CompileRequest):
-    session_id = f"sess_{uuid.uuid4().hex[:8]}"
     base_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.abspath(os.path.join(base_dir, ".."))
     template_dir = os.path.join(project_root, "infrastructure_template")
+
+    # 1. CHECK FOR SESSION REUSE
+    is_new_session = True
+    if req.session_id and req.session_id in active_sessions:
+        session_id = req.session_id
+        is_new_session = False
+        print(f"♻️  Reusing existing session: {session_id}")
+
+        # KILL the old SBT process and close the old TCP socket so the port is freed!
+        old_sess = active_sessions[session_id]
+        if old_sess.get("process"):
+            try: old_sess["process"].terminate()
+            except: pass
+        if old_sess.get("bridge") and old_sess["bridge"].sock:
+            try: old_sess["bridge"].sock.close()
+            except: pass
+    else:
+        session_id = f"sess_{uuid.uuid4().hex[:8]}"
+        print(f"🆕 Creating new session: {session_id}")
+
     session_dir = os.path.join(project_root, "temp_sessions", session_id)
+    scala_dir = os.path.join(session_dir, "src", "main", "scala", "core_tile")
 
     try:
-        shutil.copytree(template_dir, session_dir)
-        scala_dir = os.path.join(session_dir, "src", "main", "scala", "core_tile")
-        os.makedirs(scala_dir, exist_ok=True)
+        # 2. ONLY COPY THE TEMPLATE IF IT IS A BRAND NEW SESSION
+        if is_new_session:
+            shutil.copytree(template_dir, session_dir)
+            os.makedirs(scala_dir, exist_ok=True)
 
+        # 3. OVERWRITE THE FILES WITH THE NEW CODE
         for filename, content in req.scala_files.items():
             with open(os.path.join(scala_dir, filename), "w") as f:
                 f.write(content)
@@ -67,6 +90,8 @@ async def compile_code(req: CompileRequest):
         student_port = find_free_port()
         env = os.environ.copy()
         env["CHISEL_PORT"] = str(student_port)
+
+
 
         # 1. RUN SBT ASYNCHRONOUSLY
         process = await asyncio.create_subprocess_exec(

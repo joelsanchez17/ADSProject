@@ -5,6 +5,9 @@
     <title>RISC-V Cloud IDE</title>
     <link rel="stylesheet" href="/static/style.css">
     <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+    </script>
     <script src="/static/client.js" defer></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
@@ -194,13 +197,11 @@
                 if (name.endsWith('.scala')) scalaFiles[name] = content;
             }
 
-            // 1. Build the payload dynamically
             const payload = {
                 scala_files: scalaFiles,
                 asm_code: codes['test_prog.s']
             };
 
-            // 2. Only add the session_id if it is NOT null
             if (window.currentSessionId) {
                 payload.session_id = window.currentSessionId;
             }
@@ -208,39 +209,46 @@
             const response = await fetch('/compile', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload) // Send the safe payload
+                body: JSON.stringify(payload)
             });
 
-            // Catch 422 errors or server crashes gracefully
             if (!response.ok) {
                 throw new Error(`Server returned status: ${response.status}`);
             }
 
             const data = await response.json();
 
-            // 2. THE SNAPSHOT DUMP: If Python sent back the full logs, overwrite the terminal with them!
-            if (data.logs) {
-                consoleOut.innerHTML = `<span style="color: #d4d4d4;">${data.logs}</span>\n`;
-                consoleOut.scrollTop = consoleOut.scrollHeight;
-            }
+            // 🚨 REMOVED THE SNAPSHOT DUMP 🚨
+            // We rely entirely on the socket.on('build_log') stream now!
 
-            // 3. Print the final success/error message
+            // 3. Print the final success/error message cleanly
             if (data.status === "success") {
-                consoleOut.innerHTML += `\n<span class='log-success'>[success] ${data.message}</span>\n`;
+                consoleOut.innerHTML += `\n\n<span class='log-success'>[success] ${data.message}</span>\n\n`;
 
-                // 🚨 NEW: Save the ID to the window AND to the hard drive!
                 window.currentSessionId = data.session_id;
                 localStorage.setItem('chisel_session_id', data.session_id);
 
-                sendCommand('init');
+                socket.emit('join_session', data.session_id);
+
+                // 🚨 THE FIX: Increase this timeout from 100ms to 500ms!
+                // This guarantees the server has placed the socket into the private room
+                // BEFORE the browser asks for the initial Cycle 0 data.
+                setTimeout(() => {
+                    sendCommand('init');
+                }, 500);
+
             } else {
-                consoleOut.innerHTML += `\n<span class='log-error'>[error] ${data.message}</span>\n`;
+                consoleOut.innerHTML += `\n\n<span class='log-error'>[error] ${data.message}</span>\n\n`;
             }
+
+            consoleOut.scrollTop = consoleOut.scrollHeight;
 
         } catch (error) {
             console.error("JAVASCRIPT ERROR: ", error);
-            consoleOut.innerHTML += `\n<span class='log-error'>[error] JS Error: ${error.message}</span>\n`;
+            consoleOut.innerHTML += `\n\n<span class='log-error'>[error] JS Error: ${error.message}</span>\n\n`;
         }
+
+
     }
 </script>
 

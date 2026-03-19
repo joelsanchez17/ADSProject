@@ -1,4 +1,26 @@
-const socket = io();
+console.log("🚀 [CLIENT] client.js has successfully loaded into the browser!");
+
+// ==========================================
+// 🛠️ ULTIMATE SOCKET DEBUGGER 🛠️
+// ==========================================
+socket.onAny((eventName, ...args) => {
+    console.log(`📡 [RAW SOCKET TRAFFIC] Event Received: '${eventName}'`, args);
+});
+// ==========================================
+
+// If the socket connected before this script loaded, join the room immediately!
+if (socket.connected && window.currentSessionId) {
+    console.log(`🚪 [CLIENT] Socket already connected. Joining room: ${window.currentSessionId}`);
+    socket.emit('join_session', window.currentSessionId);
+}
+
+socket.on('connect', () => {
+    console.log("🟢 [CLIENT] WebSocket successfully connected to Python!");
+    if (window.currentSessionId) {
+        socket.emit('join_session', window.currentSessionId);
+    }
+});
+
 const regGrid = document.getElementById('reg-grid');
 
 // --- 1. INITIALIZE REGISTER GRID ---
@@ -18,7 +40,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 // --- TOGGLE LISTENERS ---
-['chk-fwd', 'chk-haz', 'chk-path', 'chk-reg'].forEach(id => {
+['chk-haz', 'chk-path'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
         el.addEventListener('change', () => {
@@ -32,7 +54,7 @@ let lastPacket = null;
 // --- 3. SEND COMMAND TO PYTHON ---
 function sendCommand(action, val=null) {
     if (!window.currentSessionId) {
-        console.warn("Cannot send command: No active session. Compile first!");
+        console.warn("⚠️ [CLIENT] Cannot send command: No active session.");
         return;
     }
 
@@ -42,12 +64,13 @@ function sendCommand(action, val=null) {
     };
     if (val) payload.value = val;
 
+    console.log(`📨 [CLIENT] Sending command to server:`, payload);
     socket.emit('command', payload);
 }
 
 // --- 4. RECEIVE DATA FROM PYTHON ---
 socket.on('update', (packet) => {
-    console.log("🔥 WEBSOCKET PACKET RECEIVED:", packet); // Prints to F12 Console!
+    console.log("🔥 [UI UPDATE] JSON Packet successfully arrived at visualization engine!", packet);
 
     lastPacket = packet;
     const data = packet.enriched;

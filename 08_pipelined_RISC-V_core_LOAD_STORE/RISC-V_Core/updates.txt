@@ -7,8 +7,8 @@
 Save button?
 No, Auto-Save always active
 
-Old terminal output?
-Too long and not really needed
+keep old terminal outputs?
+Too long and not really needed, every compilation clean the terminal
 
 User session in Supebase?
 At the end of the project

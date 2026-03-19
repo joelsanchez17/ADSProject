@@ -117,7 +117,12 @@ async def compile_code(req: CompileRequest):
 
                 # Print to local terminal AND send to web socket instantly!
                 print(line, end="", flush=True)
-                asyncio.create_task(sio.emit('build_log', {'line': line.replace(session_dir, "[WORKSPACE]")}))
+                # Stream directly to the specific user's room!
+                asyncio.create_task(sio.emit(
+                    'build_log',
+                    {'line': line.replace(session_dir, "[WORKSPACE]")},
+                    room=session_id  # 🚨 NEW: Target the specific room
+                ))
 
                 if "Failed tests:" in line or "Compilation failed" in line:
                     compilation_failed = True
@@ -203,20 +208,29 @@ def add_to_history(session_id, raw_snap):
     sess["history"].append(processed)
     sess["cursor"] = len(sess["history"]) - 1
     return processed
+# --- MULTI-USER SOCKET.IO EVENTS (WITH AGGRESSIVE DEBUGGING) ---
 
-# --- MULTI-USER SOCKET.IO EVENTS ---
 @sio.event
 async def connect(sid, environ):
-    pass # Do nothing! We wait until they compile to start hardware.
+    print(f"🟢 [SOCKET.IO] New browser connected with ID: {sid}")
+
+@sio.event
+async def join_session(sid, session_id):
+    sio.enter_room(sid, session_id)
+    await sio.enter_room(sid, session_id)
+    print(f"🚪 [ROOM] Browser {sid} explicitly joined private room: {session_id}")
 
 @sio.event
 async def command(sid, data):
-    print(f"⚡ [WEBSOCKET] Received command from browser: {data}") # ADD THIS
+    print(f"\n⚡ [COMMAND] Received from browser: {data}")
 
     session_id = data.get('session_id')
     if not session_id or session_id not in active_sessions:
-        print(f"❌ [WEBSOCKET] ERROR: Session {session_id} not found!") # ADD THIS
+        print(f"❌ [COMMAND] ERROR: Session {session_id} not found in active_sessions!")
         return
+
+  
+    await sio.enter_room(sid, session_id)
 
     sess = active_sessions[session_id]
     bridge = sess["bridge"]
@@ -224,15 +238,23 @@ async def command(sid, data):
     val = int(data.get('value', 1))
     response = None
 
-    if action == 'init': # Get cycle 0 right after compilation
-        if sess["history"]: response = sess["history"][0]
+    print(f"🔍 [COMMAND] Executing '{action}'. Current history length: {len(sess['history'])}")
+
+    if action == 'init':
+        if sess["history"]:
+            response = sess["history"][0]
+            print(f"✅ [COMMAND] Init successful. Grabbed Cycle 0 data.")
+        else:
+            print(f"❌ [COMMAND] ERROR: History is empty! Cycle 0 was never generated.")
 
     elif action == 'step':
         target = sess["cursor"] + 1
         if target < len(sess["history"]):
             sess["cursor"] = target
             response = sess["history"][sess["cursor"]]
+            print(f"⏪ [COMMAND] Stepped using history to cycle {sess['cursor']}")
         else:
+            print(f"⏩ [COMMAND] Advancing hardware 1 cycle...")
             response = add_to_history(session_id, bridge.step(1))
 
     elif action == 'run':
@@ -246,11 +268,18 @@ async def command(sid, data):
     elif action == 'back':
         sess["cursor"] = max(0, sess["cursor"] - val)
         response = sess["history"][sess["cursor"]]
+        print(f"⏪ [COMMAND] Went back to cycle {sess['cursor']}")
 
     elif action == 'reset':
+        print(f"🔄 [COMMAND] Resetting hardware...")
         bridge.reset()
         sess["history"] = []
         response = add_to_history(session_id, bridge.step(0))
 
     if response:
-        await sio.emit('update', response)
+        # Check exactly what instruction we are sending
+        pc_check = response.get('enriched', {}).get('pc_hex', {}).get('if', 'Unknown')
+        print(f"📤 [EMIT] Packaging data & sending to room '{session_id}'. (IF PC: {pc_check})")
+        await sio.emit('update', response, room=session_id)
+    else:
+        print(f"⚠️ [EMIT] Response was None. Nothing sent to browser.")

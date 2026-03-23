@@ -178,11 +178,7 @@
     }
 
     // --- LIVE STREAMING LISTENER ---
-    socket.on('build_log', (data) => {
-        const consoleOut = document.getElementById('console-output');
-        consoleOut.innerHTML += `<span style="color: #ccc;">${data.line}</span>`;
-        consoleOut.scrollTop = consoleOut.scrollHeight; // Auto-scroll
-    });
+
 
     async function compileCode() {
         const consoleOut = document.getElementById('console-output');

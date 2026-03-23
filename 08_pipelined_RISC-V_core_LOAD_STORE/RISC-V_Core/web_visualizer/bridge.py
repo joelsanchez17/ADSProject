@@ -36,11 +36,7 @@ class ChiselBridge:
             line = self.f.readline()
             if not line: return None
 
-            # --- DEBUG LOGGING ---
-            # Appends every packet to a file so we can inspect it later
-            with open("chisel_debug.log", "a") as log_file:
-                log_file.write(f"RAW: {line.strip()}\n")
-            # ---------------------
+
 
             data = json.loads(line)
             self.history.append(data)

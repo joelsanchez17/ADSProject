@@ -190,17 +190,16 @@
 
     async function compileCode() {
         const consoleOut = document.getElementById('console-output');
-        consoleOut.style.whiteSpace = "pre-wrap";
-        consoleOut.innerHTML = "<span style='color: #38bdf8;'>[info] Submitting code to server...</span>\n";
+        consoleOut.innerHTML = ""; // 🚨 Clear old logs cleanly
 
-        // 🚨 THE FIX: GENERATE ID AND JOIN THE ROOM BEFORE COMPILING!
+        // 🚨 Use the smart parser so it gets the correct <div> and CSS!
+        appendTerminal("[info] Submitting code to server...");
+
         if (!window.currentSessionId) {
-            // Generate a random ID (e.g. 'sess_a1b2c3d4')
             window.currentSessionId = 'sess_' + Math.random().toString(16).substring(2, 10);
             localStorage.setItem('chisel_session_id', window.currentSessionId);
         }
 
-        // Lock the browser into the room immediately so we don't miss the live SBT logs!
         socket.emit('join_session', window.currentSessionId);
 
         try {
@@ -228,22 +227,21 @@
             const data = await response.json();
 
             if (data.status === "success") {
-                // Formatted with newlines so it doesn't smush into the Chisel logs
-                consoleOut.innerHTML += `\n<span class='log-success'>[success] ${data.message}</span>\n\n`;
+                // 🚨 Use the smart parser!
+                appendTerminal(`[success] ${data.message}`);
 
                 setTimeout(() => {
                     sendCommand('init');
                 }, 500);
 
             } else {
-                consoleOut.innerHTML += `\n<span class='log-error'>[error] ${data.message}</span>\n\n`;
+                appendTerminal(`[error] ${data.message}`);
             }
 
             consoleOut.scrollTop = consoleOut.scrollHeight;
 
         } catch (error) {
-            console.error("JAVASCRIPT ERROR: ", error);
-            consoleOut.innerHTML += `\n<span class='log-error'>[error] JS Error: ${error.message}</span>\n\n`;
+            appendTerminal(`[error] JS Error: ${error.message}`);
         }
     }
 </script>

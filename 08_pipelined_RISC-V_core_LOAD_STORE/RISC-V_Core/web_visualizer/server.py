@@ -152,7 +152,12 @@ async def compile_code(req: CompileRequest):
         # 3. CONNECT TO HARDWARE & FORCE CYCLE 0
         bridge = ChiselBridge(port=student_port)
         bridge.connect()
-        bridge.reset() # <--- THIS FIXES THE BLANK UI! FORCES CYCLE 0 GENERATION
+
+        # 🚨 THE FIX: Consume the unsolicited Cycle 0 JSON that Chisel sends on boot!
+        # This keeps the TCP buffer perfectly aligned with the user's clicks.
+        bridge.receive_snapshot()
+
+        bridge.reset() # Forces a fresh Cycle 0 Generation
 
         initial_raw = bridge.get_latest()
         initial_proc = process_snapshot(initial_raw) if initial_raw else None
@@ -289,15 +294,43 @@ async def command(sid, data):
         response = add_to_history(session_id, bridge.step(0))
 
     if response:
-        # Extract the current Program Counter and Assembly instruction in the IF stage
-        current_pc = response.get('enriched', {}).get('pc_hex', {}).get('if', 'Unknown')
-        current_asm = response.get('enriched', {}).get('asm', {}).get('if', 'nop')
+        data = response.get('enriched', {})
+        cycle = data.get('cycle', 0)
 
-        # 🚨 NEW: Send a clean summary to the student's terminal!
-        summary_msg = f"▶ Cycle updated | IF_PC: {current_pc} | Fetched: {current_asm}"
+        # 1. FETCH STAGE: What is entering the pipeline?
+        if_asm = data.get('asm', {}).get('if', 'nop')
+
+        # 2. EXECUTE STAGE: What is the ALU doing right now?
+        ex_asm = data.get('asm', {}).get('ex', 'nop')
+        alu_res = data.get('ex', {}).get('alu_result', 0)
+
+        # 3. MEMORY STAGE: Are we doing a STORE instruction?
+        mem_we = data.get('mem', {}).get('we', 0)
+        mem_addr = data.get('mem', {}).get('addr', 0)
+        mem_wdata = data.get('mem', {}).get('wdata', 0)
+
+        # 4. WRITEBACK STAGE: Are we updating a register?
+        wb_we = data.get('wb', {}).get('we', 0)
+        wb_rd = data.get('wb', {}).get('rd', 0)
+        wb_data = data.get('wb', {}).get('wdata', 0)
+
+        # 5. HAZARDS: Are we stalled?
+        is_stalled = data.get('hazard', {}).get('id_stall', 0)
+
+        # --- BUILD THE SMART EDUCATIONAL STRING ---
+        # :<15 pads the string with spaces so the columns perfectly align!
+        summary_msg = f"▶ Cycle {cycle:<2} | IF: {if_asm:<15} | EX: {ex_asm:<15} (ALU: 0x{alu_res:X})"
+
+        if mem_we == 1:
+            summary_msg += f" | MEM: [0x{mem_addr:X}] \u2190 0x{mem_wdata:X}"
+
+        if wb_we == 1 and wb_rd != 0:
+            summary_msg += f" | WB: x{wb_rd} \u2190 0x{wb_data:X}"
+
+        if is_stalled == 1:
+            summary_msg += " | ⚠️ STALL"
+
         await sio.emit('build_log', {'line': summary_msg}, room=session_id)
-
-        # Send the JSON data to update the SVG
         await sio.emit('update', response, room=session_id)
     else:
         print(f"⚠️ [EMIT] Response was None. Nothing sent to browser.")

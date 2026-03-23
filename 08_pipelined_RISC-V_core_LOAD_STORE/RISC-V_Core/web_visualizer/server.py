@@ -52,14 +52,16 @@ async def compile_code(req: CompileRequest):
     project_root = os.path.abspath(os.path.join(base_dir, ".."))
     template_dir = os.path.join(project_root, "infrastructure_template")
 
-    # 1. CHECK FOR SESSION REUSE
+    # 1. SESSION REUSE LOGIC (UPDATED)
     is_new_session = True
-    if req.session_id and req.session_id in active_sessions:
-        session_id = req.session_id
+
+    # 🚨 THE FIX: Trust the Session ID provided by the browser!
+    session_id = req.session_id if req.session_id else f"sess_{uuid.uuid4().hex[:8]}"
+
+    if session_id in active_sessions:
         is_new_session = False
         print(f"♻️  Reusing existing session: {session_id}")
 
-        # KILL the old SBT process and close the old TCP socket so the port is freed!
         old_sess = active_sessions[session_id]
         if old_sess.get("process"):
             try: old_sess["process"].terminate()
@@ -68,17 +70,22 @@ async def compile_code(req: CompileRequest):
             try: old_sess["bridge"].sock.close()
             except: pass
     else:
-        session_id = f"sess_{uuid.uuid4().hex[:8]}"
         print(f"🆕 Creating new session: {session_id}")
 
     session_dir = os.path.join(project_root, "temp_sessions", session_id)
     scala_dir = os.path.join(session_dir, "src", "main", "scala", "core_tile")
 
+
+
     try:
-        # 2. ONLY COPY THE TEMPLATE IF IT IS A BRAND NEW SESSION
-        if is_new_session:
+
+        if not os.path.exists(session_dir):
             shutil.copytree(template_dir, session_dir)
             os.makedirs(scala_dir, exist_ok=True)
+            print(f"📁 Copied template to new folder: {session_dir}")
+        else:
+            print(f"📁 Folder already exists on disk. Skipping template copy.")
+            os.makedirs(scala_dir, exist_ok=True) # Ensure scala dir exists just in case
 
         # 3. OVERWRITE THE FILES WITH THE NEW CODE
         for filename, content in req.scala_files.items():

@@ -12,3 +12,9 @@ Too long and not really needed, every compilation clean the terminal
 
 User session in Supebase?
 At the end of the project
+
+Work of 23/3
+
+- Solve problem of mirroring the server terminal
+- Work of capability of student of access from any device
+

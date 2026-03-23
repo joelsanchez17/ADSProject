@@ -52,22 +52,28 @@ async def compile_code(req: CompileRequest):
     project_root = os.path.abspath(os.path.join(base_dir, ".."))
     template_dir = os.path.join(project_root, "infrastructure_template")
 
-    # 1. SESSION REUSE LOGIC (UPDATED)
     is_new_session = True
-
-    # 🚨 THE FIX: Trust the Session ID provided by the browser!
     session_id = req.session_id if req.session_id else f"sess_{uuid.uuid4().hex[:8]}"
 
+    # ---  ROBUSTNESS PATCH 1: AGGRESSIVE PROCESS CLEANUP ---
     if session_id in active_sessions:
         is_new_session = False
         print(f"♻️  Reusing existing session: {session_id}")
 
         old_sess = active_sessions[session_id]
+
+        # 1. Force kill the SBT process so it doesn't become a memory-eating Zombie
         if old_sess.get("process"):
-            try: old_sess["process"].terminate()
+            try:
+                old_sess["process"].kill()
+                await old_sess["process"].wait() # Yield until it's actually dead
             except: pass
+
+        # 2. Aggressively sever the hardware bridge TCP socket
         if old_sess.get("bridge") and old_sess["bridge"].sock:
-            try: old_sess["bridge"].sock.close()
+            try:
+                old_sess["bridge"].sock.shutdown(socket.SHUT_RDWR)
+                old_sess["bridge"].sock.close()
             except: pass
     else:
         print(f"🆕 Creating new session: {session_id}")
@@ -75,25 +81,24 @@ async def compile_code(req: CompileRequest):
     session_dir = os.path.join(project_root, "temp_sessions", session_id)
     scala_dir = os.path.join(session_dir, "src", "main", "scala", "core_tile")
 
-
-
     try:
-
+        # ---  ROBUSTNESS PATCH 2: BULLETPROOF FILE I/O ---
         if not os.path.exists(session_dir):
             shutil.copytree(template_dir, session_dir)
             os.makedirs(scala_dir, exist_ok=True)
-            print(f"📁 Copied template to new folder: {session_dir}")
         else:
-            print(f"📁 Folder already exists on disk. Skipping template copy.")
-            os.makedirs(scala_dir, exist_ok=True) # Ensure scala dir exists just in case
+            os.makedirs(scala_dir, exist_ok=True)
 
-        # 3. OVERWRITE THE FILES WITH THE NEW CODE
+        # Use 'w+' to aggressively overwrite and truncate any corrupted old files
         for filename, content in req.scala_files.items():
-            with open(os.path.join(scala_dir, filename), "w") as f:
+            filepath = os.path.join(scala_dir, filename)
+            with open(filepath, "w+") as f:
                 f.write(content)
 
-        with open(os.path.join(session_dir, "test_prog.s"), "w") as f:
+        with open(os.path.join(session_dir, "test_prog.s"), "w+") as f:
             f.write(req.asm_code)
+
+
 
         student_port = find_free_port()
         env = os.environ.copy()

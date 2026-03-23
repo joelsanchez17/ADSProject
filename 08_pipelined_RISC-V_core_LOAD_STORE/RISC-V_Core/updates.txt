@@ -16,5 +16,6 @@ At the end of the project
 Work of 23/3
 
 - Solve problem of mirroring the server terminal
-- Work of capability of student of access from any device
+- Capability of student of access from any device
+- New output visualization
 

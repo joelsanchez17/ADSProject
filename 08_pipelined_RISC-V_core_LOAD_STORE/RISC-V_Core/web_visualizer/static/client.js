@@ -62,9 +62,18 @@ function sendCommand(action, val=null) {
         action: action,
         session_id: window.currentSessionId
     };
-    if (val) payload.value = val;
+    let cmdEcho = action.toUpperCase();
+
+    if (val) {
+        payload.value = val;
+        cmdEcho += ` ${val}`;
+    }
 
     console.log(`📨 [CLIENT] Sending command to server:`, payload);
+
+    // 🚨 NEW: Echo the action to the terminal so the student sees their history!
+    if (action !== 'init') appendTerminal(`Command: ${cmdEcho}`, 'user');
+
     socket.emit('command', payload);
 }
 
@@ -158,13 +167,37 @@ function updateRegisters(regs) {
     }
 }
 
-// --- 7. LIVE TERMINAL LOGS ---
-socket.on('build_log', (data) => {
+// --- 7. LIVE TERMINAL LOGS (SMART PARSER) ---
+function appendTerminal(text, type = 'default') {
     const consoleOut = document.getElementById('console-output');
-    if (consoleOut) {
-        // Append the incoming line from Chisel/SBT
-        consoleOut.innerHTML += `<span style="color: #d4d4d4;">${data.line}</span>`;
-        // Automatically scroll to the bottom so you can watch it compile!
-        consoleOut.scrollTop = consoleOut.scrollHeight;
+    if (!consoleOut || !text.trim()) return;
+
+    let cssClass = 'term-line';
+    let formattedText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;"); // Sanitize HTML
+
+    // Auto-Colorizer Logic
+    if (type === 'user') {
+        cssClass += ' term-user';
+        formattedText = `➜ ${formattedText}`;
+    } else if (formattedText.includes('[info]')) {
+        formattedText = formattedText.replace('[info]', '<span class="term-info">[info]</span>');
+    } else if (formattedText.includes('[error]')) {
+        cssClass += ' term-error';
+    } else if (formattedText.includes('[success]')) {
+        cssClass += ' term-success';
+    } else if (formattedText.includes('[CHISEL]')) {
+        formattedText = formattedText.replace('[CHISEL]', '<span class="term-chisel">⚙️ [HARDWARE]</span>');
+    } else if (formattedText.includes('▶ Cycle')) {
+        cssClass += ' term-cycle';
     }
+
+    const lineDiv = document.createElement('div');
+    lineDiv.className = cssClass;
+    lineDiv.innerHTML = formattedText;
+    consoleOut.appendChild(lineDiv);
+    consoleOut.scrollTop = consoleOut.scrollHeight;
+}
+
+socket.on('build_log', (data) => {
+    appendTerminal(data.line);
 });

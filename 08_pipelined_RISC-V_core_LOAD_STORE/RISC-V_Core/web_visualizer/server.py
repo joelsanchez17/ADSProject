@@ -289,9 +289,15 @@ async def command(sid, data):
         response = add_to_history(session_id, bridge.step(0))
 
     if response:
-        # Check exactly what instruction we are sending
-        pc_check = response.get('enriched', {}).get('pc_hex', {}).get('if', 'Unknown')
-        print(f"📤 [EMIT] Packaging data & sending to room '{session_id}'. (IF PC: {pc_check})")
+        # Extract the current Program Counter and Assembly instruction in the IF stage
+        current_pc = response.get('enriched', {}).get('pc_hex', {}).get('if', 'Unknown')
+        current_asm = response.get('enriched', {}).get('asm', {}).get('if', 'nop')
+
+        # 🚨 NEW: Send a clean summary to the student's terminal!
+        summary_msg = f"▶ Cycle updated | IF_PC: {current_pc} | Fetched: {current_asm}"
+        await sio.emit('build_log', {'line': summary_msg}, room=session_id)
+
+        # Send the JSON data to update the SVG
         await sio.emit('update', response, room=session_id)
     else:
         print(f"⚠️ [EMIT] Response was None. Nothing sent to browser.")

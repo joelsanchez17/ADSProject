@@ -19,3 +19,5 @@ Work of 23/3
 - Capability of student of access from any device
 - New output visualization
 
+Visualizing Pipeline Hazards
+Export / Import Project

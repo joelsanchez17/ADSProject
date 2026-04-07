@@ -233,7 +233,7 @@ async def connect(sid, environ):
 
 @sio.event
 async def join_session(sid, session_id):
-    sio.enter_room(sid, session_id)
+    # sio.enter_room(sid, session_id)
     await sio.enter_room(sid, session_id)
     print(f"🚪 [ROOM] Browser {sid} explicitly joined private room: {session_id}")
 

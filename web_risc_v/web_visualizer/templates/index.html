@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>RISC-V Cloud IDE</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+    </script>
+    <script src="/static/client.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
+
+    <style>
+        /* === VS CODE THEME & LAYOUT === */
+        :root {
+            --bg-dark: #1e1e1e; --bg-panel: #252526; --bg-tree: #181818;
+            --border: #3e3e42; --accent: #007acc; --text-main: #cccccc;
+            --tab-active: #1e1e1e; --tab-inactive: #2d2d30;
+        }
+        body { margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; background: var(--bg-dark); color: var(--text-main); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        /* Toolbar */
+        .toolbar { display: flex; justify-content: space-between; align-items: center; padding: 8px 15px; background: #333333; border-bottom: 1px solid #000; box-shadow: 0 2px 5px rgba(0,0,0,0.3); z-index: 10; }
+        .brand { font-size: 15px; font-weight: bold; color: #38bdf8; letter-spacing: 1px; }
+
+        .btn { background: var(--bg-panel); color: #fff; border: 1px solid #555; padding: 5px 12px; cursor: pointer; border-radius: 3px; font-weight: bold; transition: 0.2s; }
+        .btn:hover { background: #3e3e42; }
+        .btn-compile { background: var(--accent); border-color: var(--accent); }
+        .btn-compile:hover { background: #0098ff; }
+        .btn-danger { background: #d32f2f; border-color: #d32f2f; }
+
+        /* Main Workspace Split */
+        .workspace { display: flex; flex: 1; overflow: hidden; }
+
+        /* Left Sidebar: VS Code File Tree */
+        .sidebar-tree { width: 220px; background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+        .tree-header { padding: 10px; font-size: 11px; font-weight: bold; letter-spacing: 1px; color: #888; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+        .tree-content { flex: 1; overflow-y: auto; padding-top: 10px; }
+
+        .tree-item { padding: 4px 10px; cursor: pointer; font-size: 13px; display: flex; align-items: center; user-select: none; }
+        .tree-item:hover { background: #2a2d2e; }
+        .tree-item.active { background: #37373d; color: #fff; }
+        .indent-1 { padding-left: 20px; color: #aaa; }
+        .indent-2 { padding-left: 35px; color: #ccc; }
+        .icon { width: 20px; text-align: center; margin-right: 5px; font-size: 14px; }
+
+        /* Center Main Area */
+        .main-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-dark); }
+
+        /* Tabs */
+        .editor-tabs { display: flex; background: var(--bg-panel); border-bottom: 1px solid var(--border); overflow-x: auto; }
+        .tab { padding: 8px 15px; background: var(--tab-inactive); border: none; color: #888; cursor: pointer; font-family: monospace; font-size: 13px; display: flex; align-items: center; border-right: 1px solid var(--border); }
+        .tab.active { background: var(--tab-active); color: #38bdf8; border-top: 2px solid #38bdf8; }
+        .tab:hover:not(.active) { background: #333; }
+
+        /* Dynamic Containers */
+        .content-container { flex: 1; display: flex; position: relative; }
+        #monaco-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+        #viz-container { width: 100%; height: 100%; display: none; background: var(--bg-dark); }
+
+        /* Visualizer Layout */
+        .viz-svg { flex: 2; padding: 10px; display: flex; justify-content: center; align-items: center; overflow: auto; }
+        .viz-sidebar { flex: 1; border-left: 1px solid var(--border); background: var(--bg-panel); display: flex; flex-direction: column; max-width: 350px; }
+
+        /* Terminal */
+        .terminal-panel { height: 28%; background: #000; border-top: 1px solid var(--border); display: flex; flex-direction: column; }
+        .terminal-header { background: #2d2d30; padding: 4px 10px; font-size: 11px; color: #ccc; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; }
+        #console-output { flex: 1; padding: 10px; font-family: 'Consolas', monospace; font-size: 13px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+
+<div class="toolbar">
+    <div class="brand">⚡ RISC-V CLOUD IDE</div>
+    <div class="controls">
+        <button class="btn" onclick="exportProject()" title="Save your code to your computer">⬇️ Export</button>
+        <button class="btn" style="background: #e43a3a; border-color: #e43a3a;" onclick="resetCode()">↻ Reset Code</button>
+        <button class="btn btn-danger" onclick="sendCommand('reset')">🔄 Reset HW</button>
+        <button class="btn btn-compile" onclick="compileCode()">▶ Compile & Simulate</button>
+    </div>
+</div>
+
+<div class="workspace">
+    <!-- LEFT: VS Code Style File Tree -->
+    <div class="sidebar-tree">
+        <div class="tree-header">EXPLORER</div>
+        <div class="tree-content">
+            <div class="tree-item"><span class="icon">📂</span> core_tile</div>
+            <div class="tree-item indent-1" id="tree-haz" onclick="switchTab('HazardDetection.scala')"><span class="icon">📄</span> HazardDetection.scala</div>
+            <div class="tree-item indent-1" id="tree-alu" onclick="switchTab('ALU.scala')"><span class="icon">📄</span> ALU.scala</div>
+
+            <div class="tree-item" style="margin-top: 10px;"><span class="icon">📂</span> programs</div>
+            <div class="tree-item indent-1" id="tree-asm" onclick="switchTab('test_prog.s')"><span class="icon">📄</span> test_prog.s</div>
+        </div>
+    </div>
+
+    <!-- CENTER: Main Area -->
+    <div class="main-area">
+        <!-- Tabs -->
+        <div class="editor-tabs">
+            <button id="tab-code" class="tab active" onclick="switchTab(currentFile)">📝 Code Editor</button>
+            <button id="tab-viz" class="tab" onclick="switchView('viz')">👁️ Pipeline Visualizer</button>
+            <div style="flex: 1;"></div> <!-- Spacer -->
+            <button class="btn" style="margin: 3px; background: transparent; border: 1px solid #555;" onclick="sendCommand('step')">⏭ Step Cycle</button>
+        </div>
+
+        <!-- Dynamic Content Area -->
+        <div class="content-container">
+            <!-- 1. Monaco Code Editor -->
+            <div id="monaco-container"></div>
+
+            <!-- 2. Pipeline Visualizer & Registers -->
+            <div id="viz-container">
+                <div class="viz-svg">
+                    <object id="pipeline-svg" data="/static/pipeline.svg" type="image/svg+xml" style="width: 100%; height: 100%;"></object>
+                </div>
+                <div class="viz-sidebar">
+                    <div class="panel-header" style="background:#333; padding:8px; font-size:12px; font-weight:bold;">Toggles</div>
+                    <div style="padding: 10px; font-size: 12px; display:flex; gap:10px;">
+                        <label><input type="checkbox" id="chk-haz" checked> Hazards</label>
+                        <label><input type="checkbox" id="chk-path" checked> Datapath</label>
+                    </div>
+                    <div class="panel-header" style="background:#333; padding:8px; font-size:12px; font-weight:bold;">Register File</div>
+                    <div class="reg-grid" id="reg-grid" style="display:grid; grid-template-columns:repeat(4,1fr); gap:4px; padding:10px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- BOTTOM: Smart Terminal -->
+<div class="terminal-panel">
+    <div class="terminal-header">
+        <span>Terminal Output</span>
+        <button onclick="clearTerminal()" style="background:transparent; border:none; color:#888; cursor:pointer;" title="Clear Logs">🗑️ Clear</button>
+    </div>
+    <div id="console-output">Welcome to the RISC-V Cloud IDE. Ready.</div>
+</div>
+
+<script>
+    // ==========================================
+    // 1. GLOBAL VARIABLES & SETUP
+    // ==========================================
+    let editor;
+    let currentFile = '';
+    let codes = {};
+    let lastPacket = null;
+
+    window.currentSessionId = localStorage.getItem('chisel_session_id') || null;
+
+    if (socket.connected && window.currentSessionId) {
+        socket.emit('join_session', window.currentSessionId);
+    }
+    socket.on('connect', () => {
+        if (window.currentSessionId) socket.emit('join_session', window.currentSessionId);
+    });
+
+    // ==========================================
+    // 2. TERMINAL LOGIC (RESTORED!)
+    // ==========================================
+    function appendTerminal(text, type = 'default') {
+        const consoleOut = document.getElementById('console-output');
+        if (!consoleOut || !text.trim()) return;
+
+        let cssClass = 'term-line';
+        let formattedText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+        if (type === 'user') {
+            cssClass += ' term-user';
+            formattedText = `➜ ${formattedText}`;
+        } else if (formattedText.includes('[info]')) {
+            formattedText = formattedText.replace('[info]', '<span class="term-info">[info]</span>');
+        } else if (formattedText.includes('[error]')) {
+            cssClass += ' term-error';
+        } else if (formattedText.includes('[success]')) {
+            cssClass += ' term-success';
+        } else if (formattedText.includes('[CHISEL]')) {
+            formattedText = formattedText.replace('[CHISEL]', '<span class="term-chisel">⚙️ [HARDWARE]</span>');
+        } else if (formattedText.includes('▶ Cycle')) {
+            cssClass += ' term-cycle';
+        }
+
+        const lineDiv = document.createElement('div');
+        lineDiv.className = cssClass;
+        lineDiv.innerHTML = formattedText;
+        consoleOut.appendChild(lineDiv);
+        consoleOut.scrollTop = consoleOut.scrollHeight;
+    }
+
+    function clearTerminal() {
+        document.getElementById('console-output').innerHTML = '';
+    }
+
+    socket.on('build_log', (data) => appendTerminal(data.line));
+
+    // ==========================================
+    // 3. HARDWARE COMMUNICATION & VISUALIZER (RESTORED!)
+    // ==========================================
+    function sendCommand(action, val=null) {
+        if (!window.currentSessionId) return;
+        const payload = { action: action, session_id: window.currentSessionId };
+        let cmdEcho = action.toUpperCase();
+
+        if (val) { payload.value = val; cmdEcho += ` ${val}`; }
+        if (action !== 'init') appendTerminal(`Command: ${cmdEcho}`, 'user');
+
+        socket.emit('command', payload);
+    }
+
+    socket.on('update', (packet) => {
+        lastPacket = packet;
+        updateSVG(packet.enriched);
+        updateRegisters(packet.registers);
+    });
+
+    function updateSVG(data) {
+        try {
+            let svgDoc = document;
+            const svgObj = document.getElementById('pipeline-svg');
+            if (svgObj && svgObj.contentDocument) svgDoc = svgObj.contentDocument;
+
+            const bg = svgDoc.querySelector('rect');
+            if (bg) {
+                bg.setAttribute('fill', '#333333');
+                setTimeout(() => bg.setAttribute('fill', '#1e1e1e'), 150);
+            }
+
+            const setText = (id, text, color) => {
+                const el = svgDoc.getElementById(id);
+                if (el) {
+                    el.textContent = text;
+                    if (color) el.setAttribute('fill', color);
+                }
+            };
+
+            setText('txt-pc-if', `PC: ${data.pc_hex?.if || '--'}`, '#bbb');
+            setText('txt-asm-if', data.asm?.if || 'nop', '#4ec9b0');
+
+            setText('txt-pc-id', data.pc_hex?.id || '--', '#666');
+            setText('txt-asm-id', data.asm?.id || 'nop', '#4ec9b0');
+            if (data.id_info) {
+                setText('txt-rs1-id', `rs1: x${data.id_info.rs1}`, '#ccc');
+                setText('txt-rs2-id', `rs2: x${data.id_info.rs2}`, '#ccc');
+                setText('txt-rd-id', `->rd: x${data.id_info.rd}`, '#ccc');
+            }
+
+            setText('txt-pc-ex', data.pc_hex?.ex || '--', '#666');
+            setText('txt-asm-ex', data.asm?.ex || 'nop', '#4ec9b0');
+            setText('txt-op-a', `A: ${data.ex?.val_a || 0}`, '#aaa');
+            setText('txt-op-b', `B: ${data.ex?.val_b || 0}`, '#aaa');
+            setText('txt-alu-ex', `Res: ${data.ex?.alu_result || '0x0'}`, '#fff');
+
+            setText('txt-pc-mem', data.pc_hex?.mem || '--', '#666');
+            setText('txt-asm-mem', data.asm?.mem || 'nop', '#4ec9b0');
+
+            setText('txt-pc-wb', data.pc_hex?.wb || '--', '#666');
+            setText('txt-asm-wb', data.asm?.wb || 'nop', '#4ec9b0');
+        } catch (error) { console.error("SVG Update Error:", error); }
+    }
+
+    function updateRegisters(regs) {
+        if (!regs) return;
+        const regGrid = document.getElementById('reg-grid');
+        if (regGrid && regGrid.innerHTML === "") {
+            for (let i = 0; i < 32; i++) {
+                regGrid.innerHTML += `<div class="reg-box" id="reg-box-${i}"><span class="reg-name">x${i}</span><div class="reg-val" id="reg-val-${i}">0</div></div>`;
+            }
+        }
+        for (let i = 0; i < 32; i++) {
+            const valEl = document.getElementById(`reg-val-${i}`);
+            if (valEl && regs[i] !== undefined) {
+                const hexVal = "0x" + (regs[i] >>> 0).toString(16);
+                if (valEl.textContent !== hexVal && valEl.textContent !== "0") valEl.style.color = "#f48771";
+                else valEl.style.color = "#4ec9b0";
+                valEl.textContent = hexVal;
+            }
+        }
+    }
+
+    // ==========================================
+    // 4. DYNAMIC WORKSPACE LOADER
+    // ==========================================
+    async function initWorkspace() {
+        const savedCodes = localStorage.getItem('chisel_ide_codes');
+        if (savedCodes) {
+            try {
+                codes = JSON.parse(savedCodes);
+                buildFileTreeAndEditor();
+                return;
+            } catch(e) { console.error("Could not parse local storage."); }
+        }
+
+        appendTerminal("[info] Fetching pristine workspace from server...");
+        try {
+            const response = await fetch('/workspace');
+            const data = await response.json();
+
+            for (const [name, content] of Object.entries(data.scala)) codes[name] = content;
+            for (const [name, content] of Object.entries(data.asm)) codes[name] = content;
+
+            localStorage.setItem('chisel_ide_codes', JSON.stringify(codes));
+            buildFileTreeAndEditor();
+            appendTerminal("[success] Workspace loaded successfully.");
+        } catch (error) {
+            appendTerminal(`[error] Failed to fetch workspace: ${error.message}`);
+        }
+    }
+
+    function buildFileTreeAndEditor() {
+        const treeContent = document.querySelector('.tree-content');
+        treeContent.innerHTML = `<div class="tree-item"><span class="icon">📂</span> scala</div>`;
+
+        let firstFile = null;
+
+        for (const filename of Object.keys(codes)) {
+            if (filename === 'BinaryFile') continue;
+            if (!firstFile) firstFile = filename;
+
+            const safeId = filename.replace('.scala', '');
+            treeContent.innerHTML += `<div class="tree-item indent-1" id="tree-${safeId}" onclick="switchTab('${filename}')"><span class="icon">📄</span> ${filename}</div>`;
+        }
+
+        treeContent.innerHTML += `<div class="tree-item" style="margin-top: 10px;"><span class="icon">📂</span> programs</div>`;
+        if (codes['BinaryFile'] !== undefined) {
+            treeContent.innerHTML += `<div class="tree-item indent-1" id="tree-BinaryFile" onclick="switchTab('BinaryFile')"><span class="icon">📄</span> BinaryFile</div>`;
+            if (!firstFile) firstFile = 'BinaryFile';
+        }
+
+        currentFile = firstFile;
+
+        if (!currentFile) {
+            appendTerminal("[error] CRASH PREVENTED: No files were found in your template folder.");
+            document.getElementById('monaco-container').innerHTML = "<h3 style='color:#f48771; padding: 20px;'>Error: No files loaded.</h3>";
+            return;
+        }
+
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
+        require(['vs/editor/editor.main'], function() {
+            editor = monaco.editor.create(document.getElementById('monaco-container'), {
+                value: codes[currentFile],
+                language: currentFile.endsWith('.scala') ? 'scala' : 'ini',
+                theme: 'vs-dark',
+                automaticLayout: true,
+                minimap: { enabled: false }
+            });
+
+            editor.onDidChangeModelContent(() => {
+                codes[currentFile] = editor.getValue();
+                localStorage.setItem('chisel_ide_codes', JSON.stringify(codes));
+            });
+
+            highlightTreeItem(currentFile);
+        });
+    }
+
+    // ==========================================
+    // 5. UI CONTROLS & COMPILER
+    // ==========================================
+    function switchView(target) {
+        if (target === 'viz') {
+            document.getElementById('monaco-container').style.display = 'none';
+            document.getElementById('viz-container').style.display = 'flex';
+            document.getElementById('tab-code').classList.remove('active');
+            document.getElementById('tab-viz').classList.add('active');
+            document.getElementById('tab-code').innerText = `📝 Code (${currentFile})`;
+        } else {
+            document.getElementById('viz-container').style.display = 'none';
+            document.getElementById('monaco-container').style.display = 'block';
+            document.getElementById('tab-viz').classList.remove('active');
+            document.getElementById('tab-code').classList.add('active');
+            document.getElementById('tab-code').innerText = `📝 Code Editor`;
+            if(editor) editor.layout();
+        }
+    }
+
+    function switchTab(filename) {
+        if (!editor) return;
+        currentFile = filename;
+        const lang = filename.endsWith('.scala') ? 'scala' : 'ini';
+        monaco.editor.setModelLanguage(editor.getModel(), lang);
+        editor.setValue(codes[filename]);
+
+        switchView('code');
+        highlightTreeItem(filename);
+    }
+
+    function highlightTreeItem(filename) {
+        document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('active'));
+        const safeId = filename.replace('.scala', '');
+        const treeEl = document.getElementById(`tree-${safeId}`);
+        if (treeEl) treeEl.classList.add('active');
+    }
+
+    function exportProject() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(codes, null, 2));
+        const anchor = document.createElement('a');
+        anchor.setAttribute("href", dataStr);
+        anchor.setAttribute("download", "riscv_project_backup.json");
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        appendTerminal("[info] Project exported to your computer successfully.");
+    }
+
+    function resetCode() {
+        if(confirm("Are you sure? This will restore pristine files from the server.")) {
+            localStorage.removeItem('chisel_ide_codes');
+            location.reload();
+        }
+    }
+
+    async function compileCode() {
+        clearTerminal();
+        appendTerminal("[info] Submitting code to server...");
+
+        if (!window.currentSessionId) {
+            window.currentSessionId = 'sess_' + Math.random().toString(16).substring(2, 10);
+            localStorage.setItem('chisel_session_id', window.currentSessionId);
+        }
+        socket.emit('join_session', window.currentSessionId);
+
+        try {
+            const scalaFiles = {};
+            for (const [name, content] of Object.entries(codes)) {
+                if (name.endsWith('.scala')) scalaFiles[name] = content;
+            }
+
+            // 🚨 FIX: Pass BinaryFile to the compiler instead of test_prog.s
+            const payload = {
+                scala_files: scalaFiles,
+                asm_code: codes['BinaryFile'] || "",
+                session_id: window.currentSessionId
+            };
+
+            const response = await fetch('/compile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+
+            if (!response.ok) throw new Error(`Server returned status: ${response.status}`);
+            const data = await response.json();
+
+            if (data.status === "success") {
+                appendTerminal(`[success] ${data.message}`);
+                switchView('viz');
+                setTimeout(() => { sendCommand('init'); }, 500);
+            } else {
+                appendTerminal(`[error] ${data.message}`);
+            }
+        } catch (error) {
+            appendTerminal(`[error] JS Error: ${error.message}`);
+        }
+    }
+
+    // Initialize Keyboard bindings and View Toggles
+    document.addEventListener('keydown', (e) => {
+        if (e.key === "ArrowRight") sendCommand('step');
+        if (e.key === "ArrowLeft")  sendCommand('back');
+    });
+
+    ['chk-haz', 'chk-path'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => { if (lastPacket) updateSVG(lastPacket.enriched); });
+    });
+
+    // Boot up the system!
+    initWorkspace();
+</script>
+</body>
+</html>

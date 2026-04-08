@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>RISC-V Cloud IDE</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+    </script>
+    <script src="/static/client.js" defer></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
+
+    <style>
+        /* === NEW CLOUD IDE LAYOUT === */
+        body { margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; background: #1e1e1e; color: #fff; }
+
+        .toolbar { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background: #252526; border-bottom: 1px solid #3e3e42; }
+        .brand { font-size: 16px; font-weight: bold; color: #38bdf8; }
+
+        /* Split Screen Container */
+        .ide-container { display: flex; height: calc(100vh - 50px); width: 100%; }
+
+        /* Left Panel: Editor */
+        .editor-panel { width: 35%; display: flex; flex-direction: column; border-right: 1px solid #3e3e42; background: #1e1e1e; }
+        .editor-tabs { display: flex; background: #2d2d30; }
+        .tab { padding: 8px 15px; background: #2d2d30; border: none; color: #888; cursor: pointer; font-family: monospace; font-size: 13px; }
+        .tab.active { background: #1e1e1e; color: #fff; border-top: 2px solid #38bdf8; }
+
+        #monaco-container { flex-grow: 1; width: 100%; }
+
+        /* UPDATE: Changed to space-between to fit the reset button gracefully */
+        .compile-bar { padding: 10px; background: #252526; border-top: 1px solid #3e3e42; display: flex; justify-content: space-between; }
+        .btn-compile { background: #007acc; color: white; border: none; padding: 8px 16px; cursor: pointer; font-weight: bold; border-radius: 3px; }
+        .btn-compile:hover { background: #0098ff; }
+
+        /* Right Panel: Visualizer & Console */
+        .right-panel { width: 65%; display: flex; flex-direction: column; }
+
+        .viz-top { display: flex; height: 75%; }
+        .viz-area { flex-grow: 1; padding: 10px; overflow: auto; display: flex; justify-content: center; align-items: center; }
+        .sidebar { width: 300px; background: #252526; padding: 10px; overflow-y: auto; border-left: 1px solid #3e3e42; }
+
+        /* Console Output Panel */
+        .console-panel { height: 25%; background: #000; border-top: 1px solid #3e3e42; display: flex; flex-direction: column; }
+        .console-header { background: #2d2d30; padding: 5px 10px; font-size: 12px; color: #ccc; text-transform: uppercase; }
+        #console-output { flex-grow: 1; padding: 10px; font-family: monospace; font-size: 13px; color: #d4d4d4; overflow-y: auto; white-space: pre-wrap; }
+        .log-error { color: #f48771; }
+        .log-success { color: #89d185; }
+
+        /* Existing View Toggles */
+        .toggles { display: flex; gap: 15px; font-size: 12px; }
+        .toggle-btn { cursor: pointer; }
+        /* --- SMART TERMINAL CSS --- */
+        .term-line { padding: 2px 0; font-family: monospace; word-wrap: break-word; display: block; border-bottom: 1px solid #2a2a2a; }
+        .term-info { color: #569cd6; } /* VS Code Blue */
+        .term-success { color: #4ec9b0; font-weight: bold; }
+        .term-error { color: #f48771; font-weight: bold; }
+        .term-chisel { color: #ce9178; font-weight: bold; } /* Orange */
+        .term-cycle { color: #b5cea8; } /* Light Green */
+        .term-user { color: #c586c0; font-style: italic; font-weight: bold; background: #252526; } /* Purple */
+    </style>
+</head>
+<body>
+
+<div class="toolbar">
+    <div class="brand">⚡ RISC-V CHISEL CLOUD IDE</div>
+    <div class="toggles">
+        <label class="toggle-btn"><input type="checkbox" id="chk-haz" checked> Hazards</label>
+        <label class="toggle-btn"><input type="checkbox" id="chk-path" checked> Datapath</label>
+    </div>
+    <div class="controls">
+        <button onclick="sendCommand('step')">⏭ Step</button>
+        <button onclick="sendCommand('reset')" style="background:#d32f2f; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer;">🔄 Reset</button>
+    </div>
+</div>
+
+<div class="ide-container">
+
+    <div class="editor-panel">
+        <div class="editor-tabs">
+            <button id="tab-haz" class="tab active" onclick="switchTab('HazardDetection.scala')">HazardDetection.scala</button>
+            <button id="tab-alu" class="tab" onclick="switchTab('ALU.scala')">ALU.scala</button>
+            <button id="tab-asm" class="tab" onclick="switchTab('test_prog.s')">test_prog.s</button>
+        </div>
+
+        <div id="monaco-container"></div>
+
+        <div class="compile-bar">
+            <button onclick="resetCode()" style="background: #e43a3a; color: white; border: none; padding: 8px 16px; cursor: pointer; font-weight: bold; border-radius: 3px;">↺ Reset Code</button>
+            <button class="btn-compile" onclick="compileCode()">▶ Compile & Simulate</button>
+        </div>
+    </div>
+
+    <div class="right-panel">
+        <div class="viz-top">
+            <div class="viz-area">
+                <object id="pipeline-svg" data="/static/pipeline.svg" type="image/svg+xml" style="width: 100%; height: 100%;"></object>
+            </div>
+
+            <div class="sidebar">
+                <div class="panel-header">Pipeline Status</div>
+                <div id="hazard-list" style="margin-bottom: 15px; font-size: 12px;">System Ready...</div>
+
+                <div class="panel-header">Register File</div>
+                <div class="reg-grid" id="reg-grid"></div>
+            </div>
+        </div>
+
+        <div class="console-panel">
+            <div class="console-header">Terminal Output</div>
+            <div id="console-output">Welcome to ADSI Cloud IDE.<br>Ready to compile...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let editor;
+    let currentFile = 'HazardDetection.scala';
+
+    const codes = {
+        'HazardDetection.scala': `package core_tile\n\nimport chisel3._\nimport chisel3.experimental.ChiselEnum\nimport chisel3.util._\nimport chisel3.util.experimental.loadMemoryFromFile\n\nclass HazardDetectionUnit extends  Module {\n    val io = IO(new Bundle {\n        val instr = Input(UInt(32.W))\n        val ex_RD = Input(UInt(32.W))\n        val ex_memRd = Input(memRdOpT())\n        val id_stall = Output(UInt(1.W))\n        val if_stall = Output(UInt(1.W))\n        val pcWrite = Output(UInt(1.W))\n        val coreDone = Output(UInt(1.W)) \n    })\n\n    val (opcode, opcode_cast) = opcodeT.safe(io.instr(6,0))\n\n    val id_rs1 = io.instr(19,15)\n    val id_rs2 = io.instr(24,20)\n\n    val check_rs1 = Wire(UInt(1.W))\n    when((opcode === opcodeT.R_type) || (opcode === opcodeT.I_type) || (opcode === opcodeT.S_type) || (opcode === opcodeT.B_type) || (opcode === opcodeT.L_type) || (opcode === opcodeT.JR_type)){check_rs1 := 1.U}\n    .otherwise{check_rs1 := 0.U}\n    \n    val check_rs2 = Wire(UInt(1.W))\n    when((opcode === opcodeT.R_type) || (opcode === opcodeT.S_type) || (opcode === opcodeT.B_type)){check_rs2 := 1.U}\n    .otherwise{check_rs2 := 0.U}\n\n    when((io.ex_memRd =/= memRdOpT.IDLE) && ((io.ex_RD === id_rs1 && check_rs1 === 1.U) || (io.ex_RD === id_rs2 && check_rs2 === 1.U))){\n        io.id_stall := 1.U\n        io.if_stall := 1.U\n        io.pcWrite  := 0.U\n    }.otherwise{\n        io.id_stall := 0.U\n        io.if_stall := 0.U\n        io.pcWrite  := 1.U\n    }\n    \n    // I commented this out because your template threw an error on 'unImp'\n    // when(opcode === opcodeT.unImp){ io.coreDone := 1.U }.otherwise{ io.coreDone := 0.U }\n    io.coreDone := 0.U\n}`,
+
+        'ALU.scala': `package core_tile\n\nimport chisel3._\nimport chisel3.experimental.ChiselEnum\nimport chisel3.util._\nimport chisel3.util.experimental.loadMemoryFromFile\n\nimport ALUOpT._\nimport aluOpAMux._\nimport aluOpBMux._\n\nclass ALU extends Module {\n    val io = IO(new Bundle {\n        val ALUOp = Input(ALUOpT())\n        val operandA = Input(UInt(32.W))\n        val operandB = Input(UInt(32.W))\n        val aluResult = Output(UInt(32.W))\n    })\n\n    when(io.ALUOp === isADD)       {io.aluResult := io.operandA + io.operandB}\n    .elsewhen(io.ALUOp === isSUB)  {io.aluResult := io.operandA - io.operandB}\n    .elsewhen(io.ALUOp === isXOR)  {io.aluResult := io.operandA ^ io.operandB}\n    .elsewhen(io.ALUOp === isOR)   {io.aluResult := io.operandA | io.operandB}\n    .elsewhen(io.ALUOp === isAND)   {io.aluResult := io.operandA & io.operandB}\n    .elsewhen(io.ALUOp === isSLL)  {io.aluResult := io.operandA << io.operandB(4, 0)}\n    .elsewhen(io.ALUOp === isSRL)   {io.aluResult := io.operandA >> io.operandB(4, 0)}\n    .elsewhen(io.ALUOp === isSRA)  {io.aluResult := (io.operandA.asSInt >> io.operandB(4, 0)).asUInt} \n    .elsewhen(io.ALUOp === isSLT)  {io.aluResult := (io.operandA.asSInt < io.operandB.asSInt).asUInt} \n    .elsewhen(io.ALUOp === isSLTU) {io.aluResult := (io.operandA < io.operandB).asUInt} \n    .otherwise                     {io.aluResult := io.operandA}\n}`,
+
+        'test_prog.s': `# Write your RISC-V Assembly here\naddi x1, x0, 5\naddi x2, x0, 10\nadd x3, x1, x2`
+    };
+
+    // --- NEW: RECOVERY SYSTEM ---
+    // Check if browser has saved code from a previous session
+    const savedCodes = localStorage.getItem('chisel_ide_codes');
+    if (savedCodes) {
+        try {
+            Object.assign(codes, JSON.parse(savedCodes));
+        } catch (e) {
+            console.error("Could not load saved code.");
+        }
+    }
+    // Remember the session ID across page refreshes!
+    window.currentSessionId = localStorage.getItem('chisel_session_id') || null;
+
+
+    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
+    require(['vs/editor/editor.main'], function() {
+        editor = monaco.editor.create(document.getElementById('monaco-container'), {
+            value: codes[currentFile],
+            language: 'scala',
+            theme: 'vs-dark',
+            automaticLayout: true,
+            minimap: { enabled: false }
+        });
+
+        // --- NEW: AUTO-SAVE SYSTEM ---
+        editor.onDidChangeModelContent(() => {
+            codes[currentFile] = editor.getValue();
+            localStorage.setItem('chisel_ide_codes', JSON.stringify(codes));
+        });
+    });
+
+    function switchTab(filename) {
+        if (!editor) return; // Safety check if clicked too early
+        currentFile = filename;
+
+        document.getElementById('tab-haz').classList.remove('active');
+        document.getElementById('tab-alu').classList.remove('active');
+        document.getElementById('tab-asm').classList.remove('active');
+
+        if(filename === 'HazardDetection.scala') document.getElementById('tab-haz').classList.add('active');
+        if(filename === 'ALU.scala') document.getElementById('tab-alu').classList.add('active');
+        if(filename === 'test_prog.s') document.getElementById('tab-asm').classList.add('active');
+
+        const lang = filename.endsWith('.s') ? 'ini' : 'scala';
+        monaco.editor.setModelLanguage(editor.getModel(), lang);
+        editor.setValue(codes[filename]);
+    }
+
+    // --- NEW: RESET BUTTON LOGIC ---
+    function resetCode() {
+        if(confirm("Are you sure? This will delete your code and restore the default skeleton.")) {
+            localStorage.removeItem('chisel_ide_codes');
+            // 🚨 NEW: Clear the old session ID so they get a fresh folder!
+            localStorage.removeItem('chisel_session_id');
+            location.reload();
+        }
+    }
+
+    // --- LIVE STREAMING LISTENER ---
+
+
+    async function compileCode() {
+        const consoleOut = document.getElementById('console-output');
+        consoleOut.innerHTML = ""; // 🚨 Clear old logs cleanly
+
+        // 🚨 Use the smart parser so it gets the correct <div> and CSS!
+        appendTerminal("[info] Submitting code to server...");
+
+        if (!window.currentSessionId) {
+            window.currentSessionId = 'sess_' + Math.random().toString(16).substring(2, 10);
+            localStorage.setItem('chisel_session_id', window.currentSessionId);
+        }
+
+        socket.emit('join_session', window.currentSessionId);
+
+        try {
+            const scalaFiles = {};
+            for (const [name, content] of Object.entries(codes)) {
+                if (name.endsWith('.scala')) scalaFiles[name] = content;
+            }
+
+            const payload = {
+                scala_files: scalaFiles,
+                asm_code: codes['test_prog.s'],
+                session_id: window.currentSessionId // Send our room name to Python
+            };
+
+            const response = await fetch('/compile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server returned status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.status === "success") {
+                // 🚨 Use the smart parser!
+                appendTerminal(`[success] ${data.message}`);
+
+                setTimeout(() => {
+                    sendCommand('init');
+                }, 500);
+
+            } else {
+                appendTerminal(`[error] ${data.message}`);
+            }
+
+            consoleOut.scrollTop = consoleOut.scrollHeight;
+
+        } catch (error) {
+            appendTerminal(`[error] JS Error: ${error.message}`);
+        }
+    }
+</script>
+
+</body>
+</html>

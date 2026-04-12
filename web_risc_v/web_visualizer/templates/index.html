@@ -270,9 +270,18 @@
             setText('txt-hex-mem', toHex(data.instr?.mem), '#55aa55');
 
             // --- UPDATE WB STAGE ---
-            setText('txt-pc-wb', data.pc_hex?.wb || '--', '#666');
+            setText('txt-pc-wb', `PC: ${data.pc_hex?.wb || '--'}`, '#666');
             setText('txt-asm-wb', data.asm?.wb || 'nop', '#4ec9b0');
             setText('txt-hex-wb', toHex(data.instr?.wb), '#55aa55');
+
+
+            if (data.wb && data.wb.we === 1 && data.wb.rd !== 0) {
+                // If Write Enable is 1, show the active write (e.g., x1 = 0xa)
+                setText('txt-wb-reg', `x${data.wb.rd} = 0x${(data.wb.wdata >>> 0).toString(16)}`, '#4ec9b0');
+            } else {
+                // If it's not writing to a register, show the default idle state
+                setText('txt-wb-reg', `x${data.wb?.rd || 0} = 0x${(data.wb?.wdata || 0).toString(16)}`, '#666');
+            }
 
         } catch (error) { console.error("SVG Update Error:", error); }
     }

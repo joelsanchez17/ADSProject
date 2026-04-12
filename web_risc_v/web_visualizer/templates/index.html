@@ -8,7 +8,7 @@
     <script>
         const socket = io();
     </script>
-    <script src="/static/client.js" defer></script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
 
     <style>
@@ -100,7 +100,7 @@
         <!-- Tabs -->
         <div class="editor-tabs">
             <button id="tab-code" class="tab active" onclick="switchTab(currentFile)">📝 Code Editor</button>
-            <button id="tab-viz" class="tab" onclick="switchView('viz')">👁️ Pipeline Visualizer</button>
+            <button id="tab-viz" class="tab" onclick="switchView('viz')"> Pipeline Visualizer</button>
             <div style="flex: 1;"></div> <!-- Spacer -->
             <button class="btn" style="margin: 3px; background: transparent; border: 1px solid #555;" onclick="sendCommand('step')">⏭ Step Cycle</button>
         </div>
@@ -234,28 +234,42 @@
                 }
             };
 
+            // 🚨 NEW: Helper function to turn the raw integer into an 8-digit Hex string
+            const toHex = (val) => "0x" + (val >>> 0).toString(16).padStart(8, '0');
+
+            // --- UPDATE IF STAGE ---
             setText('txt-pc-if', `PC: ${data.pc_hex?.if || '--'}`, '#bbb');
             setText('txt-asm-if', data.asm?.if || 'nop', '#4ec9b0');
+            setText('txt-inst-if', toHex(data.instr?.if), '#55aa55'); // 🚨 NEW HEX LINE
 
+            // --- UPDATE ID STAGE ---
             setText('txt-pc-id', data.pc_hex?.id || '--', '#666');
             setText('txt-asm-id', data.asm?.id || 'nop', '#4ec9b0');
+            setText('txt-inst-id', toHex(data.instr?.id), '#55aa55'); // 🚨 NEW HEX LINE
             if (data.id_info) {
                 setText('txt-rs1-id', `rs1: x${data.id_info.rs1}`, '#ccc');
                 setText('txt-rs2-id', `rs2: x${data.id_info.rs2}`, '#ccc');
                 setText('txt-rd-id', `->rd: x${data.id_info.rd}`, '#ccc');
             }
 
+            // --- UPDATE EX STAGE ---
             setText('txt-pc-ex', data.pc_hex?.ex || '--', '#666');
             setText('txt-asm-ex', data.asm?.ex || 'nop', '#4ec9b0');
-            setText('txt-op-a', `A: ${data.ex?.val_a || 0}`, '#aaa');
-            setText('txt-op-b', `B: ${data.ex?.val_b || 0}`, '#aaa');
+            setText('txt-inst-ex', toHex(data.instr?.ex), '#55aa55'); // 🚨 NEW HEX LINE
+            setText('txt-op-a', `OperandA: ${data.ex?.val_a || 0}`, '#aaa');
+            setText('txt-op-b', `OperandB: ${data.ex?.val_b || 0}`, '#aaa');
             setText('txt-alu-ex', `Res: ${data.ex?.alu_result || '0x0'}`, '#fff');
 
+            // --- UPDATE MEM STAGE ---
             setText('txt-pc-mem', data.pc_hex?.mem || '--', '#666');
             setText('txt-asm-mem', data.asm?.mem || 'nop', '#4ec9b0');
+            setText('txt-inst-mem', toHex(data.instr?.mem), '#55aa55'); // 🚨 NEW HEX LINE
 
+            // --- UPDATE WB STAGE ---
             setText('txt-pc-wb', data.pc_hex?.wb || '--', '#666');
             setText('txt-asm-wb', data.asm?.wb || 'nop', '#4ec9b0');
+            setText('txt-inst-wb', toHex(data.instr?.wb), '#55aa55'); // 🚨 NEW HEX LINE
+
         } catch (error) { console.error("SVG Update Error:", error); }
     }
 

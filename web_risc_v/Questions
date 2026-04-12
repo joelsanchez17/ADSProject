@@ -1,1 +1,49 @@
-1- Should we display the whole infrastructure or only "Editable" files?
+1- Should we display the whole infrastructure or only "Editable" files? what about test files?
+2- Add/remove/modify buttons
+3- Import code (json but not sure with txt or scala)
+4- add automatically new files detected in infrastructure_templete
+5- Better visualization, highlighting, minor errors, recognition of stalls
+6- Add more tabs
+7- Change of color while the instruction travel the pipeline
+8- Add a new tab with Quest and different test-bench
+Example
+
+
+
+
+
+
+
+
+
+
+⚡ RISC-V CLOUD IDE                                           [⬇️ Export] [↻ Reset]
+ =======================================================================================
+ [ 📂 EXPLORER ] [ 🎯 QUESTS ]       |  📝 Code Editor (ALU.scala)
+ ---------------------------------  | --------------------------------------------------
+ CURRENT QUEST:                     |  1  package core_tile
+ Quest 1: The Subtractor            |  2  import chisel3._
+ Quest 2: Logic Gates (Done)        |  3
+ Quest 3: Branching (Locked)        |  4  class ALU extends Module {
+                                    |  5     val io = IO(new Bundle { ... })
+ ---------------------------------  |  6
+ QUEST DETAILS:                     |  7     when(io.ALUOp === isADD) {
+ Modify the ALU to support the      |  8         io.aluResult := io.operandA + io.operandB
+ SUB instruction.                   |  9     }
+                                    | 10     .elsewhen(io.ALUOp === isSUB) {
+ Task: When ALUOp === isSUB,        | 11         io.aluResult := io.operandA - io.operandB
+ subtract operandB from operandA.   | 12     }
+                                    | 13  }
+ ---------------------------------  |
+      [  RUN QUEST TESTS ]        |
+ =======================================================================================
+ Terminal Output
+
+ ➜ Running tests for Quest 1: The Subtractor...
+ [info] Booting Chisel Testbench...
+ [info] Test 1 (10 - 5) ... PASSED
+ [info] Test 2 (0 - 1) ... PASSED
+ [error] Test 3 (Negative numbers): Expected 0x4, but got 0xFFFFFFFC.
+ [error] Hint: Are you treating the inputs as unsigned (UInt) instead of signed (SInt)?
+
+ ❌ Quest Failed. Try fixing line 11!

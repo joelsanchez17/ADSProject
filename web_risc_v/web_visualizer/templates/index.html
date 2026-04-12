@@ -211,7 +211,8 @@
     socket.on('update', (packet) => {
         lastPacket = packet;
         updateSVG(packet.enriched);
-        updateRegisters(packet.registers);
+
+        updateRegisters(packet.registers, packet.enriched.wb);
     });
 
     // --- 5. UPDATE THE SVG VISUALIZER ---
@@ -274,19 +275,31 @@
             setText('txt-asm-wb', data.asm?.wb || 'nop', '#4ec9b0');
             setText('txt-hex-wb', toHex(data.instr?.wb), '#55aa55');
 
+            // Grab the wire path from the SVG
+            const wbWire = svgDoc.getElementById('wire-wb-back');
 
             if (data.wb && data.wb.we === 1 && data.wb.rd !== 0) {
-                // If Write Enable is 1, show the active write (e.g., x1 = 0xa)
                 setText('txt-wb-reg', `x${data.wb.rd} = 0x${(data.wb.wdata >>> 0).toString(16)}`, '#4ec9b0');
+
+                // 🚨 NEW: Make the wire thick and bright green!
+                if (wbWire) {
+                    wbWire.setAttribute('stroke', '#4ec9b0');
+                    wbWire.setAttribute('stroke-width', '4');
+                }
             } else {
-                // If it's not writing to a register, show the default idle state
                 setText('txt-wb-reg', `x${data.wb?.rd || 0} = 0x${(data.wb?.wdata || 0).toString(16)}`, '#666');
+
+                // Return the wire to default gray
+                if (wbWire) {
+                    wbWire.setAttribute('stroke', '#444');
+                    wbWire.setAttribute('stroke-width', '2');
+                }
             }
 
         } catch (error) { console.error("SVG Update Error:", error); }
     }
 
-    function updateRegisters(regs) {
+    function updateRegisters(regs, wb_data) {
         if (!regs) return;
         const regGrid = document.getElementById('reg-grid');
         if (regGrid && regGrid.innerHTML === "") {
@@ -294,12 +307,33 @@
                 regGrid.innerHTML += `<div class="reg-box" id="reg-box-${i}"><span class="reg-name">x${i}</span><div class="reg-val" id="reg-val-${i}">0</div></div>`;
             }
         }
+
+        // Identify exactly which register is actively being written THIS cycle
+        const activeRd = (wb_data && wb_data.we === 1 && wb_data.rd !== 0) ? wb_data.rd : -1;
+
         for (let i = 0; i < 32; i++) {
+            const boxEl = document.getElementById(`reg-box-${i}`);
             const valEl = document.getElementById(`reg-val-${i}`);
+
+            if (boxEl) {
+                // Clear the active highlight from previous cycles
+                boxEl.classList.remove('active-write');
+
+                // 🚨 NEW: Highlight the whole box if it's being written to right now!
+                if (i === activeRd) {
+                    boxEl.classList.add('active-write');
+                }
+            }
+
             if (valEl && regs[i] !== undefined) {
                 const hexVal = "0x" + (regs[i] >>> 0).toString(16);
-                if (valEl.textContent !== hexVal && valEl.textContent !== "0") valEl.style.color = "#f48771";
-                else valEl.style.color = "#4ec9b0";
+
+                // Keep the text color logic to show registers that have been permanently changed
+                if (valEl.textContent !== hexVal && valEl.textContent !== "0") {
+                    valEl.style.color = "#f48771";
+                } else {
+                    valEl.style.color = "#4ec9b0";
+                }
                 valEl.textContent = hexVal;
             }
         }

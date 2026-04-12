@@ -214,7 +214,11 @@
         updateRegisters(packet.registers);
     });
 
+    // --- 5. UPDATE THE SVG VISUALIZER ---
     function updateSVG(data) {
+        // 🚨 RESTORED: The F12 Debugger Log!
+        console.log(" [UI UPDATE] Data arrived at SVG Visualizer:", data);
+
         try {
             let svgDoc = document;
             const svgObj = document.getElementById('pipeline-svg');
@@ -234,18 +238,18 @@
                 }
             };
 
-            // 🚨 NEW: Helper function to turn the raw integer into an 8-digit Hex string
             const toHex = (val) => "0x" + (val >>> 0).toString(16).padStart(8, '0');
 
             // --- UPDATE IF STAGE ---
             setText('txt-pc-if', `PC: ${data.pc_hex?.if || '--'}`, '#bbb');
             setText('txt-asm-if', data.asm?.if || 'nop', '#4ec9b0');
-            setText('txt-inst-if', toHex(data.instr?.if), '#55aa55'); // 🚨 NEW HEX LINE
+            // 🚨 THE FIX: Match the exact ID from your SVG file
+            setText('txt-hex-if', toHex(data.instr?.if), '#55aa55');
 
             // --- UPDATE ID STAGE ---
             setText('txt-pc-id', data.pc_hex?.id || '--', '#666');
             setText('txt-asm-id', data.asm?.id || 'nop', '#4ec9b0');
-            setText('txt-inst-id', toHex(data.instr?.id), '#55aa55'); // 🚨 NEW HEX LINE
+            setText('txt-hex-id', toHex(data.instr?.id), '#55aa55');
             if (data.id_info) {
                 setText('txt-rs1-id', `rs1: x${data.id_info.rs1}`, '#ccc');
                 setText('txt-rs2-id', `rs2: x${data.id_info.rs2}`, '#ccc');
@@ -255,7 +259,7 @@
             // --- UPDATE EX STAGE ---
             setText('txt-pc-ex', data.pc_hex?.ex || '--', '#666');
             setText('txt-asm-ex', data.asm?.ex || 'nop', '#4ec9b0');
-            setText('txt-inst-ex', toHex(data.instr?.ex), '#55aa55'); // 🚨 NEW HEX LINE
+            setText('txt-hex-ex', toHex(data.instr?.ex), '#55aa55');
             setText('txt-op-a', `OperandA: ${data.ex?.val_a || 0}`, '#aaa');
             setText('txt-op-b', `OperandB: ${data.ex?.val_b || 0}`, '#aaa');
             setText('txt-alu-ex', `Res: ${data.ex?.alu_result || '0x0'}`, '#fff');
@@ -263,12 +267,12 @@
             // --- UPDATE MEM STAGE ---
             setText('txt-pc-mem', data.pc_hex?.mem || '--', '#666');
             setText('txt-asm-mem', data.asm?.mem || 'nop', '#4ec9b0');
-            setText('txt-inst-mem', toHex(data.instr?.mem), '#55aa55'); // 🚨 NEW HEX LINE
+            setText('txt-hex-mem', toHex(data.instr?.mem), '#55aa55');
 
             // --- UPDATE WB STAGE ---
             setText('txt-pc-wb', data.pc_hex?.wb || '--', '#666');
             setText('txt-asm-wb', data.asm?.wb || 'nop', '#4ec9b0');
-            setText('txt-inst-wb', toHex(data.instr?.wb), '#55aa55'); // 🚨 NEW HEX LINE
+            setText('txt-hex-wb', toHex(data.instr?.wb), '#55aa55');
 
         } catch (error) { console.error("SVG Update Error:", error); }
     }

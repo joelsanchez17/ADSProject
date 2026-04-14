@@ -1,3 +1,6 @@
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,67 +15,47 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
 
     <style>
-        /* === PREMIUM VS CODE THEME & LAYOUT === */
+        /* === VS CODE THEME & LAYOUT === */
         :root {
-            --bg-dark: #1e1e1e;
-            --bg-panel: #252526;
-            --bg-tree: #181818;
-            --bg-darker: #111111;
-            --border: #3e3e42;
-            --accent: #007acc;
-            --accent-hover: #0098ff;
-            --text-main: #cccccc;
-            --text-muted: #888888;
-            --tab-active: #1e1e1e;
-            --tab-inactive: #2d2d30;
-            --success: #4ec9b0;
-            --danger: #f44747;
-            --danger-hover: #d32f2f;
+            --bg-dark: #1e1e1e; --bg-panel: #252526; --bg-tree: #181818;
+            --border: #3e3e42; --accent: #007acc; --text-main: #cccccc;
+            --tab-active: #1e1e1e; --tab-inactive: #2d2d30;
         }
-
-        /* Custom Scrollbars for a Native App Feel */
-        ::-webkit-scrollbar { width: 10px; height: 10px; }
-        ::-webkit-scrollbar-track { background: var(--bg-darker); }
-        ::-webkit-scrollbar-thumb { background: #424242; border-radius: 5px; border: 2px solid var(--bg-darker); }
-        ::-webkit-scrollbar-thumb:hover { background: #4f4f4f; }
-
         body { margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; background: var(--bg-dark); color: var(--text-main); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
 
-        /* --- TOOLBAR --- */
-        .toolbar { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: #333333; border-bottom: 1px solid #111; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 10; }
-        .brand { font-size: 16px; font-weight: 700; color: #38bdf8; letter-spacing: 1.5px; text-shadow: 0 0 10px rgba(56, 189, 248, 0.3); }
+        /* Toolbar */
+        .toolbar { display: flex; justify-content: space-between; align-items: center; padding: 8px 15px; background: #333333; border-bottom: 1px solid #000; box-shadow: 0 2px 5px rgba(0,0,0,0.3); z-index: 10; }
+        .brand { font-size: 15px; font-weight: bold; color: #38bdf8; letter-spacing: 1px; }
 
-        .controls { display: flex; gap: 10px; }
-        .btn { background: var(--bg-panel); color: #fff; border: 1px solid #555; padding: 6px 14px; cursor: pointer; border-radius: 4px; font-weight: 600; font-size: 13px; transition: all 0.2s ease; display: flex; align-items: center; gap: 5px; }
-        .btn:hover { background: #3e3e42; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-        .btn:active { transform: translateY(0); }
+        .btn { background: var(--bg-panel); color: #fff; border: 1px solid #555; padding: 5px 12px; cursor: pointer; border-radius: 3px; font-weight: bold; transition: 0.2s; }
+        .btn:hover { background: #3e3e42; }
         .btn-compile { background: var(--accent); border-color: var(--accent); }
-        .btn-compile:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
-        .btn-danger { background: transparent; border-color: var(--danger); color: var(--danger); }
-        .btn-danger:hover { background: var(--danger); color: #fff; }
+        .btn-compile:hover { background: #0098ff; }
+        .btn-danger { background: #d32f2f; border-color: #d32f2f; }
 
-        /* --- WORKSPACE --- */
+        /* Main Workspace Split */
         .workspace { display: flex; flex: 1; overflow: hidden; }
 
         /* Left Sidebar: VS Code File Tree */
-        .sidebar-tree { width: 240px; background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; box-shadow: 2px 0 5px rgba(0,0,0,0.1); z-index: 5; }
-        .tree-header { padding: 12px 15px; font-size: 11px; font-weight: 700; letter-spacing: 1.2px; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border); background: var(--bg-darker); }
-        .tree-content { flex: 1; overflow-y: auto; padding-top: 10px; padding-bottom: 20px; }
+        .sidebar-tree { width: 220px; background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+        .tree-header { padding: 10px; font-size: 11px; font-weight: bold; letter-spacing: 1px; color: #888; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+        .tree-content { flex: 1; overflow-y: auto; padding-top: 10px; }
 
-        .tree-item { padding: 6px 15px; cursor: pointer; font-size: 13px; display: flex; align-items: center; user-select: none; transition: background 0.1s; border-left: 3px solid transparent; }
-        .tree-item:hover { background: rgba(255,255,255,0.05); }
-        .tree-item.active { background: rgba(56, 189, 248, 0.1); color: #fff; border-left: 3px solid #38bdf8; }
-        .indent-1 { padding-left: 25px; color: #bbb; }
-        .icon { width: 20px; text-align: center; margin-right: 8px; font-size: 14px; opacity: 0.9; }
+        .tree-item { padding: 4px 10px; cursor: pointer; font-size: 13px; display: flex; align-items: center; user-select: none; }
+        .tree-item:hover { background: #2a2d2e; }
+        .tree-item.active { background: #37373d; color: #fff; }
+        .indent-1 { padding-left: 20px; color: #aaa; }
+        .indent-2 { padding-left: 35px; color: #ccc; }
+        .icon { width: 20px; text-align: center; margin-right: 5px; font-size: 14px; }
 
         /* Center Main Area */
-        .main-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-dark); min-width: 0; }
+        .main-area { flex: 1; display: flex; flex-direction: column; background: var(--bg-dark); }
 
         /* Tabs */
-        .editor-tabs { display: flex; background: var(--bg-darker); border-bottom: 1px solid var(--border); overflow-x: auto; }
-        .tab { padding: 10px 20px; background: var(--tab-inactive); border: none; color: var(--text-muted); cursor: pointer; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 13px; font-weight: 500; display: flex; align-items: center; border-right: 1px solid var(--border); border-top: 2px solid transparent; transition: all 0.2s; }
-        .tab.active { background: var(--tab-active); color: #fff; border-top: 2px solid #38bdf8; }
-        .tab:hover:not(.active) { background: #333; color: #ddd; }
+        .editor-tabs { display: flex; background: var(--bg-panel); border-bottom: 1px solid var(--border); overflow-x: auto; }
+        .tab { padding: 8px 15px; background: var(--tab-inactive); border: none; color: #888; cursor: pointer; font-family: monospace; font-size: 13px; display: flex; align-items: center; border-right: 1px solid var(--border); }
+        .tab.active { background: var(--tab-active); color: #38bdf8; border-top: 2px solid #38bdf8; }
+        .tab:hover:not(.active) { background: #333; }
 
         /* Dynamic Containers */
         .content-container { flex: 1; display: flex; position: relative; }
@@ -80,53 +63,13 @@
         #viz-container { width: 100%; height: 100%; display: none; background: var(--bg-dark); }
 
         /* Visualizer Layout */
-        .viz-svg { flex: 2; padding: 20px; display: flex; justify-content: center; align-items: center; overflow: auto; background: radial-gradient(circle at center, #2a2a2a 0%, var(--bg-dark) 100%); }
-        .viz-sidebar { flex: 1; border-left: 1px solid var(--border); background: var(--bg-panel); display: flex; flex-direction: column; max-width: 380px; box-shadow: -2px 0 5px rgba(0,0,0,0.2); z-index: 5; }
+        .viz-svg { flex: 2; padding: 10px; display: flex; justify-content: center; align-items: center; overflow: auto; }
+        .viz-sidebar { flex: 1; border-left: 1px solid var(--border); background: var(--bg-panel); display: flex; flex-direction: column; max-width: 350px; }
 
-        /* Sidebar Panels (Toggles & Regs) */
-        .panel-header { background: var(--bg-darker); padding: 10px 15px; font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); border-top: 1px solid var(--border); }
-        .viz-sidebar .panel-header:first-child { border-top: none; }
-
-        .toggles-container { padding: 15px; font-size: 13px; display: flex; gap: 20px; background: var(--bg-panel); }
-        .toggles-container label { display: flex; align-items: center; gap: 8px; cursor: pointer; color: #ddd; }
-        .toggles-container input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
-
-        /* 🚨 UPGRADED REGISTER GRID 🚨 */
-        .reg-grid-container { flex: 1; overflow-y: auto; padding: 15px; background: var(--bg-panel); }
-        .reg-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-        .reg-box { background: var(--bg-dark); border: 1px solid #444; border-radius: 6px; padding: 8px 4px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
-        .reg-name { font-size: 11px; color: var(--text-muted); font-family: 'Consolas', monospace; margin-bottom: 4px; font-weight: bold; }
-        .reg-val { font-size: 13px; font-family: 'Consolas', monospace; font-weight: bold; letter-spacing: 0.5px; }
-
-        /* The Neon Write Glow */
-        .active-write {
-            border-color: var(--success) !important;
-            background: rgba(78, 201, 176, 0.15) !important;
-            box-shadow: 0 0 12px rgba(78, 201, 176, 0.4), inset 0 0 8px rgba(78, 201, 176, 0.2) !important;
-            transform: scale(1.05);
-            z-index: 2;
-        }
-
-        /* --- TERMINAL --- */
-        .terminal-panel { height: 30%; background: #0c0c0c; border-top: 1px solid var(--border); display: flex; flex-direction: column; box-shadow: 0 -2px 10px rgba(0,0,0,0.3); z-index: 10; }
-        .terminal-header { background: var(--bg-darker); padding: 6px 15px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; }
-        .terminal-header button { background: transparent; border: 1px solid #444; border-radius: 3px; color: #aaa; cursor: pointer; padding: 3px 8px; font-size: 11px; transition: 0.2s; }
-        .terminal-header button:hover { background: #333; color: #fff; }
-
-        #console-output { flex: 1; padding: 15px; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; overflow-y: auto; color: #d4d4d4; line-height: 1.6; }
-
-        /* Terminal Line Animations */
-        .term-line { animation: slideIn 0.2s ease-out forwards; opacity: 0; transform: translateY(5px); }
-        .term-info { color: #569cd6; font-weight: bold; }
-        .term-error { color: var(--danger); font-weight: bold; }
-        .term-success { color: var(--success); font-weight: bold; }
-        .term-chisel { color: #c586c0; font-weight: bold; }
-        .term-user { color: #ce9178; }
-        .term-cycle { color: #dcdcaa; border-left: 2px solid #dcdcaa; padding-left: 8px; margin-top: 4px; background: rgba(255,255,255,0.02); }
-
-        @keyframes slideIn {
-            to { opacity: 1; transform: translateY(0); }
-        }
+        /* Terminal */
+        .terminal-panel { height: 28%; background: #000; border-top: 1px solid var(--border); display: flex; flex-direction: column; }
+        .terminal-header { background: #2d2d30; padding: 4px 10px; font-size: 11px; color: #ccc; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; }
+        #console-output { flex: 1; padding: 10px; font-family: 'Consolas', monospace; font-size: 13px; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -135,13 +78,14 @@
     <div class="brand">⚡ RISC-V CLOUD IDE</div>
     <div class="controls">
         <button class="btn" onclick="exportProject()" title="Save your code to your computer">⬇️ Export</button>
-        <button class="btn" style="background: transparent; border-color: #e43a3a; color: #e43a3a;" onmouseover="this.style.background='#e43a3a'; this.style.color='#fff';" onmouseout="this.style.background='transparent'; this.style.color='#e43a3a';" onclick="resetCode()">↻ Reset Code</button>
+        <button class="btn" style="background: #e43a3a; border-color: #e43a3a;" onclick="resetCode()">↻ Reset Code</button>
         <button class="btn btn-danger" onclick="sendCommand('reset')">🔄 Reset HW</button>
         <button class="btn btn-compile" onclick="compileCode()">▶ Compile & Simulate</button>
     </div>
 </div>
 
 <div class="workspace">
+    <!-- LEFT: VS Code Style File Tree -->
     <div class="sidebar-tree">
         <div class="tree-header">EXPLORER</div>
         <div class="tree-content">
@@ -149,49 +93,52 @@
             <div class="tree-item indent-1" id="tree-haz" onclick="switchTab('HazardDetection.scala')"><span class="icon">📄</span> HazardDetection.scala</div>
             <div class="tree-item indent-1" id="tree-alu" onclick="switchTab('ALU.scala')"><span class="icon">📄</span> ALU.scala</div>
 
-            <div class="tree-item" style="margin-top: 15px;"><span class="icon">📂</span> programs</div>
+            <div class="tree-item" style="margin-top: 10px;"><span class="icon">📂</span> programs</div>
             <div class="tree-item indent-1" id="tree-asm" onclick="switchTab('test_prog.s')"><span class="icon">📄</span> test_prog.s</div>
         </div>
     </div>
 
+    <!-- CENTER: Main Area -->
     <div class="main-area">
+        <!-- Tabs -->
         <div class="editor-tabs">
             <button id="tab-code" class="tab active" onclick="switchTab(currentFile)">📝 Code Editor</button>
             <button id="tab-viz" class="tab" onclick="switchView('viz')"> Pipeline Visualizer</button>
-            <div style="flex: 1;"></div> <button class="btn" style="margin: 6px 15px; background: transparent; border: 1px solid #555; height: 26px; padding: 0 10px;" onclick="sendCommand('step')">⏭ Step Cycle</button>
+            <div style="flex: 1;"></div> <!-- Spacer -->
+            <button class="btn" style="margin: 3px; background: transparent; border: 1px solid #555;" onclick="sendCommand('step')">⏭ Step Cycle</button>
         </div>
 
+        <!-- Dynamic Content Area -->
         <div class="content-container">
+            <!-- 1. Monaco Code Editor -->
             <div id="monaco-container"></div>
 
+            <!-- 2. Pipeline Visualizer & Registers -->
             <div id="viz-container">
                 <div class="viz-svg">
                     <object id="pipeline-svg" data="/static/pipeline.svg" type="image/svg+xml" style="width: 100%; height: 100%;"></object>
                 </div>
                 <div class="viz-sidebar">
-                    <div class="panel-header">Toggles</div>
-                    <div class="toggles-container">
-                        <label><input type="checkbox" id="chk-haz" checked> Show Hazards</label>
-                        <label><input type="checkbox" id="chk-path" checked> Datapath Overlay</label>
+                    <div class="panel-header" style="background:#333; padding:8px; font-size:12px; font-weight:bold;">Toggles</div>
+                    <div style="padding: 10px; font-size: 12px; display:flex; gap:10px;">
+                        <label><input type="checkbox" id="chk-haz" checked> Hazards</label>
+                        <label><input type="checkbox" id="chk-path" checked> Datapath</label>
                     </div>
-                    <div class="panel-header">Register File</div>
-                    <div class="reg-grid-container">
-                        <div class="reg-grid" id="reg-grid"></div>
-                    </div>
+                    <div class="panel-header" style="background:#333; padding:8px; font-size:12px; font-weight:bold;">Register File</div>
+                    <div class="reg-grid" id="reg-grid" style="display:grid; grid-template-columns:repeat(4,1fr); gap:4px; padding:10px;"></div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- BOTTOM: Smart Terminal -->
 <div class="terminal-panel">
     <div class="terminal-header">
-        <span>🖥️ Terminal Output</span>
-        <button onclick="clearTerminal()" title="Clear Logs">🗑️ Clear</button>
+        <span>Terminal Output</span>
+        <button onclick="clearTerminal()" style="background:transparent; border:none; color:#888; cursor:pointer;" title="Clear Logs">🗑️ Clear</button>
     </div>
-    <div id="console-output">
-        <div class="term-line">Welcome to the RISC-V Cloud IDE. Ready.</div>
-    </div>
+    <div id="console-output">Welcome to the RISC-V Cloud IDE. Ready.</div>
 </div>
 
 <script>
@@ -213,7 +160,7 @@
     });
 
     // ==========================================
-    // 2. TERMINAL LOGIC
+    // 2. TERMINAL LOGIC (RESTORED!)
     // ==========================================
     function appendTerminal(text, type = 'default') {
         const consoleOut = document.getElementById('console-output');
@@ -251,7 +198,7 @@
     socket.on('build_log', (data) => appendTerminal(data.line));
 
     // ==========================================
-    // 3. HARDWARE COMMUNICATION & VISUALIZER
+    // 3. HARDWARE COMMUNICATION & VISUALIZER (RESTORED!)
     // ==========================================
     function sendCommand(action, val=null) {
         if (!window.currentSessionId) return;
@@ -267,11 +214,13 @@
     socket.on('update', (packet) => {
         lastPacket = packet;
         updateSVG(packet.enriched);
+
         updateRegisters(packet.registers, packet.enriched.wb);
     });
 
     // --- 5. UPDATE THE SVG VISUALIZER ---
     function updateSVG(data) {
+        // 🚨 RESTORED: The F12 Debugger Log!
         console.log(" [UI UPDATE] Data arrived at SVG Visualizer:", data);
 
         try {
@@ -298,6 +247,7 @@
             // --- UPDATE IF STAGE ---
             setText('txt-pc-if', `PC: ${data.pc_hex?.if || '--'}`, '#bbb');
             setText('txt-asm-if', data.asm?.if || 'nop', '#4ec9b0');
+            // 🚨 THE FIX: Match the exact ID from your SVG file
             setText('txt-hex-if', toHex(data.instr?.if), '#55aa55');
 
             // --- UPDATE ID STAGE ---
@@ -334,6 +284,7 @@
             if (data.wb && data.wb.we === 1 && data.wb.rd !== 0) {
                 setText('txt-wb-reg', `x${data.wb.rd} = 0x${(data.wb.wdata >>> 0).toString(16)}`, '#4ec9b0');
 
+                // 🚨 NEW: Make the wire thick and bright green!
                 if (wbWire) {
                     wbWire.setAttribute('stroke', '#4ec9b0');
                     wbWire.setAttribute('stroke-width', '4');
@@ -341,59 +292,11 @@
             } else {
                 setText('txt-wb-reg', `x${data.wb?.rd || 0} = 0x${(data.wb?.wdata || 0).toString(16)}`, '#666');
 
+                // Return the wire to default gray
                 if (wbWire) {
                     wbWire.setAttribute('stroke', '#444');
                     wbWire.setAttribute('stroke-width', '2');
                 }
-            }
-
-            // ==========================================
-            //  FORWARDING UNIT LOGIC
-            // ==========================================
-            // Check where the forwarding signals are stored (usually in hazard or ex)
-            // Defaults to 0 (No forwarding) if undefined
-            const fwdA = data.fwd?.a_sel || 0;
-            const fwdB = data.fwd?.b_sel || 0;
-
-            const wireMemFwd = svgDoc.getElementById('wire-mem-fwd');
-            const wireWbFwd  = svgDoc.getElementById('wire-wb-fwd');
-            const wireFwdA   = svgDoc.getElementById('wire-fwd-a');
-            const wireFwdB   = svgDoc.getElementById('wire-fwd-b');
-            const boxFwdUnit = svgDoc.getElementById('box-fwd-unit');
-
-            // Helper function to animate the wires
-            const setWire = (wire, isActive) => {
-                if (!wire) return;
-                if (isActive) {
-                    wire.setAttribute('stroke', '#e5c07b'); // Bright Gold/Yellow
-                    wire.setAttribute('stroke-width', '4');
-                    wire.setAttribute('stroke-dasharray', 'none'); // Make it solid!
-                } else {
-                    wire.setAttribute('stroke', '#444');    // Default Gray
-                    wire.setAttribute('stroke-width', '2');
-                    wire.setAttribute('stroke-dasharray', '4,4');  // Make it dashed
-                }
-            };
-
-            // In standard RISC-V: 2 = Forward from MEM, 1 = Forward from WB
-            const usingMem = (fwdA === 2 || fwdB === 2);
-            const usingWb  = (fwdA === 1 || fwdB === 1);
-
-            // Light up the incoming paths from MEM and WB
-            setWire(wireMemFwd, usingMem);
-            setWire(wireWbFwd, usingWb);
-
-            // Light up the outgoing paths to Operand A and Operand B
-            setWire(wireFwdA, fwdA !== 0);
-            setWire(wireFwdB, fwdB !== 0);
-
-            // Update the Forward Unit Box UI
-            if (fwdA !== 0 || fwdB !== 0) {
-                setText('txt-fwd-status', `FWD A:${fwdA} B:${fwdB}`, '#e5c07b');
-                if (boxFwdUnit) boxFwdUnit.setAttribute('stroke', '#e5c07b');
-            } else {
-                setText('txt-fwd-status', 'FWD UNIT', '#fff');
-                if (boxFwdUnit) boxFwdUnit.setAttribute('stroke', '#fff');
             }
 
         } catch (error) { console.error("SVG Update Error:", error); }
@@ -408,6 +311,7 @@
             }
         }
 
+        // Identify exactly which register is actively being written THIS cycle
         const activeRd = (wb_data && wb_data.we === 1 && wb_data.rd !== 0) ? wb_data.rd : -1;
 
         for (let i = 0; i < 32; i++) {
@@ -415,13 +319,19 @@
             const valEl = document.getElementById(`reg-val-${i}`);
 
             if (boxEl) {
+                // Clear the active highlight from previous cycles
                 boxEl.classList.remove('active-write');
-                if (i === activeRd) boxEl.classList.add('active-write');
+
+                // 🚨 NEW: Highlight the whole box if it's being written to right now!
+                if (i === activeRd) {
+                    boxEl.classList.add('active-write');
+                }
             }
 
             if (valEl && regs[i] !== undefined) {
                 const hexVal = "0x" + (regs[i] >>> 0).toString(16);
 
+                // Keep the text color logic to show registers that have been permanently changed
                 if (valEl.textContent !== hexVal && valEl.textContent !== "0") {
                     valEl.style.color = "#f48771";
                 } else {
@@ -475,7 +385,7 @@
             treeContent.innerHTML += `<div class="tree-item indent-1" id="tree-${safeId}" onclick="switchTab('${filename}')"><span class="icon">📄</span> ${filename}</div>`;
         }
 
-        treeContent.innerHTML += `<div class="tree-item" style="margin-top: 15px;"><span class="icon">📂</span> programs</div>`;
+        treeContent.innerHTML += `<div class="tree-item" style="margin-top: 10px;"><span class="icon">📂</span> programs</div>`;
         if (codes['BinaryFile'] !== undefined) {
             treeContent.innerHTML += `<div class="tree-item indent-1" id="tree-BinaryFile" onclick="switchTab('BinaryFile')"><span class="icon">📄</span> BinaryFile</div>`;
             if (!firstFile) firstFile = 'BinaryFile';
@@ -580,6 +490,7 @@
                 if (name.endsWith('.scala')) scalaFiles[name] = content;
             }
 
+            // 🚨 FIX: Pass BinaryFile to the compiler instead of test_prog.s
             const payload = {
                 scala_files: scalaFiles,
                 asm_code: codes['BinaryFile'] || "",
@@ -603,6 +514,7 @@
         }
     }
 
+    // Initialize Keyboard bindings and View Toggles
     document.addEventListener('keydown', (e) => {
         if (e.key === "ArrowRight") sendCommand('step');
         if (e.key === "ArrowLeft")  sendCommand('back');
@@ -613,10 +525,8 @@
         if (el) el.addEventListener('change', () => { if (lastPacket) updateSVG(lastPacket.enriched); });
     });
 
+    // Boot up the system!
     initWorkspace();
 </script>
 </body>
 </html>
-
-
-

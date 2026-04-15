@@ -334,16 +334,20 @@
             if (data.wb && data.wb.we === 1 && data.wb.rd !== 0) {
                 setText('txt-wb-reg', `x${data.wb.rd} = 0x${(data.wb.wdata >>> 0).toString(16)}`, '#4ec9b0');
 
+                // 🚨 THE FIX: Keep size constant at 2 and use the green arrow
                 if (wbWire) {
-                    wbWire.setAttribute('stroke', '#4ec9b0');
-                    wbWire.setAttribute('stroke-width', '4');
+                    wbWire.setAttribute('stroke', '#4ec9b0');               // Green color
+                    wbWire.setAttribute('stroke-width', '2');               // Keep size constant
+                    wbWire.setAttribute('marker-end', 'url(#arrow-green)'); // Green Arrow
                 }
             } else {
                 setText('txt-wb-reg', `x${data.wb?.rd || 0} = 0x${(data.wb?.wdata || 0).toString(16)}`, '#666');
 
+                // Return to default
                 if (wbWire) {
-                    wbWire.setAttribute('stroke', '#444');
-                    wbWire.setAttribute('stroke-width', '2');
+                    wbWire.setAttribute('stroke', '#444');                  // Default Gray
+                    wbWire.setAttribute('stroke-width', '2');               // Keep size constant
+                    wbWire.setAttribute('marker-end', 'url(#arrow)');       // Default Gray Arrow
                 }
             }
 
@@ -361,17 +365,19 @@
             const wireFwdB   = svgDoc.getElementById('wire-fwd-b');
             const boxFwdUnit = svgDoc.getElementById('box-fwd-unit');
 
-            // Helper function to animate the wires
+            // Helper function to animate the wires (Color only, NO size changes)
             const setWire = (wire, isActive) => {
                 if (!wire) return;
                 if (isActive) {
-                    wire.setAttribute('stroke', '#e5c07b'); // Bright Gold/Yellow
-                    wire.setAttribute('stroke-width', '4');
-                    wire.setAttribute('stroke-dasharray', 'none'); // Make it solid!
+                    wire.setAttribute('stroke', '#569cd6');         // Turn Blue
+                    wire.setAttribute('stroke-width', '2');         // 🚨 KEEP SIZE AT 2
+                    wire.setAttribute('stroke-dasharray', '5,5');   // Dashed like WB->RF
+                    wire.setAttribute('marker-end', 'url(#arrow-blue)'); // Blue Arrow
                 } else {
-                    wire.setAttribute('stroke', '#444');    // Default Gray
-                    wire.setAttribute('stroke-width', '2');
-                    wire.setAttribute('stroke-dasharray', '4,4');  // Make it dashed
+                    wire.setAttribute('stroke', '#444');            // Default Gray
+                    wire.setAttribute('stroke-width', '2');         // 🚨 KEEP SIZE AT 2
+                    wire.setAttribute('stroke-dasharray', '4,4');
+                    wire.setAttribute('marker-end', 'url(#arrow)'); // Gray Arrow
                 }
             };
 

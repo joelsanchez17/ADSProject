@@ -127,6 +127,24 @@
         @keyframes slideIn {
             to { opacity: 1; transform: translateY(0); }
         }
+
+
+        .cycle-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            color: #38bdf8;
+            font-family: 'Consolas', monospace;
+            font-weight: bold;
+            font-size: 13px;
+            letter-spacing: 1px;
+            padding: 0 12px;
+            margin: 6px 15px 6px 0;
+            border-radius: 4px;
+            box-shadow: inset 0 0 8px rgba(56, 189, 248, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -158,6 +176,7 @@
         <div class="editor-tabs">
             <button id="tab-code" class="tab active" onclick="switchTab(currentFile)">📝 Code Editor</button>
             <button id="tab-viz" class="tab" onclick="switchView('viz')"> Pipeline Visualizer</button>
+            <div style="flex: 1;"></div> <div class="cycle-badge" id="ui-cycle-count">CYCLE: 0</div>
             <div style="flex: 1;"></div> <button class="btn" style="margin: 6px 15px; background: transparent; border: 1px solid #555; height: 26px; padding: 0 10px;" onclick="sendCommand('step')">⏭ Step Cycle</button>
         </div>
 
@@ -268,6 +287,10 @@
         lastPacket = packet;
         updateSVG(packet.enriched);
         updateRegisters(packet.registers, packet.enriched.wb);
+        const cycleUI = document.getElementById('ui-cycle-count');
+        if (cycleUI && packet.cycle !== undefined) {
+            cycleUI.innerText = `CYCLE: ${packet.cycle}`;
+        }
     });
 
     // --- 5. UPDATE THE SVG VISUALIZER ---
@@ -395,8 +418,8 @@
 
             // Update the Forward Unit Box UI
             if (fwdA !== 0 || fwdB !== 0) {
-                setText('txt-fwd-status', `FWD A:${fwdA} B:${fwdB}`, '#e5c07b');
-                if (boxFwdUnit) boxFwdUnit.setAttribute('stroke', '#e5c07b');
+                setText('txt-fwd-status', `FWD A:${fwdA} B:${fwdB}`, '#569cd6');  // Blue Text
+                if (boxFwdUnit) boxFwdUnit.setAttribute('stroke', '#569cd6');     // Blue Box Border
             } else {
                 setText('txt-fwd-status', 'FWD UNIT', '#fff');
                 if (boxFwdUnit) boxFwdUnit.setAttribute('stroke', '#fff');

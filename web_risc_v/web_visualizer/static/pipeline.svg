@@ -44,6 +44,11 @@
         <text id="txt-pc-if" x="65" y="45" text-anchor="middle" font-family="monospace" font-size="11" fill="#bbb">PC: --</text>
         <text id="txt-asm-if" x="65" y="65" text-anchor="middle" font-family="monospace" font-size="11" fill="#4ec9b0">nop</text>
         <text id="txt-hex-if" x="65" y="80" text-anchor="middle" font-family="monospace" font-size="9" fill="#4caf50">0x00000000</text>
+
+        <rect id="badge-stall-if" x="35" y="-14" width="60" height="18" rx="3" fill="#e5c07b" opacity="0"/>
+        <text id="txt-stall-if" x="65" y="-1" text-anchor="middle" font-weight="bold" font-family="sans-serif" font-size="10" fill="#21252b" opacity="0">STALL</text>
+        <rect id="badge-flush-if" x="35" y="-14" width="60" height="18" rx="3" fill="#e06c75" opacity="0"/>
+        <text id="txt-flush-if" x="65" y="-1" text-anchor="middle" font-weight="bold" font-family="sans-serif" font-size="10" fill="#21252b" opacity="0">FLUSH</text>
     </g>
 
     <g id="group-id" transform="translate(195, 135)">
@@ -52,6 +57,11 @@
         <text id="txt-pc-id" x="65" y="35" text-anchor="middle" font-family="monospace" font-size="10" fill="#666">x00</text>
         <text id="txt-asm-id" x="65" y="50" text-anchor="middle" font-family="monospace" font-size="11" fill="#4ec9b0">nop</text>
         <text id="txt-hex-id" x="65" y="62" text-anchor="middle" font-family="monospace" font-size="9" fill="#4caf50">0x00000000</text>
+
+        <rect id="badge-stall-id" x="35" y="-14" width="60" height="18" rx="3" fill="#e5c07b" opacity="0"/>
+        <text id="txt-stall-id" x="65" y="-1" text-anchor="middle" font-weight="bold" font-family="sans-serif" font-size="10" fill="#21252b" opacity="0">STALL</text>
+        <rect id="badge-flush-id" x="35" y="-14" width="60" height="18" rx="3" fill="#e06c75" opacity="0"/>
+        <text id="txt-flush-id" x="65" y="-1" text-anchor="middle" font-weight="bold" font-family="sans-serif" font-size="10" fill="#21252b" opacity="0">FLUSH</text>
 
         <line x1="10" y1="65" x2="120" y2="65" stroke="#444" />
         <text id="txt-rs1-id" x="10" y="80" font-family="monospace" font-size="9" fill="#ccc">rs1: --</text>

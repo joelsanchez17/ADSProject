@@ -545,6 +545,56 @@
                 }
             }
 
+            // ==========================================
+            //  STALL & FLUSH HAZARD LOGIC (IF & ID)
+            // ==========================================
+            const haz = data.hazard || {};
+            const isIfStall = haz.if_stall === 1;
+            const isIdStall = haz.id_stall === 1;
+            const isFlush   = haz.flush === 1;
+
+            // Helper function to handle stage states
+            const applyHazardState = (stagePrefix, stallFlag, flushFlag) => {
+                const box       = svgDoc.getElementById(`stage-${stagePrefix}`);
+                const bStall    = svgDoc.getElementById(`badge-stall-${stagePrefix}`);
+                const tStall    = svgDoc.getElementById(`txt-stall-${stagePrefix}`);
+                const bFlush    = svgDoc.getElementById(`badge-flush-${stagePrefix}`);
+                const tFlush    = svgDoc.getElementById(`txt-flush-${stagePrefix}`);
+
+                if (!box) return;
+
+                // 1. FLUSH has the highest priority (Overrides stall)
+                if (flushFlag) {
+                    box.setAttribute('stroke', '#e06c75'); // Danger Red Border
+                    if (bFlush) bFlush.setAttribute('opacity', hazardOpacity);
+                    if (tFlush) tFlush.setAttribute('opacity', hazardOpacity);
+                    if (bStall) bStall.setAttribute('opacity', '0');
+                    if (tStall) tStall.setAttribute('opacity', '0');
+                }
+                // 2. STALL
+                else if (stallFlag) {
+                    box.setAttribute('stroke', '#e5c07b'); // Warning Yellow Border
+                    if (bStall) bStall.setAttribute('opacity', hazardOpacity);
+                    if (tStall) tStall.setAttribute('opacity', hazardOpacity);
+                    if (bFlush) bFlush.setAttribute('opacity', '0');
+                    if (tFlush) tFlush.setAttribute('opacity', '0');
+                }
+                // 3. NORMAL / IDLE STATE
+                else {
+                    box.setAttribute('stroke', '#555');    // Default Gray Border
+                    if (bStall) bStall.setAttribute('opacity', '0');
+                    if (tStall) tStall.setAttribute('opacity', '0');
+                    if (bFlush) bFlush.setAttribute('opacity', '0');
+                    if (tFlush) tFlush.setAttribute('opacity', '0');
+                }
+            };
+
+            // Apply to the specific stages governed by your Chisel code
+            applyHazardState('if', isIfStall, isFlush);
+            applyHazardState('id', isIdStall, isFlush);
+
+
+
         } catch (error) {
             console.error("SVG Update Error:", error);
             appendTerminal(`[error] SVG CRASH: ${error.message}`);

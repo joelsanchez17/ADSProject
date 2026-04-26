@@ -159,8 +159,8 @@
     <div class="brand">🎓 <span>RISC-V</span> Architecture Simulator</div>
     <div class="controls">
         <button class="btn" onclick="exportProject()" title="Save source files">⬇️ Export</button>
-        <button class="btn" style="color: var(--danger);" onclick="resetCode()">↻ Reset Code</button>
-        <button class="btn" onclick="sendCommand('reset')">🔄 Reset HW</button>
+        <button class="btn" style="color: var(--warning);" onclick="resetCurrentFile()" title="Reset the currently open file">↻ Reset File</button>
+        <button class="btn" style="color: var(--danger);" onclick="resetAllCode()" title="Reset the entire project">⚠ Reset All</button>
         <button class="btn btn-compile" onclick="compileCode()">▶ Compile & Simulate</button>
     </div>
 </div>
@@ -768,8 +768,33 @@
         appendTerminal("[info] Project exported to your computer successfully.");
     }
 
-    function resetCode() {
-        if(confirm("Are you sure? This will restore pristine files from the server.")) {
+    async function resetCurrentFile() {
+        if(confirm(`Are you sure you want to reset ONLY '${currentFile}' to its original state?`)) {
+            appendTerminal(`[info] Fetching pristine version of ${currentFile}...`);
+            try {
+                // Fetch original files from server
+                const response = await fetch('/workspace');
+                const data = await response.json();
+
+                // Find the specific file (either in scala or asm folders)
+                const pristine = data.scala[currentFile] || data.asm[currentFile];
+
+                if (pristine) {
+                    codes[currentFile] = pristine;
+                    localStorage.setItem('chisel_ide_codes', JSON.stringify(codes));
+                    editor.setValue(pristine); // Update Monaco editor instantly
+                    appendTerminal(`[success] ${currentFile} reset successfully.`);
+                } else {
+                    appendTerminal(`[error] Could not find original version of ${currentFile}.`);
+                }
+            } catch (error) {
+                appendTerminal(`[error] Failed to reset file: ${error.message}`);
+            }
+        }
+    }
+
+    function resetAllCode() {
+        if(confirm("⚠ DANGER: Are you sure? This will wipe your ENTIRE project and restore all pristine files from the server.")) {
             localStorage.removeItem('chisel_ide_codes');
             location.reload();
         }

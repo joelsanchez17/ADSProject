@@ -6,6 +6,11 @@
         <marker id="arrow-blue" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
             <path d="M0,0 L0,6 L6,3 z" fill="#569cd6" />
         </marker>
+
+        <marker id="arrow-green" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L6,3 z" fill="#98c379" />
+        </marker>
+
         <linearGradient id="barrierGrad" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" style="stop-color:#2d2d30;stop-opacity:1" />
             <stop offset="50%" style="stop-color:#3e3e42;stop-opacity:1" />
@@ -50,9 +55,9 @@
         <text id="txt-rd-id" x="10" y="94" font-family="monospace" font-size="9" fill="#ccc">->rd: --</text>
 
         <g id="group-regfile" transform="translate(0, 120)">
-            <rect id="regfile-box" width="130" height="50" rx="4" fill="#2d2d30" stroke="#007acc" stroke-width="2"/>
-            <text id="txt-rf-title" x="65" y="20" text-anchor="middle" font-weight="bold" fill="#007acc" font-family="sans-serif" font-size="10">Register File</text>
-            <text id="txt-rf-status" x="65" y="35" text-anchor="middle" font-size="9" fill="#888">Read/Write</text>
+            <rect id="regfile-box" width="130" height="50" rx="4" fill="#21252b" stroke="#4b5363" stroke-width="2"/>
+            <text id="txt-rf-title" x="65" y="20" text-anchor="middle" font-weight="bold" fill="#d7dae0" font-family="sans-serif" font-size="10">Register File</text>
+            <text id="txt-rf-status" x="65" y="35" text-anchor="middle" font-size="9" fill="#8b929e">Reading</text>
         </g>
     </g>
 

@@ -367,6 +367,9 @@
 
             // Grab the wire path from the SVG
             const wbWire = svgDoc.getElementById('wire-wb-back');
+            const rfBox = svgDoc.getElementById('regfile-box');
+            const rfTitle = svgDoc.getElementById('txt-rf-title');
+            const rfStatus = svgDoc.getElementById('txt-rf-status');
 
             if (data.wb && data.wb.we === 1 && data.wb.rd !== 0) {
                 setText('txt-wb-reg', `x${data.wb.rd} = 0x${(data.wb.wdata >>> 0).toString(16)}`, '#98c379');
@@ -376,6 +379,14 @@
                     wbWire.setAttribute('stroke-width', '2');
                     wbWire.setAttribute('marker-end', 'url(#arrow-green)');
                 }
+
+                // 🚨 NEW: Light up the Register File Box and update the text!
+                if (rfBox) rfBox.setAttribute('stroke', '#98c379');
+                if (rfTitle) rfTitle.setAttribute('fill', '#98c379');
+                if (rfStatus) {
+                    rfStatus.textContent = `Writing x${data.wb.rd}`;
+                    rfStatus.setAttribute('fill', '#98c379');
+                }
             } else {
                 setText('txt-wb-reg', `x${data.wb?.rd || 0} = 0x${(data.wb?.wdata || 0).toString(16)}`, '#5c6370');
 
@@ -383,6 +394,14 @@
                     wbWire.setAttribute('stroke', '#4b5363');
                     wbWire.setAttribute('stroke-width', '2');
                     wbWire.setAttribute('marker-end', 'url(#arrow)');
+                }
+
+                // 🚨 NEW: Return the Register File Box to idle (Reading state)
+                if (rfBox) rfBox.setAttribute('stroke', '#4b5363');
+                if (rfTitle) rfTitle.setAttribute('fill', '#d7dae0');
+                if (rfStatus) {
+                    rfStatus.textContent = `Reading`;
+                    rfStatus.setAttribute('fill', '#8b929e');
                 }
             }
 

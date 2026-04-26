@@ -229,6 +229,17 @@
 
 <script>
     // ==========================================
+    // 🛠️ FAILSAFE DEBUGGER TOOL 🛠️
+    // ==========================================
+    window.addEventListener('error', function(event) {
+        const consoleOut = document.getElementById('console-output');
+        if (consoleOut) {
+            consoleOut.innerHTML += `<div style="color: #fff; font-weight: bold; background: #d32f2f; padding: 10px; margin-top: 5px; border-radius: 3px;">🚨 FATAL JS CRASH: ${event.message} (Line ${event.lineno})</div>`;
+            consoleOut.scrollTop = consoleOut.scrollHeight;
+        }
+    });
+
+    // ==========================================
     // 1. GLOBAL VARIABLES & SETUP
     // ==========================================
     let editor;
@@ -268,6 +279,9 @@
             formattedText = formattedText.replace('[CHISEL]', '<span class="term-chisel">[HW]</span>');
         } else if (formattedText.includes('▶ Cycle')) {
             cssClass += ' term-cycle';
+        } else if (formattedText.includes('[DEBUG]')) {
+            cssClass += ' term-cycle';
+            formattedText = `<span style="color: #c678dd; font-weight: bold;">${formattedText}</span>`;
         }
 
         const lineDiv = document.createElement('div');
@@ -299,10 +313,18 @@
 
     socket.on('update', (packet) => {
         lastPacket = packet;
+
+        // 🛠️ INJECT THE DEBUGGER: Inspect EX Stage
+        const asmEx = (packet.enriched.asm?.ex || "").trim().toLowerCase();
+        if (asmEx.startsWith("b") || asmEx.startsWith("j")) {
+            const pcSrc = packet.enriched.ex?.pc_src;
+            const pcJb = packet.enriched.ex?.pc_jb;
+            appendTerminal(`[DEBUG] EX Stage has '${asmEx}'. Hardware signals -> pc_src: ${pcSrc}, pc_jb: ${pcJb}`);
+        }
+
         updateSVG(packet.enriched);
         updateRegisters(packet.registers, packet.enriched.wb);
 
-        // 🚨 UPDATED: Only inject the number into the specific value span
         const cycleUI = document.getElementById('ui-cycle-count');
         if (cycleUI && packet.cycle !== undefined) {
             cycleUI.innerText = packet.cycle;
@@ -318,8 +340,8 @@
 
             const bg = svgDoc.querySelector('rect');
             if (bg) {
-                bg.setAttribute('fill', '#21252b'); // Match new academic panel color
-                setTimeout(() => bg.setAttribute('fill', '#181a1f'), 150); // Match new base
+                bg.setAttribute('fill', '#21252b');
+                setTimeout(() => bg.setAttribute('fill', '#181a1f'), 150);
             }
 
             const setText = (id, text, color) => {
@@ -332,12 +354,10 @@
 
             const toHex = (val) => "0x" + (val >>> 0).toString(16).padStart(8, '0');
 
-            // --- UPDATE IF STAGE ---
             setText('txt-pc-if', `PC: ${data.pc_hex?.if || '--'}`, '#8b929e');
             setText('txt-asm-if', data.asm?.if || 'nop', '#98c379');
             setText('txt-hex-if', toHex(data.instr?.if), '#5c6370');
 
-            // --- UPDATE ID STAGE ---
             setText('txt-pc-id', data.pc_hex?.id || '--', '#8b929e');
             setText('txt-asm-id', data.asm?.id || 'nop', '#98c379');
             setText('txt-hex-id', toHex(data.instr?.id), '#5c6370');
@@ -347,13 +367,21 @@
                 setText('txt-rd-id', `->rd: x${data.id_info.rd}`, '#abb2bf');
             }
 
+            // 🚨 DECLARED EXACTLY ONCE AT THE TOP!
+            const asmEx = (data.asm?.ex || "").trim().toLowerCase();
+            const isBranchInst = asmEx.startsWith("b") && asmEx !== "break";
+            const isJumpInst   = asmEx.startsWith("j");
+
             // --- UPDATE EX STAGE ---
             setText('txt-pc-ex', data.pc_hex?.ex || '--', '#8b929e');
             setText('txt-asm-ex', data.asm?.ex || 'nop', '#98c379');
             setText('txt-hex-ex', toHex(data.instr?.ex), '#5c6370');
             setText('txt-op-a', `OperandA: ${data.ex?.val_a || 0}`, '#abb2bf');
             setText('txt-op-b', `OperandB: ${data.ex?.val_b || 0}`, '#abb2bf');
-            setText('txt-alu-ex', `Res: ${data.ex?.alu_result || '0x0'}`, '#fff');
+
+            let exLabel = "Res:";
+            if (isJumpInst) exLabel = "Ret Addr:";
+            setText('txt-alu-ex', `${exLabel} ${data.ex?.alu_result || '0x0'}`, '#fff');
 
             // --- UPDATE MEM STAGE ---
             setText('txt-pc-mem', data.pc_hex?.mem || '--', '#8b929e');
@@ -365,7 +393,6 @@
             setText('txt-asm-wb', data.asm?.wb || 'nop', '#98c379');
             setText('txt-hex-wb', toHex(data.instr?.wb), '#5c6370');
 
-            // Grab the wire path from the SVG
             const wbWire = svgDoc.getElementById('wire-wb-back');
             const rfBox = svgDoc.getElementById('regfile-box');
             const rfTitle = svgDoc.getElementById('txt-rf-title');
@@ -373,14 +400,11 @@
 
             if (data.wb && data.wb.we === 1 && data.wb.rd !== 0) {
                 setText('txt-wb-reg', `x${data.wb.rd} = 0x${(data.wb.wdata >>> 0).toString(16)}`, '#98c379');
-
                 if (wbWire) {
                     wbWire.setAttribute('stroke', '#98c379');
                     wbWire.setAttribute('stroke-width', '2');
                     wbWire.setAttribute('marker-end', 'url(#arrow-green)');
                 }
-
-                // 🚨 NEW: Light up the Register File Box and update the text!
                 if (rfBox) rfBox.setAttribute('stroke', '#98c379');
                 if (rfTitle) rfTitle.setAttribute('fill', '#98c379');
                 if (rfStatus) {
@@ -389,14 +413,11 @@
                 }
             } else {
                 setText('txt-wb-reg', `x${data.wb?.rd || 0} = 0x${(data.wb?.wdata || 0).toString(16)}`, '#5c6370');
-
                 if (wbWire) {
                     wbWire.setAttribute('stroke', '#4b5363');
                     wbWire.setAttribute('stroke-width', '2');
                     wbWire.setAttribute('marker-end', 'url(#arrow)');
                 }
-
-                // 🚨 NEW: Return the Register File Box to idle (Reading state)
                 if (rfBox) rfBox.setAttribute('stroke', '#4b5363');
                 if (rfTitle) rfTitle.setAttribute('fill', '#d7dae0');
                 if (rfStatus) {
@@ -410,7 +431,6 @@
             // ==========================================
             const fwdA = data.fwd?.a_sel || 0;
             const fwdB = data.fwd?.b_sel || 0;
-
             const wireMemFwd = svgDoc.getElementById('wire-mem-fwd');
             const wireWbFwd  = svgDoc.getElementById('wire-wb-fwd');
             const wireFwdA   = svgDoc.getElementById('wire-fwd-a');
@@ -420,12 +440,12 @@
             const setWire = (wire, isActive) => {
                 if (!wire) return;
                 if (isActive) {
-                    wire.setAttribute('stroke', '#4A90E2');         // Academic Blue
+                    wire.setAttribute('stroke', '#4A90E2');
                     wire.setAttribute('stroke-width', '2');
                     wire.setAttribute('stroke-dasharray', '5,5');
                     wire.setAttribute('marker-end', 'url(#arrow-blue)');
                 } else {
-                    wire.setAttribute('stroke', '#4b5363');         // Academic Gray
+                    wire.setAttribute('stroke', '#4b5363');
                     wire.setAttribute('stroke-width', '2');
                     wire.setAttribute('stroke-dasharray', '4,4');
                     wire.setAttribute('marker-end', 'url(#arrow)');
@@ -457,75 +477,66 @@
             const chkHaz = document.getElementById('chk-haz');
             const hazardOpacity = (chkHaz && chkHaz.checked === false) ? "0" : "1";
 
-            const isTaken = (data.ex?.pc_src === 1);
-
-            // 🚨 FIX 1: Clean the string! Remove invisible spaces and force lowercase
-            const asmEx = (data.asm?.ex || "").trim().toLowerCase();
-            const isBranchInst = asmEx.startsWith("b") && asmEx !== "break";
-            const isJumpInst   = asmEx.startsWith("j"); // Now safely catches 'jal' and 'jalr'
-
             if (branchWire && branchText) {
                 branchWire.style.opacity = hazardOpacity;
                 branchText.style.opacity = hazardOpacity;
 
                 const valA = data.ex?.alu_op_a || 0;
                 const valB = data.ex?.alu_op_b || 0;
+                const pcDec = parseInt(data.pc_hex?.ex || "0", 16);
+
+                let isTaken = false;
+                let targetDec = 0;
+                let reason = "";
+
+                if (isJumpInst || isBranchInst) {
+                    const asmWords = asmEx.split(/[\s,]+/);
+                    const immStr = asmWords[asmWords.length - 1];
+                    const immDec = parseInt(immStr.replace('+', '')) || 0;
+                    const sign = immDec >= 0 ? "+" : "-";
+
+                    if (isJumpInst) {
+                        isTaken = true;
+                        if (asmEx.startsWith("jalr")) {
+                            targetDec = valA + immDec;
+                            reason = `(Rs1 ${sign} ${Math.abs(immDec)})`;
+                        } else {
+                            targetDec = pcDec + immDec;
+                            reason = `(${pcDec} ${sign} ${Math.abs(immDec)} = ${targetDec})`;
+                        }
+                    } else if (isBranchInst) {
+                        targetDec = pcDec + immDec;
+                        let opTaken = "==";
+                        let opNotTaken = "≠";
+
+                        if (asmEx.startsWith("beq")) { isTaken = (valA === valB); opTaken = "=="; opNotTaken = "≠"; }
+                        else if (asmEx.startsWith("bne")) { isTaken = (valA !== valB); opTaken = "≠"; opNotTaken = "=="; }
+                        else if (asmEx.startsWith("blt")) { isTaken = (valA < valB); opTaken = "<"; opNotTaken = "≥"; }
+                        else if (asmEx.startsWith("bge")) { isTaken = (valA >= valB); opTaken = "≥"; opNotTaken = "<"; }
+
+                        reason = isTaken ? `(${valA} ${opTaken} ${valB})` : `(${valA} ${opNotTaken} ${valB})`;
+                    }
+                }
 
                 if (isTaken) {
-                    // 1. BRANCH TAKEN or JUMP -> Override PC
                     branchWire.setAttribute('stroke', '#c678dd');
                     branchWire.setAttribute('stroke-width', '2');
                     branchWire.setAttribute('stroke-dasharray', 'none');
                     branchWire.setAttribute('marker-end', 'url(#arrow-purple)');
 
-                    const targetHex = toHex(data.ex?.pc_jb || 0);
-
-                    let reason = "";
-                    if (isJumpInst) {
-                        // 🚨 FIX 2: Bulletproof Immediate parser (Splits by spaces AND commas)
-                        const asmWords = asmEx.split(/[\s,]+/);
-                        const immStr = asmWords[asmWords.length - 1]; // Grabs the very last item (e.g., "+20")
-
-                        const pcDec = parseInt(data.pc_hex?.ex || "0", 16);
-                        const immDec = parseInt(immStr.replace('+', '')) || 0;
-                        const sum = pcDec + immDec;
-                        const sign = immDec >= 0 ? "+" : "-";
-
-                        if (asmEx.startsWith("jalr")) {
-                            reason = `(Rs1 ${sign} ${Math.abs(immDec)})`;
-                        } else {
-                            reason = `(${pcDec} ${sign} ${Math.abs(immDec)} = ${sum})`;
-                        }
-                    } else if (isBranchInst) {
-                        let op = "==";
-                        if (asmEx.startsWith("beq")) op = "==";
-                        else if (asmEx.startsWith("bne")) op = "≠";
-                        else if (asmEx.startsWith("blt")) op = "<";
-                        else if (asmEx.startsWith("bge")) op = "≥";
-                        reason = `(${valA} ${op} ${valB})`;
-                    }
-
-                    branchText.textContent = `TARGET: ${targetHex} ${reason}`;
+                    branchText.textContent = `TARGET: ${toHex(targetDec)} ${reason}`;
                     branchText.setAttribute('fill', '#c678dd');
 
                 } else if (isBranchInst && !isTaken) {
-                    // 2. BRANCH NOT TAKEN -> Condition failed
                     branchWire.setAttribute('stroke', '#4b5363');
                     branchWire.setAttribute('stroke-width', '2');
                     branchWire.setAttribute('stroke-dasharray', '5,5');
                     branchWire.setAttribute('marker-end', 'url(#arrow)');
 
-                    let reason = `${valA} vs ${valB}`;
-                    if (asmEx.startsWith("beq")) reason = `${valA} ≠ ${valB}`;
-                    else if (asmEx.startsWith("bne")) reason = `${valA} == ${valB}`;
-                    else if (asmEx.startsWith("blt")) reason = `${valA} ≥ ${valB}`;
-                    else if (asmEx.startsWith("bge")) reason = `${valA} < ${valB}`;
-
-                    branchText.textContent = `NOT TAKEN (${reason})`;
+                    branchText.textContent = `NOT TAKEN ${reason}`;
                     branchText.setAttribute('fill', '#8b929e');
 
                 } else {
-                    // 3. IDLE STATE
                     branchWire.setAttribute('stroke', '#4b5363');
                     branchWire.setAttribute('stroke-width', '2');
                     branchWire.setAttribute('stroke-dasharray', '5,5');
@@ -534,7 +545,10 @@
                 }
             }
 
-        } catch (error) { console.error("SVG Update Error:", error); }
+        } catch (error) {
+            console.error("SVG Update Error:", error);
+            appendTerminal(`[error] SVG CRASH: ${error.message}`);
+        }
     }
 
     function updateRegisters(regs, wb_data) {
@@ -561,9 +575,9 @@
                 const hexVal = "0x" + (regs[i] >>> 0).toString(16);
 
                 if (valEl.textContent !== hexVal && valEl.textContent !== "0") {
-                    valEl.style.color = "#e5c07b"; // Academic Warning Yellow for modified data
+                    valEl.style.color = "#e5c07b";
                 } else {
-                    valEl.style.color = "#d7dae0"; // Default white/gray
+                    valEl.style.color = "#d7dae0";
                 }
                 valEl.textContent = hexVal;
             }

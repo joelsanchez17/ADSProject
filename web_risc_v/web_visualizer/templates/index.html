@@ -186,11 +186,15 @@
             <div style="flex: 1;"></div>
 
             <div class="telemetry-group">
-                <div class="cycle-badge">
+                <button class="btn" style="height: 24px; padding: 0 10px;" onclick="sendCommand('reset')" title="Restart to Cycle 0">⏮ Restart</button>
+                <button class="btn" style="height: 24px; padding: 0 10px;" onclick="sendCommand('back')" title="Step Back 1 Cycle">◀ Back</button>
+                <button class="btn" style="height: 24px; padding: 0 10px;" onclick="sendCommand('step')" title="Step Forward 1 Cycle">Step ▶</button>
+                <button class="btn" style="height: 24px; padding: 0 10px;" onclick="sendCommand('run', 5)" title="Fast Forward 5 Cycles">Fast ▶▶</button>
+
+                <div class="cycle-badge" style="margin-left: 8px;">
                     <span class="cycle-label">Cycle</span>
                     <span class="cycle-value" id="ui-cycle-count">0</span>
                 </div>
-                <button class="btn" style="height: 24px; padding: 0 10px;" onclick="sendCommand('step')">⏭ Step</button>
             </div>
         </div>
 
@@ -325,9 +329,12 @@
         updateSVG(packet.enriched);
         updateRegisters(packet.registers, packet.enriched.wb);
 
+        // 🚨 FIXED: Check both locations for the cycle number!
         const cycleUI = document.getElementById('ui-cycle-count');
-        if (cycleUI && packet.cycle !== undefined) {
-            cycleUI.innerText = packet.cycle;
+        const currentCycle = packet.cycle !== undefined ? packet.cycle : packet.enriched?.cycle;
+
+        if (cycleUI && currentCycle !== undefined) {
+            cycleUI.innerText = currentCycle;
         }
     });
 

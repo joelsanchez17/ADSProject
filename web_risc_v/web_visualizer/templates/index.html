@@ -448,6 +448,74 @@
                 if (boxFwdUnit) boxFwdUnit.setAttribute('stroke', '#d7dae0');
             }
 
+            // ==========================================
+            //  BRANCH & JUMP LOGIC (EX -> IF)
+            // ==========================================
+            const branchWire = svgDoc.getElementById('wire-branch');
+            const branchText = svgDoc.getElementById('txt-branch-target');
+
+            // 🚨 FIX 1: Safely define hazardOpacity so it never crashes again!
+            const chkHaz = document.getElementById('chk-haz');
+            const hazardOpacity = (chkHaz && chkHaz.checked === false) ? "0" : "1";
+
+            // 🚨 FIX 2: Extracted exact variables from LivePipelineTest.scala
+            // 'pc_src' is your mux selector (1 = Taken, 0 = Not Taken / Normal)
+            // 'pc_jb' is the target address calculated by your ALU/Branch Unit
+            const isTaken = (data.ex?.pc_src === 1);
+
+            // Clever trick: Check if the assembly instruction starts with 'b' (beq, bne) or 'j' (jal)
+            const asmEx = data.asm?.ex || "";
+            const isBranchInst = asmEx.startsWith("b") && asmEx !== "break";
+
+            if (branchWire && branchText) {
+                // Apply the opacity from the toggle
+                branchWire.style.opacity = hazardOpacity;
+                branchText.style.opacity = hazardOpacity;
+
+                if (isTaken) {
+                    // 1. BRANCH TAKEN or JUMP -> Override PC!
+                    branchWire.setAttribute('stroke', '#c678dd');         // Academic Purple
+                    branchWire.setAttribute('stroke-width', '2');
+                    branchWire.setAttribute('stroke-dasharray', 'none');  // Solid line
+                    branchWire.setAttribute('marker-end', 'url(#arrow-purple)');
+
+                    // Display the target memory address (using your pc_jb signal!)
+                    const targetHex = toHex(data.ex?.pc_jb || 0);
+                    branchText.textContent = `TARGET: ${targetHex}`;
+                    branchText.setAttribute('fill', '#c678dd');
+
+                } else if (isBranchInst && !isTaken) {
+                    // 2. BRANCH NOT TAKEN -> Condition failed
+                    branchWire.setAttribute('stroke', '#4b5363');         // Default Gray
+                    branchWire.setAttribute('stroke-width', '2');
+                    branchWire.setAttribute('stroke-dasharray', '5,5');   // Dashed
+                    branchWire.setAttribute('marker-end', 'url(#arrow)');
+
+                    // 🚨 NEW: Grab the exact values the ALU compared
+                    const valA = data.ex?.alu_op_a || 0;
+                    const valB = data.ex?.alu_op_b || 0;
+
+                    // 🚨 NEW: Smart parser to deduce exactly WHY the branch failed
+                    let reason = `${valA} vs ${valB}`;
+                    if (asmEx.startsWith("beq")) reason = `${valA} ≠ ${valB}`;
+                    else if (asmEx.startsWith("bne")) reason = `${valA} == ${valB}`;
+                    else if (asmEx.startsWith("blt")) reason = `${valA} ≥ ${valB}`; // Catch blt and bltu
+                    else if (asmEx.startsWith("bge")) reason = `${valA} < ${valB}`; // Catch bge and bgeu
+
+                    branchText.textContent = `NOT TAKEN (${reason})`;
+                    branchText.setAttribute('fill', '#8b929e');           // Muted text
+
+                } else {
+                    // 3. IDLE STATE -> Normal instruction
+                    branchWire.setAttribute('stroke', '#4b5363');
+                    branchWire.setAttribute('stroke-width', '2');
+                    branchWire.setAttribute('stroke-dasharray', '5,5');
+                    branchWire.setAttribute('marker-end', 'url(#arrow)');
+
+                    branchText.textContent = ""; // Hide text entirely
+                }
+            }
+
         } catch (error) { console.error("SVG Update Error:", error); }
     }
 

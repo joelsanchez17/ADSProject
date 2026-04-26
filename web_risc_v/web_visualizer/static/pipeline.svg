@@ -11,6 +11,10 @@
             <path d="M0,0 L0,6 L6,3 z" fill="#98c379" />
         </marker>
 
+        <marker id="arrow-purple" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L6,3 z" fill="#c678dd" />
+        </marker>
+
         <linearGradient id="barrierGrad" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" style="stop-color:#2d2d30;stop-opacity:1" />
             <stop offset="50%" style="stop-color:#3e3e42;stop-opacity:1" />

@@ -454,65 +454,83 @@
             const branchWire = svgDoc.getElementById('wire-branch');
             const branchText = svgDoc.getElementById('txt-branch-target');
 
-            // 🚨 FIX 1: Safely define hazardOpacity so it never crashes again!
             const chkHaz = document.getElementById('chk-haz');
             const hazardOpacity = (chkHaz && chkHaz.checked === false) ? "0" : "1";
 
-            // 🚨 FIX 2: Extracted exact variables from LivePipelineTest.scala
-            // 'pc_src' is your mux selector (1 = Taken, 0 = Not Taken / Normal)
-            // 'pc_jb' is the target address calculated by your ALU/Branch Unit
             const isTaken = (data.ex?.pc_src === 1);
 
-            // Clever trick: Check if the assembly instruction starts with 'b' (beq, bne) or 'j' (jal)
-            const asmEx = data.asm?.ex || "";
+            // 🚨 FIX 1: Clean the string! Remove invisible spaces and force lowercase
+            const asmEx = (data.asm?.ex || "").trim().toLowerCase();
             const isBranchInst = asmEx.startsWith("b") && asmEx !== "break";
+            const isJumpInst   = asmEx.startsWith("j"); // Now safely catches 'jal' and 'jalr'
 
             if (branchWire && branchText) {
-                // Apply the opacity from the toggle
                 branchWire.style.opacity = hazardOpacity;
                 branchText.style.opacity = hazardOpacity;
 
+                const valA = data.ex?.alu_op_a || 0;
+                const valB = data.ex?.alu_op_b || 0;
+
                 if (isTaken) {
-                    // 1. BRANCH TAKEN or JUMP -> Override PC!
-                    branchWire.setAttribute('stroke', '#c678dd');         // Academic Purple
+                    // 1. BRANCH TAKEN or JUMP -> Override PC
+                    branchWire.setAttribute('stroke', '#c678dd');
                     branchWire.setAttribute('stroke-width', '2');
-                    branchWire.setAttribute('stroke-dasharray', 'none');  // Solid line
+                    branchWire.setAttribute('stroke-dasharray', 'none');
                     branchWire.setAttribute('marker-end', 'url(#arrow-purple)');
 
-                    // Display the target memory address (using your pc_jb signal!)
                     const targetHex = toHex(data.ex?.pc_jb || 0);
-                    branchText.textContent = `TARGET: ${targetHex}`;
+
+                    let reason = "";
+                    if (isJumpInst) {
+                        // 🚨 FIX 2: Bulletproof Immediate parser (Splits by spaces AND commas)
+                        const asmWords = asmEx.split(/[\s,]+/);
+                        const immStr = asmWords[asmWords.length - 1]; // Grabs the very last item (e.g., "+20")
+
+                        const pcDec = parseInt(data.pc_hex?.ex || "0", 16);
+                        const immDec = parseInt(immStr.replace('+', '')) || 0;
+                        const sum = pcDec + immDec;
+                        const sign = immDec >= 0 ? "+" : "-";
+
+                        if (asmEx.startsWith("jalr")) {
+                            reason = `(Rs1 ${sign} ${Math.abs(immDec)})`;
+                        } else {
+                            reason = `(${pcDec} ${sign} ${Math.abs(immDec)} = ${sum})`;
+                        }
+                    } else if (isBranchInst) {
+                        let op = "==";
+                        if (asmEx.startsWith("beq")) op = "==";
+                        else if (asmEx.startsWith("bne")) op = "≠";
+                        else if (asmEx.startsWith("blt")) op = "<";
+                        else if (asmEx.startsWith("bge")) op = "≥";
+                        reason = `(${valA} ${op} ${valB})`;
+                    }
+
+                    branchText.textContent = `TARGET: ${targetHex} ${reason}`;
                     branchText.setAttribute('fill', '#c678dd');
 
                 } else if (isBranchInst && !isTaken) {
                     // 2. BRANCH NOT TAKEN -> Condition failed
-                    branchWire.setAttribute('stroke', '#4b5363');         // Default Gray
-                    branchWire.setAttribute('stroke-width', '2');
-                    branchWire.setAttribute('stroke-dasharray', '5,5');   // Dashed
-                    branchWire.setAttribute('marker-end', 'url(#arrow)');
-
-                    // 🚨 NEW: Grab the exact values the ALU compared
-                    const valA = data.ex?.alu_op_a || 0;
-                    const valB = data.ex?.alu_op_b || 0;
-
-                    // 🚨 NEW: Smart parser to deduce exactly WHY the branch failed
-                    let reason = `${valA} vs ${valB}`;
-                    if (asmEx.startsWith("beq")) reason = `${valA} ≠ ${valB}`;
-                    else if (asmEx.startsWith("bne")) reason = `${valA} == ${valB}`;
-                    else if (asmEx.startsWith("blt")) reason = `${valA} ≥ ${valB}`; // Catch blt and bltu
-                    else if (asmEx.startsWith("bge")) reason = `${valA} < ${valB}`; // Catch bge and bgeu
-
-                    branchText.textContent = `NOT TAKEN (${reason})`;
-                    branchText.setAttribute('fill', '#8b929e');           // Muted text
-
-                } else {
-                    // 3. IDLE STATE -> Normal instruction
                     branchWire.setAttribute('stroke', '#4b5363');
                     branchWire.setAttribute('stroke-width', '2');
                     branchWire.setAttribute('stroke-dasharray', '5,5');
                     branchWire.setAttribute('marker-end', 'url(#arrow)');
 
-                    branchText.textContent = ""; // Hide text entirely
+                    let reason = `${valA} vs ${valB}`;
+                    if (asmEx.startsWith("beq")) reason = `${valA} ≠ ${valB}`;
+                    else if (asmEx.startsWith("bne")) reason = `${valA} == ${valB}`;
+                    else if (asmEx.startsWith("blt")) reason = `${valA} ≥ ${valB}`;
+                    else if (asmEx.startsWith("bge")) reason = `${valA} < ${valB}`;
+
+                    branchText.textContent = `NOT TAKEN (${reason})`;
+                    branchText.setAttribute('fill', '#8b929e');
+
+                } else {
+                    // 3. IDLE STATE
+                    branchWire.setAttribute('stroke', '#4b5363');
+                    branchWire.setAttribute('stroke-width', '2');
+                    branchWire.setAttribute('stroke-dasharray', '5,5');
+                    branchWire.setAttribute('marker-end', 'url(#arrow)');
+                    branchText.textContent = "";
                 }
             }
 

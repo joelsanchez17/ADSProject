@@ -743,9 +743,13 @@
             document.getElementById('tab-wave').classList.add('active');
 
             const iframe = document.getElementById('surfer-iframe');
-            if (!iframe.src && window.currentSessionId) {
-                // 🚨 Point to the live app, but load local data!
-                iframe.src = `https://app.surfer-project.org/?load_url=http://localhost:8080/vcd/${window.currentSessionId}`;
+
+            if (window.currentSessionId) {
+                const vcdUrl = `${window.location.origin}/vcd/${window.currentSessionId}?t=${Date.now()}`;
+                iframe.src = `/static/surfer/pages_build/index.html?load_url=${encodeURIComponent(vcdUrl)}`;
+                appendTerminal(`[info] Loading local Surfer with VCD: ${vcdUrl}`);
+            } else {
+                appendTerminal("[error] No active session. Compile first.");
             }
         } else {
             document.getElementById('monaco-container').style.display = 'block';

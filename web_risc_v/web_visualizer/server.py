@@ -26,6 +26,22 @@ app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="web_visualizer/static"), name="static")
 
+@app.get("/vcd/{session_id}")
+async def get_vcd(session_id: str):
+    """Serve the generated VCD file to the Surfer Waveform Viewer."""
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.abspath(os.path.join(base_dir, ".."))
+
+    # ChiselTest strictly names the VCD folder after the test name!
+    vcd_path = os.path.join(
+        project_root, "temp_sessions", session_id, "test_run_dir",
+        "PipelinedRV32I_should_generate_VCD_headlessly",
+        "PipelinedRV32I.vcd"
+    )
+
+    if os.path.exists(vcd_path):
+        return FileResponse(vcd_path)
+    return {"error": "VCD file has not been generated yet."}
 
 active_sessions = {}  # Maps session_id -> {"bridge": obj, "history": [], "cursor": 0}
 

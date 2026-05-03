@@ -182,6 +182,8 @@
         <div class="editor-tabs">
             <button id="tab-code" class="tab active" onclick="switchTab(currentFile)">📝 Code Editor</button>
             <button id="tab-viz" class="tab" onclick="switchView('viz')"> Pipeline Visualizer</button>
+            <button id="tab-wave" class="tab" onclick="switchView('wave')">🌊 Waveforms</button>
+            <div style="flex: 1;"></div>
 
             <div style="flex: 1;"></div>
 
@@ -216,6 +218,10 @@
                         <div class="reg-grid" id="reg-grid"></div>
                     </div>
                 </div>
+            </div>
+
+            <div id="wave-container" style="display: none; width: 100%; height: 100%; background: #181a1f;">
+                <iframe id="surfer-iframe" style="width: 100%; height: 100%; border: none;"></iframe>
             </div>
         </div>
     </div>
@@ -723,18 +729,27 @@
     // 5. UI CONTROLS & COMPILER
     // ==========================================
     function switchView(target) {
+        document.getElementById('monaco-container').style.display = 'none';
+        document.getElementById('viz-container').style.display = 'none';
+        document.getElementById('wave-container').style.display = 'none';
+
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+
         if (target === 'viz') {
-            document.getElementById('monaco-container').style.display = 'none';
             document.getElementById('viz-container').style.display = 'flex';
-            document.getElementById('tab-code').classList.remove('active');
             document.getElementById('tab-viz').classList.add('active');
-            document.getElementById('tab-code').innerText = `📝 Code (${currentFile})`;
+        } else if (target === 'wave') {
+            document.getElementById('wave-container').style.display = 'block';
+            document.getElementById('tab-wave').classList.add('active');
+
+            // Inject the VCD file into Surfer via URL parameters!
+            const iframe = document.getElementById('surfer-iframe');
+            if (!iframe.src && window.currentSessionId) {
+                iframe.src = `/static/surfer/index.html?load_url=/vcd/${window.currentSessionId}`;
+            }
         } else {
-            document.getElementById('viz-container').style.display = 'none';
             document.getElementById('monaco-container').style.display = 'block';
-            document.getElementById('tab-viz').classList.remove('active');
             document.getElementById('tab-code').classList.add('active');
-            document.getElementById('tab-code').innerText = `📝 Code Editor`;
             if(editor) editor.layout();
         }
     }

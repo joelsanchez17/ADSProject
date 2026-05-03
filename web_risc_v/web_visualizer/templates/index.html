@@ -182,7 +182,7 @@
         <div class="editor-tabs">
             <button id="tab-code" class="tab active" onclick="switchTab(currentFile)">📝 Code Editor</button>
             <button id="tab-viz" class="tab" onclick="switchView('viz')"> Pipeline Visualizer</button>
-            <button id="tab-wave" class="tab" onclick="switchView('wave')">🌊 Waveforms</button>
+            <button id="tab-wave" class="tab" onclick="switchView('wave')"> Waveforms</button>
             <div style="flex: 1;"></div>
 
             <div style="flex: 1;"></div>
@@ -742,10 +742,10 @@
             document.getElementById('wave-container').style.display = 'block';
             document.getElementById('tab-wave').classList.add('active');
 
-            // Inject the VCD file into Surfer via URL parameters!
             const iframe = document.getElementById('surfer-iframe');
             if (!iframe.src && window.currentSessionId) {
-                iframe.src = `/static/surfer/index.html?load_url=/vcd/${window.currentSessionId}`;
+                // 🚨 Point to the live app, but load local data!
+                iframe.src = `https://app.surfer-project.org/?load_url=http://localhost:8080/vcd/${window.currentSessionId}`;
             }
         } else {
             document.getElementById('monaco-container').style.display = 'block';

@@ -21,7 +21,7 @@ class LivePipelineTest extends AnyFlatSpec with ChiselScalatestTester {
         var cycles = 0
 
         // Step the clock until the Hazard Unit signals coreDone (opcode 0x73)
-        while (dut.io.coreDone.peek().litValue == 0 && cycles < 5000) {
+        while (dut.io.coreDone.peek().litValue == 0 && cycles < 100) {
           dut.clock.step(1)
           cycles += 1
         }

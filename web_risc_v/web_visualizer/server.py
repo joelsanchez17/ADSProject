@@ -1,6 +1,7 @@
 import socketio
 import copy
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from .bridge import ChiselBridge
@@ -22,7 +23,12 @@ debug_state = { "cursor": -1, "history": [] }
 
 sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
 app = FastAPI()
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.mount("/static", StaticFiles(directory="web_visualizer/static"), name="static")
 

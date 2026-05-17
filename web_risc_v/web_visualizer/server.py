@@ -31,6 +31,7 @@ app.add_middleware(
 )
 
 app.mount("/static", StaticFiles(directory="web_visualizer/static"), name="static")
+app.mount("/branding", StaticFiles(directory="web_visualizer/templates/branding"), name="branding")
 
 @app.get("/vcd/{session_id}")
 async def get_vcd(session_id: str):

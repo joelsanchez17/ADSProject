@@ -44,10 +44,15 @@
 
         /* --- TOOLBAR --- */
         .toolbar {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 8px 20px; background: var(--bg-panel);
-            border-bottom: 1px solid var(--border); z-index: 10;
-        }
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 18px;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+    z-index: 10;
+    min-height: 58px;
+}
         .brand { font-size: 15px; font-weight: 600; color: #abb2bf; letter-spacing: 1px; }
         .brand span { color: var(--accent); font-weight: 700; }
 
@@ -60,6 +65,71 @@
         .btn:hover { background: #2c313a; border-color: #abb2bf; color: #fff; }
         .btn-compile { background: var(--accent); border-color: var(--accent); color: #fff; }
         .btn-compile:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+
+        /* --- ACADEMIC BRANDING HEADER --- */
+.brand-area {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+.logo-group {
+    display: flex;
+    align-items: center;
+    padding-right: 14px;
+    border-right: 1px solid var(--border);
+}
+.combined-logo {
+    display: block;
+    width: 190px;
+    height: 46px;
+    object-fit: contain;
+    background: #ffffff;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 4px;
+    padding: 3px 6px;
+}
+
+.brand-text {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.15;
+}
+
+.lab-name {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 3px;
+}
+
+.tool-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.tool-title span {
+    color: var(--accent);
+}
+
+.tool-subtitle {
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+/* Keep old .brand harmless if still used elsewhere */
+.brand {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-main);
+    letter-spacing: 0.4px;
+}
 
         /* --- WORKSPACE --- */
         .workspace { display: flex; flex: 1; overflow: hidden; }
@@ -163,12 +233,23 @@
 <body>
 
 <div class="toolbar">
-    <div class="brand">🎓 <span>RISC-V</span> Architecture Simulator</div>
+    <div class="brand-area">
+        <div class="logo-group">
+            <img src="/branding/rptu-eis-logo.png" alt="RPTU and EIS Logo" class="combined-logo">
+        </div>
+
+        <div class="brand-text">
+            <div class="lab-name">RPTU · EIS Digital Systems Laboratory</div>
+            <div class="tool-title"><span>RISC-V</span> Processor Debugging Environment</div>
+            <div class="tool-subtitle">Multi-stage Chisel processor visualization for university course projects</div>
+        </div>
+    </div>
+
     <div class="controls">
-        <button class="btn" onclick="exportProject()" title="Save source files">⬇️ Export</button>
-        <button class="btn" style="color: var(--warning);" onclick="resetCurrentFile()" title="Reset the currently open file">↻ Reset File</button>
-        <button class="btn" style="color: var(--danger);" onclick="resetAllCode()" title="Reset the entire project">⚠ Reset All</button>
-        <button class="btn btn-compile" onclick="compileCode()">▶ Compile & Simulate</button>
+        <button class="btn" onclick="exportProject()" title="Save source files">Export</button>
+        <button class="btn" style="color: var(--warning);" onclick="resetCurrentFile()" title="Reset the currently open file">Reset File</button>
+        <button class="btn" style="color: var(--danger);" onclick="resetAllCode()" title="Reset the entire project">Reset Project</button>
+        <button class="btn btn-compile" onclick="compileCode()">Compile & Simulate</button>
     </div>
 </div>
 

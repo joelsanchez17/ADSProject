@@ -430,6 +430,39 @@
             setText('txt-asm-mem', data.asm?.mem || 'nop', '#98c379');
             setText('txt-hex-mem', toHex(data.instr?.mem), '#5c6370');
 
+            // 🚨 BULLETPROOF MEMORY VISUALIZATION LOGIC
+            const memData = data.mem || {};
+            const asmMem = (data.asm?.mem || "").trim().toLowerCase();
+
+            // Ignore dirty hardware control signals. Rely entirely on the assembly string!
+            const isStore = asmMem.startsWith("sw") || asmMem.startsWith("sh") || asmMem.startsWith("sb");
+            const isLoad  = asmMem.startsWith("lw") || asmMem.startsWith("lh") || asmMem.startsWith("lb");
+
+            // Format data to short hex to ensure it fits inside the SVG box
+            const shortAddr = "0x" + (memData.addr || 0).toString(16);
+            const shortWData = "0x" + (memData.wdata || 0).toString(16);
+
+            // Extract the destination register directly from the text (e.g., grabs "x9" from "lw x9, +4(x0)")
+            const regMatch = asmMem.match(/x\d+/);
+            const targetReg = regMatch ? regMatch[0] : `x${memData.rd || 0}`;
+
+            const memActiveColor = '#98c379'; // Matches the green instruction text
+
+            if (isStore) {
+                // WRITE (sw): Data moves FROM register TO memory address
+                // Visual flow: 0x21 → [0x4]
+                setText('txt-mem-status', `${shortWData} → [${shortAddr}]`, memActiveColor);
+
+            } else if (isLoad) {
+                // READ (lw): Data moves FROM memory address TO register
+                // Visual flow: [0x4] → x5
+                setText('txt-mem-status', `[${shortAddr}] → ${targetReg}`, memActiveColor);
+
+            } else {
+                // Safe Idle for ALU / Branch instructions
+                setText('txt-mem-status', 'Idle', '#5c6370');
+            }
+
             // --- UPDATE WB STAGE ---
             setText('txt-pc-wb', `PC: ${data.pc_hex?.wb || '--'}`, '#8b929e');
             setText('txt-asm-wb', data.asm?.wb || 'nop', '#98c379');
@@ -441,6 +474,7 @@
             const rfStatus = svgDoc.getElementById('txt-rf-status');
 
             if (data.wb && data.wb.we === 1 && data.wb.rd !== 0) {
+                // Active Register Write
                 setText('txt-wb-reg', `x${data.wb.rd} = 0x${(data.wb.wdata >>> 0).toString(16)}`, '#98c379');
                 if (wbWire) {
                     wbWire.setAttribute('stroke', '#98c379');
@@ -454,7 +488,9 @@
                     rfStatus.setAttribute('fill', '#98c379');
                 }
             } else {
-                setText('txt-wb-reg', `x${data.wb?.rd || 0} = 0x${(data.wb?.wdata || 0).toString(16)}`, '#5c6370');
+                // IDLE: Instructions that don't write to registers (sw, branches, etc.)
+                setText('txt-wb-reg', `Idle`, '#5c6370');  // <--- Changed to Idle
+
                 if (wbWire) {
                     wbWire.setAttribute('stroke', '#4b5363');
                     wbWire.setAttribute('stroke-width', '2');

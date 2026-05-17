@@ -79,7 +79,9 @@ function sendCommand(action, val=null) {
 
 // --- 4. RECEIVE DATA FROM PYTHON ---
 socket.on('update', (packet) => {
-    console.log("🔥 [UI UPDATE] JSON Packet successfully arrived at visualization engine!", packet);
+    // This will print the entire JSON structure neatly formatted in your browser console (F12)
+    console.log("🔥 FULL JSON PACKET FOR THIS CYCLE:");
+    console.log(JSON.stringify(packet.enriched, null, 2));
 
     lastPacket = packet;
     const data = packet.enriched;

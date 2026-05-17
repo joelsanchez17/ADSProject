@@ -322,6 +322,7 @@
     }
 
     socket.on('update', (packet) => {
+        console.log("🔥 CYCLE " + packet.cycle + " RAW JSON:", packet.enriched);
         lastPacket = packet;
 
         // 🛠️ INJECT THE DEBUGGER: Inspect EX Stage
@@ -389,12 +390,40 @@
             setText('txt-pc-ex', data.pc_hex?.ex || '--', '#8b929e');
             setText('txt-asm-ex', data.asm?.ex || 'nop', '#98c379');
             setText('txt-hex-ex', toHex(data.instr?.ex), '#5c6370');
-            setText('txt-op-a', `OperandA: ${data.ex?.val_a || 0}`, '#abb2bf');
-            setText('txt-op-b', `OperandB: ${data.ex?.val_b || 0}`, '#abb2bf');
 
-            let exLabel = "Res:";
-            if (isJumpInst) exLabel = "Ret Addr:";
-            setText('txt-alu-ex', `${exLabel} ${data.ex?.alu_result || '0x0'}`, '#fff');
+            const valA = data.ex?.val_a || 0;
+            const valB = data.ex?.val_b || 0;
+
+            // Extract the offset from the assembly string (e.g., "+12")
+            const offsetMatch = asmEx.match(/[+-]\d+/);
+            const offsetStr = offsetMatch ? offsetMatch[0] : "";
+
+            if (isBranchInst) {
+                // Determine operator for visual display
+                let op = "??";
+                if (asmEx.startsWith("beq")) op = "==";
+                else if (asmEx.startsWith("bne")) op = "≠";
+                else if (asmEx.startsWith("blt")) op = "<";
+                else if (asmEx.startsWith("bge")) op = "≥";
+
+                // Display the operands, the offset, and the action
+                setText('txt-op-a', `Check: ${valA} ${op} ${valB}`, '#e5c07b');
+                setText('txt-op-b', `Offset: ${offsetStr}`, '#abb2bf');
+                setText('txt-alu-ex', `Evaluating...`, '#c678dd');
+
+            } else if (isJumpInst) {
+                // Jumps are always taken
+                setText('txt-op-a', `Action: Jump`, '#c678dd');
+                setText('txt-op-b', `Offset: ${offsetStr}`, '#abb2bf');
+                // The return address calculation (PC + 4) is working in Cycle 23!
+                setText('txt-alu-ex', `Ret Addr: ${toHex(data.ex?.alu_result || 0)}`, '#fff');
+
+            } else {
+                // Standard ALU operations (ADD, SUB, etc.)
+                setText('txt-op-a', `OperandA: ${valA}`, '#abb2bf');
+                  setText('txt-op-b', `OperandB: ${valB}`, '#abb2bf');
+                setText('txt-alu-ex', `Res: ${data.ex?.alu_result || '0x0'}`, '#fff');
+            }
 
             // --- UPDATE MEM STAGE ---
             setText('txt-pc-mem', data.pc_hex?.mem || '--', '#8b929e');

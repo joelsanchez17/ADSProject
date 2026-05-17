@@ -137,12 +137,19 @@
         }
 
         /* --- TERMINAL --- */
-        .terminal-panel { height: 25%; background: var(--bg-darker); border-top: 1px solid var(--border); display: flex; flex-direction: column; z-index: 10; }
-        .terminal-header { background: var(--bg-panel); padding: 5px 15px; font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); font-weight: 700; }
+        /* Added transition for smooth sliding */
+        .terminal-panel { height: 25%; background: var(--bg-darker); border-top: 1px solid var(--border); display: flex; flex-direction: column; z-index: 10; transition: height 0.2s ease; }
+
+        /* 🚨 NEW: Collapsed state CSS */
+        .terminal-panel.collapsed { height: 32px; }
+        .terminal-panel.collapsed #console-output { display: none; }
+
+        .terminal-header { background: var(--bg-panel); padding: 5px 15px; font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); font-weight: 700; height: 21px; }
         .terminal-header button { background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 2px 5px; font-size: 11px; transition: 0.1s; }
         .terminal-header button:hover { color: var(--text-main); }
 
         #console-output { flex: 1; padding: 10px 15px; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; overflow-y: auto; color: #abb2bf; line-height: 1.5; }
+
 
         .term-line { display: block; word-break: break-all; }
         .term-info { color: var(--accent); font-weight: bold; }
@@ -230,7 +237,10 @@
 <div class="terminal-panel">
     <div class="terminal-header">
         <span>Console Output</span>
-        <button onclick="clearTerminal()">[ Clear ]</button>
+        <div>
+            <button onclick="toggleTerminal()" id="btn-toggle-term">[ Collapse ]</button>
+            <button onclick="clearTerminal()">[ Clear ]</button>
+        </div>
     </div>
     <div id="console-output">
         <div class="term-line">System booted. Environment ready.</div>
@@ -303,6 +313,34 @@
 
     function clearTerminal() {
         document.getElementById('console-output').innerHTML = '';
+    }
+
+    function clearTerminal() {
+        document.getElementById('console-output').innerHTML = '';
+    }
+
+    // 🚨 NEW: Terminal Toggle Logic
+    function toggleTerminal() {
+        const termPanel = document.querySelector('.terminal-panel');
+        const toggleBtn = document.getElementById('btn-toggle-term');
+
+        // Toggle the CSS class
+        termPanel.classList.toggle('collapsed');
+
+        // Update button text
+        if (termPanel.classList.contains('collapsed')) {
+            toggleBtn.innerText = '[ Expand ]';
+        } else {
+            toggleBtn.innerText = '[ Collapse ]';
+            // Scroll to bottom when expanded
+            const consoleOut = document.getElementById('console-output');
+            consoleOut.scrollTop = consoleOut.scrollHeight;
+        }
+
+        // Force the Monaco Editor to resize to fill the newly freed space
+        setTimeout(() => {
+            if (editor) editor.layout();
+        }, 210); // Wait slightly longer than the 0.2s CSS transition
     }
 
     socket.on('build_log', (data) => appendTerminal(data.line));
